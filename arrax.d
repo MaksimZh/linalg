@@ -2,6 +2,8 @@ module arrax;
 
 import std.algorithm;
 
+import codeindex;
+
 template AuxTypeValue(T, T a){}
 
 template isValueOfType(T, v...)

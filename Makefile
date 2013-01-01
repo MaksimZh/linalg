@@ -1,4 +1,4 @@
-test: test.d arrax.d
+test: test.d arrax.d codeindex.d
 	dmd -debug -unittest $^
 
 backup:
