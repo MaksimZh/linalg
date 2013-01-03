@@ -37,20 +37,20 @@ struct Arrax(T, dimTuple...)
     static assert(all!("a >= 0")([dimTuple]));
     
     // If the size of array is dynamic
-    enum isStatic = !canFind([dimTuple], 0);
+    enum isDynamic = canFind([dimTuple], 0);
 
     enum size_t rank = dimTuple.length;
 
     // Array dimensions and data contatiner type
-    static if(isStatic)
-    {
-        enum size_t[] dim = [dimTuple];
-        alias T[reduce!("a * b")(dim)] DataContainer;
-    }
-    else
+    static if(isDynamic)
     {
         size_t[rank] dim = [dimTuple];
         alias T[] DataContainer;
+    }
+    else
+    {
+        enum size_t[] dim = [dimTuple];
+        alias T[reduce!("a * b")(dim)] DataContainer;
     }
     
     // Leading dimension
@@ -61,7 +61,7 @@ struct Arrax(T, dimTuple...)
 
     DataContainer _data;
 
-    static if(!isStatic)
+    static if(isDynamic)
         void _resize(size_t newSize)
         {
             _data.length = newSize;
@@ -70,10 +70,10 @@ struct Arrax(T, dimTuple...)
 
 unittest
 {
-    static assert(!(Arrax!(int, 0).isStatic));
-    static assert(!(Arrax!(int, 1, 0).isStatic));
-    static assert(Arrax!(int, 1).isStatic);
-    static assert(Arrax!(int, 1, 2).isStatic);
+    static assert(Arrax!(int, 0).isDynamic);
+    static assert(Arrax!(int, 1, 0).isDynamic);
+    static assert(!(Arrax!(int, 1).isDynamic));
+    static assert(!(Arrax!(int, 1, 2).isDynamic));
 
     static assert(Arrax!(int, 1, 2).dim == [1, 2]);
     static assert(Arrax!(int, 1, 2).length == 1);
