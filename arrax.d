@@ -29,6 +29,26 @@ unittest
 
 enum size_t dynamicSize = 0;
 
+// Calculates steps in data array for each index (template)
+template blockSizeForDimT(dimTuple...)
+{
+    static if(dimTuple.length == 1)
+        enum size_t[] blockSizeForDimT = [1];
+    else
+        enum size_t[] blockSizeForDimT = [blockSizeForDimT!(dimTuple[1..$])[0] * dimTuple[1]] //XXX
+            ~ blockSizeForDimT!(dimTuple[1..$]);
+}
+
+// Calculates steps in data array for each index (function)
+size_t[] blockSizeForDim(const(size_t)[] dim) pure
+{
+    auto result = new size_t[dim.length];
+    result[$-1] = 1;
+    foreach_reverse(i, d; dim[0..$-1])
+        result[i] = result[i+1] * dim[i+1];
+    return result;
+}
+
 struct Arrax(T, dimTuple...)
 {
     //TODO: Make DataContainer some copy-on-write type
@@ -45,11 +65,13 @@ struct Arrax(T, dimTuple...)
     static if(isDynamic)
     {
         size_t[rank] dim = [dimTuple];
+        size_t[rank] blockSize;
         alias T[] DataContainer;
     }
     else
     {
         enum size_t[] dim = [dimTuple];
+        enum size_t[] blockSize = blockSizeForDimT!(dimTuple);
         alias T[reduce!("a * b")(dim)] DataContainer;
     }
     
@@ -76,6 +98,7 @@ unittest
     static assert(!(Arrax!(int, 1, 2).isDynamic));
 
     static assert(Arrax!(int, 1, 2).dim == [1, 2]);
+    static assert(Arrax!(int, 4, 2, 3).blockSize == [6, 3, 1]);
     static assert(Arrax!(int, 1, 2).length == 1);
     Arrax!(int, 1, 2, 0) a;
     assert(a.rank == 3);
