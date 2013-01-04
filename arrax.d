@@ -88,6 +88,27 @@ struct Arrax(T, dimTuple...)
         {
             _data.length = newSize;
         }
+
+    static if(isDynamic)
+        this(T[] data_, size_t[] dim_, size_t[] blockSize_ = [])
+            in
+            {
+                assert(dim_.length == rank);
+                assert(!((blockSize_ != []) && (blockSize_.length != rank)));
+                if(blockSize_ != [])
+                    assert(data_.length == dim_[0] * blockSize_[0]);
+                else
+                    assert(data_.length == reduce!("a * b")(dim_));
+            }
+        body
+        {
+            _data = data_;
+            dim = dim_;
+            if(blockSize_ != [])
+                blockSize = blockSize_;
+            else
+                blockSize = blockSizeForDim(dim);
+        }
 }
 
 unittest
@@ -107,4 +128,13 @@ unittest
     
     Arrax!(int, 0, 2) b;
     assert(b.length == 0);
+
+    auto c = Arrax!(int, 0, 0, 0)([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], [2, 2, 3]);
+    assert(c._data == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+    assert(c.dim == [2, 2, 3]);
+    assert(c.blockSize == [6, 3, 1]);
+    auto d = Arrax!(int, 0, 0)([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], [2, 3], [6, 2]);
+    assert(d._data == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+    assert(d.dim == [2, 3]);
+    assert(d.blockSize == [6, 2]);
 }
