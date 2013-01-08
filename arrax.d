@@ -137,6 +137,16 @@ struct Arrax(T, dimTuple...)
         {
             _data = data_;
         }
+
+    bool opEquals(MultArrayType!(T, rank) a)
+    {
+        if(length != a.length)
+            return false;
+        foreach(i; 0..length)
+            if(this[i].eval() != a[i])
+                return false;
+        return true;
+    }
         
     struct SliceProxy(size_t sliceRank, size_t depth)
     {
@@ -151,52 +161,64 @@ struct Arrax(T, dimTuple...)
             bounds = bounds_;
         }
 
-        static if(sliceRank > 0)
+        // Evaluate array for the slice
+        static if(depth < rank)
+        {
+            // If there is not enough bracket pairs - add empty []
             Arrax!(T, manyDynamicSize!(sliceRank)) eval()
             {
-                size_t[] dim = [];
-                size_t[] blockSize = [];
-                size_t dataLo = 0;
-                size_t dataUp = 0;
-                foreach(i, b; bounds)
-                {
-                    dataLo += source.blockSize[i] * b.lo;
-                    if(b.isRegularSlice)
-                    {
-                        dataUp += source.blockSize[i] * (b.up - 1);
-                        dim ~= b.up - b.lo;
-                        blockSize ~= source.blockSize[i];
-                    }
-                    else
-                        dataUp += source.blockSize[i] * b.up;
-                }
-                ++dataUp;
-            
-                debug(slices)
-                {
-                    writeln("Arrax.SliceProxy.eval(<slice>):");
-                    writeln("    dim = ", dim);
-                    writeln("    blockSize = ", blockSize);
-                    writeln("    data[", dataLo, "..", dataUp, "]");
-                }
-
-                return typeof(return)(source._data[dataLo..dataUp], dim, blockSize);
+                return this[].eval;
             }
+        }
         else
-            T eval()
-            {
-                size_t dataLo = 0;
-                foreach(i, b; bounds)
-                    dataLo += source.blockSize[i] * b.lo;
-                
-                debug(slices)
+        {
+            static if(sliceRank > 0)
+                Arrax!(T, manyDynamicSize!(sliceRank)) eval()
                 {
-                    writeln("Arrax.SliceProxy.eval(<index>):");
-                    writeln("    data[", dataLo, "]");
+                    size_t[] dim = [];
+                    size_t[] blockSize = [];
+                    size_t dataLo = 0;
+                    size_t dataUp = 0;
+                    foreach(i, b; bounds)
+                    {
+                        dataLo += source.blockSize[i] * b.lo;
+                        if(b.isRegularSlice)
+                        {
+                            dataUp += source.blockSize[i] * (b.up - 1);
+                            dim ~= b.up - b.lo;
+                            blockSize ~= source.blockSize[i];
+                        }
+                        else
+                            dataUp += source.blockSize[i] * b.up;
+                    }
+                    ++dataUp;
+            
+                    debug(slices)
+                    {
+                        writeln("Arrax.SliceProxy.eval(<slice>):");
+                        writeln("    dim = ", dim);
+                        writeln("    blockSize = ", blockSize);
+                        writeln("    data[", dataLo, "..", dataUp, "]");
+                    }
+
+                    return typeof(return)(source._data[dataLo..dataUp], dim, blockSize);
                 }
+            else
+                T eval()
+                {
+                    size_t dataLo = 0;
+                    foreach(i, b; bounds)
+                        dataLo += source.blockSize[i] * b.lo;
                 
-                return source._data[dataLo];
-            }
+                    debug(slices)
+                    {
+                        writeln("Arrax.SliceProxy.eval(<index>):");
+                        writeln("    data[", dataLo, "]");
+                    }
+                
+                    return source._data[dataLo];
+                }
+        }
 
         static if(depth < dimTuple.length)
         {
@@ -332,6 +354,14 @@ template manyDynamicSize(size_t N)
         alias Tuple!(dynamicSize, manyDynamicSize!(N - 1)) manyDynamicSize;
     else
         alias Tuple!(dynamicSize) manyDynamicSize;
+}
+
+template MultArrayType(T, size_t N)
+{
+    static if(N > 0)
+        alias MultArrayType!(T, N-1)[] MultArrayType;
+    else
+        alias T MultArrayType;
 }
 
 unittest
