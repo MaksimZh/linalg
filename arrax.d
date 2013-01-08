@@ -97,13 +97,6 @@ struct Arrax(T, dimTuple...)
         this(T[] data_, size_t[] dim_, size_t[] blockSize_ = [])
             in
             {
-                debug(slices)
-                {
-                    writeln("Arrax.this(<dynamic>):");
-                    writeln("    dim_ = ", dim_);
-                    writeln("    blockSize_ = ", blockSize_);
-                    writeln("    data_.length = ", data_.length);
-                }
                 assert(dim_.length == rank);
                 assert(!((blockSize_ != []) && (blockSize_.length != rank)));
                 if(blockSize_ != [])
@@ -139,105 +132,133 @@ struct Arrax(T, dimTuple...)
             _data = data_;
         }
         
-    struct SliceProxy(sliceTuple...)
+    struct SliceProxy(size_t sliceRank, size_t depth)
     {
-        static assert(isValueOfType!(SliceType, sliceTuple));
-        
+        //TODO: dynamic array is not an optimal solution
         SliceBounds[] bounds;
 
         Arrax source;
 
         this(ref Arrax source_, SliceBounds[] bounds_)
-            in
-            {
-                assert(bounds_.length == sliceTuple.length);
-            }
-        body
         {
             source = source_;
             bounds = bounds_;
         }
 
-        static if(sliceTuple.length == dimTuple.length)
-        auto array()
-        {
-            size_t[] dim = [];
-            size_t[] blockSize = [];
-            size_t dataLo = 0;
-            size_t dataUp = 0;
-            foreach(i, b; bounds)
+        static if(sliceRank > 0)
+            Arrax!(T, manyDynamicSize!(sliceRank)) eval()
             {
-                dataLo += source.blockSize[i] * b.lo;
-                dataUp += source.blockSize[i] * (b.up - 1);
-                if([sliceTuple][i] != SliceType.index)
+                size_t[] dim = [];
+                size_t[] blockSize = [];
+                size_t dataLo = 0;
+                size_t dataUp = 0;
+                foreach(i, b; bounds)
                 {
-                    dim ~= b.up - b.lo;
-                    blockSize ~= source.blockSize[i];
+                    dataLo += source.blockSize[i] * b.lo;
+                    if(b.isRegularSlice)
+                    {
+                        dataUp += source.blockSize[i] * (b.up - 1);
+                        dim ~= b.up - b.lo;
+                        blockSize ~= source.blockSize[i];
+                    }
+                    else
+                        dataUp += source.blockSize[i] * b.up;
                 }
-            }
-            ++dataUp;
+                ++dataUp;
             
-            debug(slices)
-            {
-                writeln("Arrax.SliceProxy.array():");
-                writeln("    dim = ", dim);
-                writeln("    blockSize = ", blockSize);
-                writeln("    data[", dataLo, "..", dataUp, "]");
+                debug(slices)
+                {
+                    writeln("Arrax.SliceProxy.eval(<slice>):");
+                    writeln("    dim = ", dim);
+                    writeln("    blockSize = ", blockSize);
+                    writeln("    data[", dataLo, "..", dataUp, "]");
+                }
+
+                return typeof(return)(source._data[dataLo..dataUp], dim, blockSize);
             }
-            
-            alias dimTupleForSlice!([dimTuple], [sliceTuple]) dimTupleNew;
-            static if(dimTupleNew.length > 0)
+        else
+            T eval()
             {
-                alias Arrax!(T, dimTupleForSlice!([dimTuple], [sliceTuple])) ArrayType;
-                static if(ArrayType.isDynamic)
-                    return ArrayType(source._data[dataLo..dataUp], dim, blockSize);
-                else
-                    return ArrayType(source._data[dataLo..dataUp]);
-            }
-            else
+                size_t dataLo = 0;
+                foreach(i, b; bounds)
+                    dataLo += source.blockSize[i] * b.lo;
+                
+                debug(slices)
+                {
+                    writeln("Arrax.SliceProxy.eval(<index>):");
+                    writeln("    data[", dataLo, "]");
+                }
+                
                 return source._data[dataLo];
-        }
-
-        static if(sliceTuple.length < dimTuple.length)
-        {
-            SliceProxy!(sliceTuple, SliceType.all) opSlice()
-            {
-                debug(slices) writeln("Arrax.SliceProxy.opSlice(): ",
-                                      bounds ~ SliceBounds(0, source.dim[sliceTuple.length]));
-                return typeof(return)(source, bounds ~ SliceBounds(0, source.dim[sliceTuple.length]));
             }
 
-            SliceProxy!(sliceTuple, SliceType.slice) opSlice(size_t lo, size_t up)
+        static if(depth < dimTuple.length)
+        {
+            SliceProxy!(sliceRank, depth + 1) opSlice()
             {
-                debug(slices) writeln("Arrax.SliceProxy.opSlice(lo, up): ",
-                                      bounds ~ SliceBounds(lo, up));
+                debug(slices)
+                {
+                    writeln("Arrax.SliceProxy.opSlice():");
+                    writeln("    ", typeof(return).stringof);
+                    writeln("    ", bounds ~ SliceBounds(0, source.dim[depth]));
+                }
+                return typeof(return)(source, bounds ~ SliceBounds(0, source.dim[depth]));
+            }
+
+            SliceProxy!(sliceRank, depth + 1) opSlice(size_t lo, size_t up)
+            {
+                debug(slices)
+                {
+                    writeln("Arrax.SliceProxy.opSlice(lo, up):");
+                    writeln("    ", typeof(return).stringof);
+                    writeln("    ", bounds ~ SliceBounds(lo, up));
+                }
                 return typeof(return)(source, bounds ~ SliceBounds(lo, up));
             }
 
-            SliceProxy!(sliceTuple, SliceType.index) opIndex(size_t i)
+            SliceProxy!(sliceRank - 1, depth + 1) opIndex(size_t i)
             {
-                debug(slices) writeln("Arrax.SliceProxy.opIndex(i): ",
-                                      bounds ~ SliceBounds(i));
+                debug(slices)
+                {
+                    writeln("Arrax.SliceProxy.opIndex(i):");
+                    writeln("    ", typeof(return).stringof);
+                    writeln("    ", bounds ~ SliceBounds(i));
+                }
                 return typeof(return)(source, bounds ~ SliceBounds(i));
             }
         }
     }
 
-    SliceProxy!(SliceType.all) opSlice()
+    SliceProxy!(rank, 1) opSlice()
     {
-        debug(slices) writeln("Arrax.opSlice(): ", SliceBounds(0, dim[0]));
+        debug(slices)
+        {
+            writeln("Arrax.opSlice():");
+            writeln("    ", typeof(return).stringof);
+            writeln("    ", SliceBounds(0, dim[0]));
+        }
         return typeof(return)(this, [SliceBounds(0, dim[0])]);
     }
 
-    SliceProxy!(SliceType.slice) opSlice(size_t lo, size_t up)
+    SliceProxy!(rank, 1) opSlice(size_t lo, size_t up)
     {
-        debug(slices) writeln("Arrax.opSlice(lo, up): ", SliceBounds(lo, up));
+        debug(slices)
+        {
+            writeln("Arrax.opSlice(lo, up):");
+            writeln("    ", typeof(return).stringof);
+            writeln("    ", SliceBounds(lo, up));
+        }
         return typeof(return)(this, [SliceBounds(lo, up)]);
     }
 
-    SliceProxy!(SliceType.index) opIndex(size_t i)
+    SliceProxy!(rank - 1, 1) opIndex(size_t i)
     {
-        debug(slices) writeln("Arrax.opIndex(i): ", SliceBounds(i));
+        debug(slices)
+        {
+            writeln("Arrax.opIndex(i):");
+            writeln("    ", typeof(return).stringof);
+            writeln("    ", SliceBounds(i));
+        }
         return typeof(return)(this, [SliceBounds(i)]);
     }
 }
@@ -284,32 +305,25 @@ struct SliceBounds
     this(size_t i)
     {
         lo = i;
-        up = i + 1;
+        up = i;
+    }
+
+    // Whether this is regular slice or index
+    bool isRegularSlice()
+    {
+        return !(lo == up);
     }
 }
 
-enum SliceType {index, slice, all};
-
-template Tuple(E...) { alias E Tuple; }
-
-template dimTupleForSlice(alias dim, alias slice)
+template Tuple(E...)
 {
-    //FIXME: find correct form of argument type testing
-    //static assert(is(typeof(dim) : size_t[]));
-    //static assert(is(typeof(sliceTuple) : SliceType[]));
-    static if(dim.length == 1)
-    {
-        static if(slice[0] == SliceType.index)
-            alias Tuple!() dimTupleForSlice;
-        else static if(slice[0] == SliceType.slice)
-            alias Tuple!(0) dimTupleForSlice;
-        else static if(slice[0] == SliceType.all)
-            alias Tuple!(0) dimTupleForSlice;
-        else
-            static assert(false);
-    }
+    alias E Tuple;
+}
+    
+template manyDynamicSize(size_t N)
+{
+    static if(N > 1)
+        alias Tuple!(dynamicSize, manyDynamicSize!(N - 1)) manyDynamicSize;
     else
-        alias Tuple!(dimTupleForSlice!([dim[0]], [slice[0]]),
-                     dimTupleForSlice!(dim[1..$], slice[1..$]))
-            dimTupleForSlice;
+        alias Tuple!(dynamicSize) manyDynamicSize;
 }
