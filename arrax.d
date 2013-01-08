@@ -4,6 +4,12 @@ import std.algorithm;
 
 debug import std.stdio;
 
+version(unittest)
+{
+    import std.array;
+    import std.range;
+}
+
 template AuxTypeValue(T, T a){}
 
 template isValueOfType(T, v...)
@@ -326,4 +332,39 @@ template manyDynamicSize(size_t N)
         alias Tuple!(dynamicSize, manyDynamicSize!(N - 1)) manyDynamicSize;
     else
         alias Tuple!(dynamicSize) manyDynamicSize;
+}
+
+unittest
+{
+    auto a = Arrax!(int, 2, 3, 4)(array(iota(0, 24)));
+    with(a[][][].eval())
+    {
+        assert(dim == [2, 3, 4]);
+        assert(blockSize == [12, 4, 1]);
+        assert(_data == a._data);
+    }
+    with(a[][][1].eval())
+    {
+        assert(dim == [2, 3]);
+        assert(blockSize == [12, 4]);
+        assert(_data == a._data[1..$-2]);
+    }
+    with(a[][][1..2].eval())
+    {
+        assert(dim == [2, 3, 1]);
+        assert(blockSize == [12, 4, 1]);
+        assert(_data == a._data[1..$-2]);
+    }
+    with(a[][1][].eval())
+    {
+        assert(dim == [2, 4]);
+        assert(blockSize == [12, 1]);
+        assert(_data == a._data[4..$-4]);
+    }
+    with(a[1][][].eval())
+    {
+        assert(dim == [3, 4]);
+        assert(blockSize == [4, 1]);
+        assert(_data == a._data[12..$]);
+    }
 }
