@@ -220,6 +220,8 @@ struct Arrax(T, dimTuple...)
                 }
         }
 
+        alias eval this;
+
         static if(depth < dimTuple.length)
         {
             SliceProxy!(sliceRank, depth + 1) opSlice()
