@@ -148,6 +148,17 @@ struct Arrax(T, dimTuple...)
         return true;
     }
 
+    ref Arrax opAssign(Arrax src)
+    {
+        static if(isDynamic)
+        {
+            dim = src.dim.dup;
+            blockSize = src.blockSize.dup;
+        }
+        _data = src._data.dup;
+        return this;
+    }
+
     struct SliceProxy(size_t sliceRank, size_t depth)
     {
         static if(sliceRank > 0)
@@ -370,6 +381,25 @@ template MultArrayType(T, size_t N)
         alias MultArrayType!(T, N-1)[] MultArrayType;
     else
         alias T MultArrayType;
+}
+
+unittest
+{
+    alias Arrax!(int, 2, 3, 4) A;
+    A a, b;
+    a = A(array(iota(0, 24)));
+    assert((b = a) == [[[0, 1, 2, 3],
+                        [4, 5, 6, 7],
+                        [8, 9, 10, 11]],
+                       [[12, 13, 14, 15],
+                        [16, 17, 18, 19],
+                        [20, 21, 22, 23]]]);
+    assert(b == [[[0, 1, 2, 3],
+                  [4, 5, 6, 7],
+                  [8, 9, 10, 11]],
+                 [[12, 13, 14, 15],
+                  [16, 17, 18, 19],
+                  [20, 21, 22, 23]]]);
 }
 
 unittest
