@@ -153,9 +153,9 @@ struct Arrax(T, dimTuple...)
         //TODO: dynamic array is not an optimal solution
         SliceBounds[] bounds;
 
-        Arrax source;
+        Arrax* source;
 
-        this(ref Arrax source_, SliceBounds[] bounds_)
+        this(Arrax* source_, SliceBounds[] bounds_)
         {
             source = source_;
             bounds = bounds_;
@@ -267,7 +267,7 @@ struct Arrax(T, dimTuple...)
             writeln("    ", typeof(return).stringof);
             writeln("    ", SliceBounds(0, dim[0]));
         }
-        return typeof(return)(this, [SliceBounds(0, dim[0])]);
+        return typeof(return)(&this, [SliceBounds(0, dim[0])]);
     }
 
     SliceProxy!(rank, 1) opSlice(size_t lo, size_t up)
@@ -278,7 +278,7 @@ struct Arrax(T, dimTuple...)
             writeln("    ", typeof(return).stringof);
             writeln("    ", SliceBounds(lo, up));
         }
-        return typeof(return)(this, [SliceBounds(lo, up)]);
+        return typeof(return)(&this, [SliceBounds(lo, up)]);
     }
 
     SliceProxy!(rank - 1, 1) opIndex(size_t i)
@@ -289,7 +289,7 @@ struct Arrax(T, dimTuple...)
             writeln("    ", typeof(return).stringof);
             writeln("    ", SliceBounds(i));
         }
-        return typeof(return)(this, [SliceBounds(i)]);
+        return typeof(return)(&this, [SliceBounds(i)]);
     }
 }
 
