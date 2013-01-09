@@ -1,3 +1,21 @@
+// Written in the D programming language.
+
+/** This module contains the $(LREF Arrax) .
+
+    Authors:    Maksim S. Zholudev
+    Copyright:  Copyright (c) 2013, Maksim S. Zholudev.
+    License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
+*/
+/* Possible problems
+
+   Probably some symbol names should be replaced with better ones.
+   
+   My English is not perfect. This should be fixed especially in comments and embedded documentation.
+   
+   SliceProxy evaluates to strided array.
+   Copy on write technique may require copying values densely to another container.
+   This is hard to organize if COW is implemented on container level.
+ */
 module arrax;
 
 import std.algorithm;
@@ -12,6 +30,7 @@ version(unittest)
 
 template AuxTypeValue(T, T a){}
 
+// Check whether the tuple is a tuple of values that can be implicitly converted to given type
 template isValueOfType(T, v...)
 {
     static if(v.length == 0)
@@ -22,7 +41,7 @@ template isValueOfType(T, v...)
         enum bool isValueOfType = isValueOfType!(T, v[0..1]) && isValueOfType!(T, v[1..$]);
 }
 
-unittest
+unittest // isValueOfType
 {
     static assert(!isValueOfType!(ulong));
     static assert(!isValueOfType!(ulong, int));
@@ -35,6 +54,7 @@ unittest
     static assert(isValueOfType!(ulong, 1, 2));
 }
 
+// Value to denote not fixed dimension of the array
 enum size_t dynamicSize = 0;
 
 // Calculates steps in data array for each index (template)
@@ -127,6 +147,7 @@ struct Arrax(T, dimTuple...)
         {
             _data = data_;
             dim = dim_;
+            // If strides are not specified create a dense array
             if(blockSize_ != [])
                 blockSize = blockSize_;
             else
@@ -149,6 +170,7 @@ struct Arrax(T, dimTuple...)
     {
         if(length != a.length)
             return false;
+        // Compare subelements recursively
         foreach(i; 0..length)
             if(this[i].eval() != a[i])
                 return false;
@@ -204,10 +226,16 @@ struct Arrax(T, dimTuple...)
                 static if(sliceRank > 0)
                 {
                     // Normal slice
+                    
                     size_t[] dim = []; // Dimensions of the resulting array
                     size_t[] blockSize = []; // Strides of the resulting array
                     size_t dataLo = 0; // Lower boundary in the contatiner
                     size_t dataUp = 0; // Upper boundary in the contatiner
+
+                    /* Dimensions and strides shoud be copied for all regular slices
+                       and omitted for indices.
+                       Boundaries should not cover additional elements.
+                     */
                     foreach(i, b; bounds)
                     {
                         dataLo += source.blockSize[i] * b.lo;
@@ -235,7 +263,9 @@ struct Arrax(T, dimTuple...)
                 else
                 {
                     // Set of indices
-                    size_t dataLo = 0;
+                    
+                    size_t dataLo = 0; // Position in the contatiner
+                    
                     foreach(i, b; bounds)
                         dataLo += source.blockSize[i] * b.lo;
                 
@@ -302,6 +332,7 @@ struct Arrax(T, dimTuple...)
         return typeof(return)(&this, [SliceBounds(0, dim[0])]);
     }
 
+    //ditto
     SliceProxy!(rank, 1) opSlice(size_t lo, size_t up)
     {
         debug(slices)
@@ -313,6 +344,7 @@ struct Arrax(T, dimTuple...)
         return typeof(return)(&this, [SliceBounds(lo, up)]);
     }
 
+    //ditto
     SliceProxy!(rank - 1, 1) opIndex(size_t i)
     {
         debug(slices)
@@ -325,7 +357,7 @@ struct Arrax(T, dimTuple...)
     }
 }
 
-unittest
+unittest // Type properties and dimensions
 {
     static assert(Arrax!(int, 0).isDynamic);
     static assert(Arrax!(int, 1, 0).isDynamic);
@@ -353,6 +385,7 @@ unittest
     assert(d.blockSize == [6, 2]);
 }
 
+// Structure to store slice boundaries compactly
 struct SliceBounds
 {
     size_t lo;
@@ -377,11 +410,13 @@ struct SliceBounds
     }
 }
 
+// Auxilary tuple
 template Tuple(E...)
 {
     alias E Tuple;
 }
-    
+
+// Tuple of multiple dynamicSize values
 template manyDynamicSize(size_t N)
 {
     static if(N > 1)
@@ -390,6 +425,7 @@ template manyDynamicSize(size_t N)
         alias Tuple!(dynamicSize) manyDynamicSize;
 }
 
+// Type of multidimensional jagged array
 template MultArrayType(T, size_t N)
 {
     static if(N > 0)
@@ -398,7 +434,24 @@ template MultArrayType(T, size_t N)
         alias T MultArrayType;
 }
 
-unittest
+unittest // Comparison
+{
+    auto a = Arrax!(int, 2, 3, 4)(array(iota(0, 24)));
+    assert(a == [[[0, 1, 2, 3],
+                  [4, 5, 6, 7],
+                  [8, 9, 10, 11]],
+                 [[12, 13, 14, 15],
+                  [16, 17, 18, 19],
+                  [20, 21, 22, 23]]]);
+    assert(!(a == [[[0, 1, 2, 3],
+                    [4, 5, 6, 7],
+                    [8, 9, 10, 11]],
+                   [[12, 0, 14, 15],
+                    [16, 17, 18, 19],
+                    [20, 21, 22, 23]]]));
+}
+
+unittest // Assignment
 {
     alias Arrax!(int, 2, 3, 4) A;
     A a, b;
@@ -413,7 +466,7 @@ unittest
     assert(b == test);
 }
 
-unittest
+unittest // Slicing
 {
     auto a = Arrax!(int, 2, 3, 4)(array(iota(0, 24)));
     assert(a[][][] == [[[0, 1, 2, 3],
