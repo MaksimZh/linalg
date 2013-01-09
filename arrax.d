@@ -60,11 +60,13 @@ size_t[] blockSizeForDim(const(size_t)[] dim) pure
 struct Arrax(T, dimTuple...)
 {
     //TODO: Make DataContainer some copy-on-write type
-    //TODO: Add trusted, nothrough, pure, etc 
+    //TODO: Add trusted, nothrough, pure, etc
+    //FIXME: Some members should be private
+    //TODO: blockSize -> stride
     static assert(isValueOfType!(size_t, dimTuple));
     static assert(all!("a >= 0")([dimTuple]));
     
-    // If the size of array is dynamic
+    // If the size of array is dynamic (i.e. at least one dimension is not defined)
     enum isDynamic = canFind([dimTuple], 0);
 
     enum size_t rank = dimTuple.length;
@@ -91,15 +93,18 @@ struct Arrax(T, dimTuple...)
     else
         size_t length() { return dim[0]; }
 
+    // Data container
     DataContainer _data;
 
     static if(isDynamic)
+        // Change the size of the contatiner
         void _resize(size_t newSize)
         {
             _data.length = newSize;
         }
 
     static if(isDynamic)
+        // Convert ordinary 1D array to dynamic MD array with given dimensions and strides
         this(T[] data_, size_t[] dim_, size_t[] blockSize_ = [])
             in
             {
@@ -128,6 +133,7 @@ struct Arrax(T, dimTuple...)
                 blockSize = blockSizeForDim(dim);
         }
     else
+        // Convert ordinary 1D array to static MD array with dense storage (no stride)
         this(T[] data_)
             in
             {
@@ -138,6 +144,7 @@ struct Arrax(T, dimTuple...)
             _data = data_;
         }
 
+    // Compare with a jagged array (btw. always false if realy jagged)
     bool opEquals(MultArrayType!(T, rank) a)
     {
         if(length != a.length)
@@ -148,6 +155,7 @@ struct Arrax(T, dimTuple...)
         return true;
     }
 
+    // Copy another array of the same type (rank and static dimensions must match)
     ref Arrax opAssign(Arrax src)
     {
         static if(isDynamic)
@@ -159,16 +167,19 @@ struct Arrax(T, dimTuple...)
         return this;
     }
 
+    // Auxilary structure for slicing and indexing
     struct SliceProxy(size_t sliceRank, size_t depth)
     {
+        // Type of the array that corresponds to the slicing result
         static if(sliceRank > 0)
             alias Arrax!(T, manyDynamicSize!(sliceRank)) EvalType;
         else
-            alias T EvalType;
+            alias T EvalType; // Slice is just set of indices
         
         //TODO: dynamic array is not an optimal solution
         SliceBounds[] bounds;
 
+        // Pointer to the array for wich slice is calculated
         Arrax* source;
 
         this(Arrax* source_, SliceBounds[] bounds_)
@@ -181,7 +192,7 @@ struct Arrax(T, dimTuple...)
         static if(depth < rank)
         {
             // If there is not enough bracket pairs - add empty []
-            Arrax!(T, manyDynamicSize!(sliceRank)) eval()
+            EvalType eval()
             {
                 return this[].eval;
             }
@@ -192,10 +203,11 @@ struct Arrax(T, dimTuple...)
             {
                 static if(sliceRank > 0)
                 {
-                    size_t[] dim = [];
-                    size_t[] blockSize = [];
-                    size_t dataLo = 0;
-                    size_t dataUp = 0;
+                    // Normal slice
+                    size_t[] dim = []; // Dimensions of the resulting array
+                    size_t[] blockSize = []; // Strides of the resulting array
+                    size_t dataLo = 0; // Lower boundary in the contatiner
+                    size_t dataUp = 0; // Upper boundary in the contatiner
                     foreach(i, b; bounds)
                     {
                         dataLo += source.blockSize[i] * b.lo;
@@ -222,6 +234,7 @@ struct Arrax(T, dimTuple...)
                 }
                 else
                 {
+                    // Set of indices
                     size_t dataLo = 0;
                     foreach(i, b; bounds)
                         dataLo += source.blockSize[i] * b.lo;
@@ -239,6 +252,7 @@ struct Arrax(T, dimTuple...)
 
         alias eval this;
 
+        // Slicing and indexing
         static if(depth < dimTuple.length)
         {
             SliceProxy!(sliceRank, depth + 1) opSlice()
@@ -276,6 +290,7 @@ struct Arrax(T, dimTuple...)
         }
     }
 
+    // Slicing and indexing
     SliceProxy!(rank, 1) opSlice()
     {
         debug(slices)
@@ -388,18 +403,14 @@ unittest
     alias Arrax!(int, 2, 3, 4) A;
     A a, b;
     a = A(array(iota(0, 24)));
-    assert((b = a) == [[[0, 1, 2, 3],
-                        [4, 5, 6, 7],
-                        [8, 9, 10, 11]],
-                       [[12, 13, 14, 15],
-                        [16, 17, 18, 19],
-                        [20, 21, 22, 23]]]);
-    assert(b == [[[0, 1, 2, 3],
+    auto test = [[[0, 1, 2, 3],
                   [4, 5, 6, 7],
                   [8, 9, 10, 11]],
                  [[12, 13, 14, 15],
                   [16, 17, 18, 19],
-                  [20, 21, 22, 23]]]);
+                  [20, 21, 22, 23]]];
+    assert((b = a) == test);
+    assert(b == test);
 }
 
 unittest
