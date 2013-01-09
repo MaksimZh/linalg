@@ -147,9 +147,14 @@ struct Arrax(T, dimTuple...)
                 return false;
         return true;
     }
-        
+
     struct SliceProxy(size_t sliceRank, size_t depth)
     {
+        static if(sliceRank > 0)
+            alias Arrax!(T, manyDynamicSize!(sliceRank)) EvalType;
+        else
+            alias T EvalType;
+        
         //TODO: dynamic array is not an optimal solution
         SliceBounds[] bounds;
 
@@ -172,8 +177,9 @@ struct Arrax(T, dimTuple...)
         }
         else
         {
-            static if(sliceRank > 0)
-                Arrax!(T, manyDynamicSize!(sliceRank)) eval()
+            EvalType eval()
+            {
+                static if(sliceRank > 0)
                 {
                     size_t[] dim = [];
                     size_t[] blockSize = [];
@@ -201,10 +207,9 @@ struct Arrax(T, dimTuple...)
                         writeln("    data[", dataLo, "..", dataUp, "]");
                     }
 
-                    return typeof(return)(source._data[dataLo..dataUp], dim, blockSize);
+                    return EvalType(source._data[dataLo..dataUp], dim, blockSize);
                 }
-            else
-                T eval()
+                else
                 {
                     size_t dataLo = 0;
                     foreach(i, b; bounds)
@@ -218,6 +223,7 @@ struct Arrax(T, dimTuple...)
                 
                     return source._data[dataLo];
                 }
+            }
         }
 
         alias eval this;
