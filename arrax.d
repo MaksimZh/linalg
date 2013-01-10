@@ -86,7 +86,7 @@ struct Arrax(T, dimTuple...)
     static assert(all!("a >= 0")([dimTuple]));
     
     // If the size of array is dynamic (i.e. at least one dimension is not defined)
-    enum isDynamic = canFind([dimTuple], 0);
+    enum isDynamic = canFind([dimTuple], dynamicSize);
 
     enum size_t rank = dimTuple.length;
 
