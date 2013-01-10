@@ -10,7 +10,7 @@
 
    Probably some symbol names should be replaced with better ones.
    
-   My English is not perfect. This should be fixed especially in comments and embedded documentation.
+   Grammar and spelling should be fixed especially in comments and embedded documentation.
    
    SliceProxy evaluates to strided array.
    Copy on write technique may require copying values densely to another container.
@@ -58,17 +58,17 @@ unittest // isValueOfType
 enum size_t dynamicSize = 0;
 
 // Calculates steps in data array for each index (template)
-template blockSizeForDimT(dimTuple...)
+template strideDenseStorageT(dimTuple...)
 {
     static if(dimTuple.length == 1)
-        enum size_t[] blockSizeForDimT = [1];
+        enum size_t[] strideDenseStorageT = [1];
     else
-        enum size_t[] blockSizeForDimT = [blockSizeForDimT!(dimTuple[1..$])[0] * dimTuple[1]] //XXX
-            ~ blockSizeForDimT!(dimTuple[1..$]);
+        enum size_t[] strideDenseStorageT = [strideDenseStorageT!(dimTuple[1..$])[0] * dimTuple[1]] //XXX
+            ~ strideDenseStorageT!(dimTuple[1..$]);
 }
 
 // Calculates steps in data array for each index (function)
-size_t[] blockSizeForDim(const(size_t)[] dim) pure
+size_t[] strideDenseStorage(const(size_t)[] dim) pure
 {
     auto result = new size_t[dim.length];
     result[$-1] = 1;
@@ -79,10 +79,9 @@ size_t[] blockSizeForDim(const(size_t)[] dim) pure
 
 struct Arrax(T, dimTuple...)
 {
-    //TODO: Make DataContainer some copy-on-write type
+    //TODO: Make ContainerType some copy-on-write type
     //TODO: Add trusted, nothrough, pure, etc
     //FIXME: Some members should be private
-    //TODO: blockSize -> stride
     static assert(isValueOfType!(size_t, dimTuple));
     static assert(all!("a >= 0")([dimTuple]));
     
@@ -91,78 +90,77 @@ struct Arrax(T, dimTuple...)
 
     enum size_t rank = dimTuple.length;
 
-    // Array dimensions and data contatiner type
+    // Array dimensions stride and data contatiner type
     static if(isDynamic)
     {
-        size_t[rank] dim = [dimTuple];
-        size_t[rank] blockSize;
-        alias T[] DataContainer;
-        alias DataContainer DataContainerDynamic;
+        private size_t[rank] _dim = [dimTuple];
+        private size_t[rank] _stride;
+        alias T[] ContainerType;
     }
     else
     {
-        enum size_t[] dim = [dimTuple];
-        enum size_t[] blockSize = blockSizeForDimT!(dimTuple);
-        alias T[reduce!("a * b")(dim)] DataContainer;
-        alias T[] DataContainerDynamic;
+        private enum size_t[] _dim = [dimTuple];
+        private enum size_t[] _stride = strideDenseStorageT!(dimTuple);
+        alias T[reduce!("a * b")(_dim)] ContainerType;
     }
-    
-    // Leading dimension
-    static if(dimTuple[0] != 0)
-        enum size_t length = dimTuple[0];
-    else
-        size_t length() { return dim[0]; }
 
     // Data container
-    DataContainer _data;
+    private ContainerType _container;
 
+    // Leading dimension
+    static if(dimTuple[0] != dynamicSize)
+        enum size_t length = dimTuple[0];
+    else
+        size_t length() { return _dim[0]; }
+    
     static if(isDynamic)
         // Change the size of the contatiner
-        void _resize(size_t newSize)
+        private void _resize(size_t newSize)
         {
-            _data.length = newSize;
+            _container.length = newSize;
         }
 
     static if(isDynamic)
         // Convert ordinary 1D array to dynamic MD array with given dimensions and strides
-        this(T[] data_, size_t[] dim_, size_t[] blockSize_ = [])
+        this(T[] src, size_t[] dim_, size_t[] stride_ = [])
             in
             {
                 assert(dim_.length == rank);
-                assert(!((blockSize_ != []) && (blockSize_.length != rank)));
-                if(blockSize_ != [])
+                assert(!((stride_ != []) && (stride_.length != rank)));
+                if(stride_ != [])
                 {
                     size_t requiredSize = 0;
                     foreach(i, d; dim_)
-                        requiredSize += blockSize_[i] * (dim_[i] - 1);
+                        requiredSize += stride_[i] * (dim_[i] - 1);
                     ++requiredSize;
-                    assert(data_.length == requiredSize);
+                    assert(src.length == requiredSize);
                 }
                 else
-                    assert(data_.length == reduce!("a * b")(dim_));
+                    assert(src.length == reduce!("a * b")(dim_));
                 foreach(i, d; dimTuple)
-                    if(d) assert(d == dim[i]);
+                    if(d != dynamicSize)
+                        assert(d == dim_[i]);
             }
         body
         {
-            _data = data_;
-            dim = dim_;
+            _container = src;
+            _dim = dim_;
             // If strides are not specified create a dense array
-            if(blockSize_ != [])
-                blockSize = blockSize_;
+            if(stride_ != [])
+                _stride = stride_;
             else
-                blockSize = blockSizeForDim(dim);
+                _stride = strideDenseStorage(_dim);
         }
     else
         // Convert ordinary 1D array to static MD array with dense storage (no stride)
-        this(T[] data_)
+        this(T[] src)
             in
             {
-                assert(data_.length == reduce!("a * b")(dim));
+                assert(src.length == reduce!("a * b")(_dim));
             }
         body
         {
-            _data = data_;
+            _container = src;
         }
 
     // Compare with a jagged array (btw. always false if realy jagged)
@@ -172,7 +170,7 @@ struct Arrax(T, dimTuple...)
             return false;
         // Compare subelements recursively
         foreach(i; 0..length)
-            if(this[i].eval() != a[i])
+            if(this[i].eval() != a[i]) //FIXME: is eval() really needed here?
                 return false;
         return true;
     }
@@ -182,10 +180,10 @@ struct Arrax(T, dimTuple...)
     {
         static if(isDynamic)
         {
-            dim = src.dim.dup;
-            blockSize = src.blockSize.dup;
+            _dim = src._dim.dup;
+            _stride = src._stride.dup;
         }
-        _data = src._data.dup;
+        _container = src._container.dup;
         return this;
     }
 
@@ -228,9 +226,9 @@ struct Arrax(T, dimTuple...)
                     // Normal slice
                     
                     size_t[] dim = []; // Dimensions of the resulting array
-                    size_t[] blockSize = []; // Strides of the resulting array
-                    size_t dataLo = 0; // Lower boundary in the contatiner
-                    size_t dataUp = 0; // Upper boundary in the contatiner
+                    size_t[] stride = []; // Strides of the resulting array
+                    size_t bndLo = 0; // Lower boundary in the contatiner
+                    size_t bndUp = 0; // Upper boundary in the contatiner
 
                     /* Dimensions and strides shoud be copied for all regular slices
                        and omitted for indices.
@@ -238,44 +236,44 @@ struct Arrax(T, dimTuple...)
                      */
                     foreach(i, b; bounds)
                     {
-                        dataLo += source.blockSize[i] * b.lo;
+                        bndLo += source._stride[i] * b.lo;
                         if(b.isRegularSlice)
                         {
-                            dataUp += source.blockSize[i] * (b.up - 1);
+                            bndUp += source._stride[i] * (b.up - 1);
                             dim ~= b.up - b.lo;
-                            blockSize ~= source.blockSize[i];
+                            stride ~= source._stride[i];
                         }
                         else
-                            dataUp += source.blockSize[i] * b.up;
+                            bndUp += source._stride[i] * b.up;
                     }
-                    ++dataUp;
+                    ++bndUp;
             
                     debug(slices)
                     {
                         writeln("Arrax.SliceProxy.eval(<slice>):");
                         writeln("    dim = ", dim);
-                        writeln("    blockSize = ", blockSize);
-                        writeln("    data[", dataLo, "..", dataUp, "]");
+                        writeln("    stride = ", stride);
+                        writeln("    _container[", bndLo, "..", bndUp, "]");
                     }
 
-                    return EvalType(source._data[dataLo..dataUp], dim, blockSize);
+                    return EvalType(source._container[bndLo..bndUp], dim, stride);
                 }
                 else
                 {
                     // Set of indices
                     
-                    size_t dataLo = 0; // Position in the contatiner
+                    size_t index = 0; // Position in the contatiner
                     
                     foreach(i, b; bounds)
-                        dataLo += source.blockSize[i] * b.lo;
+                        index += source._stride[i] * b.lo;
                 
                     debug(slices)
                     {
                         writeln("Arrax.SliceProxy.eval(<index>):");
-                        writeln("    data[", dataLo, "]");
+                        writeln("    _container[", index, "]");
                     }
                 
-                    return source._data[dataLo];
+                    return source._container[index];
                 }
             }
         }
@@ -291,9 +289,9 @@ struct Arrax(T, dimTuple...)
                 {
                     writeln("Arrax.SliceProxy.opSlice():");
                     writeln("    ", typeof(return).stringof);
-                    writeln("    ", bounds ~ SliceBounds(0, source.dim[depth]));
+                    writeln("    ", bounds ~ SliceBounds(0, source._dim[depth]));
                 }
-                return typeof(return)(source, bounds ~ SliceBounds(0, source.dim[depth]));
+                return typeof(return)(source, bounds ~ SliceBounds(0, source._dim[depth]));
             }
 
             SliceProxy!(sliceRank, depth + 1) opSlice(size_t lo, size_t up)
@@ -327,9 +325,9 @@ struct Arrax(T, dimTuple...)
         {
             writeln("Arrax.opSlice():");
             writeln("    ", typeof(return).stringof);
-            writeln("    ", SliceBounds(0, dim[0]));
+            writeln("    ", SliceBounds(0, _dim[0]));
         }
-        return typeof(return)(&this, [SliceBounds(0, dim[0])]);
+        return typeof(return)(&this, [SliceBounds(0, _dim[0])]);
     }
 
     //ditto
@@ -364,25 +362,25 @@ unittest // Type properties and dimensions
     static assert(!(Arrax!(int, 1).isDynamic));
     static assert(!(Arrax!(int, 1, 2).isDynamic));
 
-    static assert(Arrax!(int, 1, 2).dim == [1, 2]);
-    static assert(Arrax!(int, 4, 2, 3).blockSize == [6, 3, 1]);
+    static assert(Arrax!(int, 1, 2)._dim == [1, 2]);
+    static assert(Arrax!(int, 4, 2, 3)._stride == [6, 3, 1]);
     static assert(Arrax!(int, 1, 2).length == 1);
     Arrax!(int, 1, 2, 0) a;
     assert(a.rank == 3);
-    assert(a.dim == [1, 2, 0]);
+    assert(a._dim == [1, 2, 0]);
     assert(a.length == 1);
     
     Arrax!(int, 0, 2) b;
     assert(b.length == 0);
 
     auto c = Arrax!(int, 0, 0, 0)([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], [2, 2, 3]);
-    assert(c._data == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
-    assert(c.dim == [2, 2, 3]);
-    assert(c.blockSize == [6, 3, 1]);
+    assert(c._container == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+    assert(c._dim == [2, 2, 3]);
+    assert(c._stride == [6, 3, 1]);
     auto d = Arrax!(int, 0, 0)([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [2, 3], [6, 2]);
-    assert(d._data == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    assert(d.dim == [2, 3]);
-    assert(d.blockSize == [6, 2]);
+    assert(d._container == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    assert(d._dim == [2, 3]);
+    assert(d._stride == [6, 2]);
 }
 
 // Structure to store slice boundaries compactly
