@@ -182,8 +182,10 @@ struct Arrax(T, dimTuple...)
         {
             _dim = source._dim.dup;
             _stride = source._stride.dup;
+            _container = source._container; //FIXME: may be wrong depending on COW approach we choose
         }
-        _container = source._container.dup;
+        else
+            _container = source._container.dup;
         return this;
     }
 
@@ -462,6 +464,11 @@ unittest // Assignment
                   [20, 21, 22, 23]]];
     assert((b = a) == test);
     assert(b == test);
+    alias Arrax!(int, 0, 3, 0) A1;
+    A1 a1, b1;
+    a1 = A1(array(iota(0, 24)), [2, 3, 4]);
+    assert((b1 = a1) == test);
+    assert(b1 == test);
 }
 
 unittest // Slicing
