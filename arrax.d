@@ -122,7 +122,7 @@ struct Arrax(T, dimTuple...)
 
     static if(isDynamic)
         // Convert ordinary 1D array to dynamic MD array with given dimensions and strides
-        this(T[] src, size_t[] dim_, size_t[] stride_ = [])
+        this(T[] source, size_t[] dim_, size_t[] stride_ = [])
             in
             {
                 assert(dim_.length == rank);
@@ -133,17 +133,17 @@ struct Arrax(T, dimTuple...)
                     foreach(i, d; dim_)
                         requiredSize += stride_[i] * (dim_[i] - 1);
                     ++requiredSize;
-                    assert(src.length == requiredSize);
+                    assert(source.length == requiredSize);
                 }
                 else
-                    assert(src.length == reduce!("a * b")(dim_));
+                    assert(source.length == reduce!("a * b")(dim_));
                 foreach(i, d; dimTuple)
                     if(d != dynamicSize)
                         assert(d == dim_[i]);
             }
         body
         {
-            _container = src;
+            _container = source;
             _dim = dim_;
             // If strides are not specified create a dense array
             if(stride_ != [])
@@ -153,14 +153,14 @@ struct Arrax(T, dimTuple...)
         }
     else
         // Convert ordinary 1D array to static MD array with dense storage (no stride)
-        this(T[] src)
+        this(T[] source)
             in
             {
-                assert(src.length == reduce!("a * b")(_dim));
+                assert(source.length == reduce!("a * b")(_dim));
             }
         body
         {
-            _container = src;
+            _container = source;
         }
 
     // Compare with a jagged array (btw. always false if realy jagged)
@@ -176,14 +176,14 @@ struct Arrax(T, dimTuple...)
     }
 
     // Copy another array of the same type (rank and static dimensions must match)
-    ref Arrax opAssign(Arrax src)
+    ref Arrax opAssign(Arrax source)
     {
         static if(isDynamic)
         {
-            _dim = src._dim.dup;
-            _stride = src._stride.dup;
+            _dim = source._dim.dup;
+            _stride = source._stride.dup;
         }
-        _container = src._container.dup;
+        _container = source._container.dup;
         return this;
     }
 
