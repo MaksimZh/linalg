@@ -6,7 +6,7 @@
     Copyright:  Copyright (c) 2013, Maksim S. Zholudev.
     License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
 */
-/* Possible problems
+/* Possible problems:
 
    Probably some symbol names should be replaced with better ones.
    
@@ -15,6 +15,8 @@
    SliceProxy evaluates to strided array.
    Copy on write technique may require copying values densely to another container.
    This is hard to organize if COW is implemented on container level.
+
+   May be it worth adding slice view type and give e.g. copying implementation to it
  */
 module arrax;
 
@@ -75,6 +77,54 @@ size_t[] strideDenseStorage(const(size_t)[] dim) pure
     foreach_reverse(i, d; dim[0..$-1])
         result[i] = result[i+1] * dim[i+1];
     return result;
+}
+
+// Copy one slice to another one with the same dimensions
+void copySliceToSlice(T)(T[] dest, in size_t[] dstride,
+                         in T[] source, in size_t[] sstride,
+                         in size_t[] dim)
+    in
+    {
+        assert(dstride.length == dim.length);
+        assert(sstride.length == dim.length);
+    }
+body
+{
+    if(dim.length == 0)
+        dest[0] = source[0];
+    else
+        foreach(i; 0..dim[0])
+            copySliceToSlice(dest[(dstride[0]*i)..$], dstride[1..$],
+                             source[(sstride[0]*i)..$], sstride[1..$],
+                             dim[1..$]);
+}
+
+unittest // copySliceToSlice
+{
+    int[] source = array(iota(0, 24));
+    int[] dest0 = array(iota(24, 48));
+    {
+        int[] dest = dest0.dup;
+        copySliceToSlice(dest, [1], source, [1], [24]);
+        assert(dest == source);
+    }
+    {
+        int[] dest = dest0.dup;
+        copySliceToSlice(dest, [2], source, [3], [5]);
+        assert(dest[0..9] == [0, 25, 3, 27, 6, 29, 9, 31, 12]);
+        assert(dest[9..$] == dest0[9..$]);
+    }
+    {
+        int[] dest = dest0.dup;
+        copySliceToSlice(dest, [12, 4, 1], source, [12, 4, 1], [2, 3, 4]);
+        assert(dest == source);
+    }
+    {
+        int[] dest = dest0.dup;
+        copySliceToSlice(dest, [12, 8, 3], source[5..24], [12, 4, 2], [2, 2, 2]);
+        assert(dest == [5, 25, 26, 7,    28, 29, 30, 31,  9, 33, 34, 11,
+                        17, 37, 38, 19,  40, 41, 42, 43,  21, 45, 46, 23]);
+    }
 }
 
 struct Arrax(T, dimTuple...)
