@@ -210,6 +210,45 @@ struct Arrax(T, dimTuple...)
             bounds = bounds_;
         }
 
+        // Calculate slice dimensions, strides and position in the contatiner
+        void sliceParams(out size_t[] dim,  // Dimensions of the resulting array
+                         out size_t[] stride,  // Strides of the resulting array
+                         out size_t bndLo,  // Lower boundary in the contatiner
+                         out size_t bndUp)  // Upper boundary in the contatiner
+        {
+            dim = [];
+            stride = [];
+            bndLo = 0;
+            bndUp = 0;
+
+            /* Dimensions and strides shoud be copied for all regular slices
+               and omitted for indices.
+               Boundaries should not cover additional elements.
+            */
+            foreach(i, b; bounds)
+            {
+                bndLo += source._stride[i] * b.lo;
+                if(b.isRegularSlice)
+                {
+                    bndUp += source._stride[i] * (b.up - 1);
+                    dim ~= b.up - b.lo;
+                    stride ~= source._stride[i];
+                }
+                else
+                    bndUp += source._stride[i] * b.up;
+            }
+            ++bndUp;
+        }
+
+        // Calculate slice position in the contatiner
+        size_t sliceStart()
+        {
+            size_t index = 0; // Position in the contatiner
+            foreach(i, b; bounds)
+                index += source._stride[i] * b.lo;
+            return index;
+        }
+        
         // Evaluate array for the slice
         static if(depth < rank)
         {
@@ -227,28 +266,12 @@ struct Arrax(T, dimTuple...)
                 {
                     // Normal slice
                     
-                    size_t[] dim = []; // Dimensions of the resulting array
-                    size_t[] stride = []; // Strides of the resulting array
-                    size_t bndLo = 0; // Lower boundary in the contatiner
-                    size_t bndUp = 0; // Upper boundary in the contatiner
+                    size_t[] dim;
+                    size_t[] stride;
+                    size_t bndLo;
+                    size_t bndUp;
 
-                    /* Dimensions and strides shoud be copied for all regular slices
-                       and omitted for indices.
-                       Boundaries should not cover additional elements.
-                     */
-                    foreach(i, b; bounds)
-                    {
-                        bndLo += source._stride[i] * b.lo;
-                        if(b.isRegularSlice)
-                        {
-                            bndUp += source._stride[i] * (b.up - 1);
-                            dim ~= b.up - b.lo;
-                            stride ~= source._stride[i];
-                        }
-                        else
-                            bndUp += source._stride[i] * b.up;
-                    }
-                    ++bndUp;
+                    sliceParams(dim, stride, bndLo, bndUp);
             
                     debug(slices)
                     {
@@ -264,11 +287,8 @@ struct Arrax(T, dimTuple...)
                 {
                     // Set of indices
                     
-                    size_t index = 0; // Position in the contatiner
+                    size_t index = sliceStart();
                     
-                    foreach(i, b; bounds)
-                        index += source._stride[i] * b.lo;
-                
                     debug(slices)
                     {
                         writeln("Arrax.SliceProxy.eval(<index>):");
