@@ -12,11 +12,9 @@
    
    Grammar and spelling should be fixed especially in comments and embedded documentation.
    
-   SliceProxy evaluates to strided array.
+   SliceProxy evaluates to array slice.
    Copy on write technique may require copying values densely to another container.
    This is hard to organize if COW is implemented on container level.
-
-   May be it worth adding slice view type and give e.g. copying implementation to it
  */
 module arrax;
 
@@ -30,36 +28,12 @@ version(unittest)
     import std.range;
 }
 
-template AuxTypeValue(T, T a){}
-
-// Check whether the tuple is a tuple of values that can be implicitly converted to given type
-template isValueOfType(T, v...)
-{
-    static if(v.length == 0)
-        enum bool isValueOfType = false;
-    else static if(v.length == 1)
-        enum bool isValueOfType = is(typeof(AuxTypeValue!(T, v[0])));
-    else
-        enum bool isValueOfType = isValueOfType!(T, v[0..1]) && isValueOfType!(T, v[1..$]);
-}
-
-unittest // isValueOfType
-{
-    static assert(!isValueOfType!(ulong));
-    static assert(!isValueOfType!(ulong, int));
-    static assert(!isValueOfType!(ulong, 1.));
-    static assert(!isValueOfType!(ulong, 1, int));
-    static assert(!isValueOfType!(ulong, 1, 1.));
-    static assert(isValueOfType!(float, 1.));
-    static assert(isValueOfType!(float, 1, 1.));
-    static assert(isValueOfType!(ulong, 1));
-    static assert(isValueOfType!(ulong, 1, 2));
-}
+impoer aux;
 
 // Value to denote not fixed dimension of the array
 enum size_t dynamicSize = 0;
 
-// Calculates steps in data array for each index (template)
+// Calculates steps in data array for each index. template
 template strideDenseStorageT(dimTuple...)
 {
     static if(dimTuple.length == 1)
@@ -69,7 +43,7 @@ template strideDenseStorageT(dimTuple...)
             ~ strideDenseStorageT!(dimTuple[1..$]);
 }
 
-// Calculates steps in data array for each index (function)
+// Calculates steps in data array for each index. function
 size_t[] strideDenseStorage(const(size_t)[] dim) pure
 {
     auto result = new size_t[dim.length];
@@ -127,7 +101,22 @@ unittest // copySliceToSlice
     }
 }
 
-struct Arrax(T, dimTuple...)
+/* Multidimensional array slice.
+   Unlike arrays slices do not perform memory management.
+   Their dimensions and stride of slice are calculated only once
+   and can not be changed.
+   Currently they are used only for data copying.
+   Support of other operations (like arithmetic) is planned.
+   For other procedures they should be converted to dense arrays.
+ */
+struct ArraxSlice(T, uint rank)
+{
+}
+
+/*
+  Multidimensional array.
+ */
+struct ArraxDense(T, dimTuple...)
 {
     //TODO: Make ContainerType some copy-on-write type
     //TODO: Add trusted, nothrough, pure, etc
@@ -140,7 +129,7 @@ struct Arrax(T, dimTuple...)
 
     enum size_t rank = dimTuple.length;
 
-    // Array dimensions stride and data contatiner type
+    // Array dimensions stride and data container type
     static if(isDynamic)
     {
         private size_t[rank] _dim = [dimTuple];
@@ -164,7 +153,7 @@ struct Arrax(T, dimTuple...)
         size_t length() { return _dim[0]; }
     
     static if(isDynamic)
-        // Change the size of the contatiner
+        // Change the size of the container
         private void _resize(size_t newSize)
         {
             _container.length = newSize;
@@ -213,7 +202,7 @@ struct Arrax(T, dimTuple...)
             _container = source;
         }
 
-    // Compare with a jagged array (btw. always false if realy jagged)
+    // Compare with a jagged array (btw. always false if really jagged)
     bool opEquals(MultArrayType!(T, rank) a)
     {
         if(length != a.length)
@@ -239,7 +228,7 @@ struct Arrax(T, dimTuple...)
         return this;
     }
 
-    // Auxilary structure for slicing and indexing
+    // Auxiliary structure for slicing and indexing
     struct SliceProxy(size_t sliceRank, size_t depth)
     {
         // Type of the array that corresponds to the slicing result
@@ -251,7 +240,7 @@ struct Arrax(T, dimTuple...)
         //TODO: dynamic array is not an optimal solution
         SliceBounds[] bounds;
 
-        // Pointer to the array for wich slice is calculated
+        // Pointer to the array for which slice is calculated
         Arrax* source;
 
         this(Arrax* source_, SliceBounds[] bounds_)
@@ -260,18 +249,18 @@ struct Arrax(T, dimTuple...)
             bounds = bounds_;
         }
 
-        // Calculate slice dimensions, strides and position in the contatiner
+        // Calculate slice dimensions, strides and position in the container
         void sliceParams(out size_t[] dim,  // Dimensions of the resulting array
                          out size_t[] stride,  // Strides of the resulting array
-                         out size_t bndLo,  // Lower boundary in the contatiner
-                         out size_t bndUp)  // Upper boundary in the contatiner
+                         out size_t bndLo,  // Lower boundary in the container
+                         out size_t bndUp)  // Upper boundary in the container
         {
             dim = [];
             stride = [];
             bndLo = 0;
             bndUp = 0;
 
-            /* Dimensions and strides shoud be copied for all regular slices
+            /* Dimensions and strides should be copied for all regular slices
                and omitted for indices.
                Boundaries should not cover additional elements.
             */
@@ -290,10 +279,10 @@ struct Arrax(T, dimTuple...)
             ++bndUp;
         }
 
-        // Calculate slice position in the contatiner
+        // Calculate slice position in the container
         size_t sliceStart()
         {
-            size_t index = 0; // Position in the contatiner
+            size_t index = 0; // Position in the container
             foreach(i, b; bounds)
                 index += source._stride[i] * b.lo;
             return index;
@@ -478,30 +467,6 @@ struct SliceBounds
     {
         return !(lo == up);
     }
-}
-
-// Auxilary tuple
-template Tuple(E...)
-{
-    alias E Tuple;
-}
-
-// Tuple of multiple dynamicSize values
-template manyDynamicSize(size_t N)
-{
-    static if(N > 1)
-        alias Tuple!(dynamicSize, manyDynamicSize!(N - 1)) manyDynamicSize;
-    else
-        alias Tuple!(dynamicSize) manyDynamicSize;
-}
-
-// Type of multidimensional jagged array
-template MultArrayType(T, size_t N)
-{
-    static if(N > 0)
-        alias MultArrayType!(T, N-1)[] MultArrayType;
-    else
-        alias T MultArrayType;
 }
 
 unittest // Comparison
