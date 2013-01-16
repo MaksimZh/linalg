@@ -28,7 +28,7 @@ version(unittest)
     import std.range;
 }
 
-impoer aux;
+import aux;
 
 // Value to denote not fixed dimension of the array
 enum size_t dynamicSize = 0;
@@ -56,7 +56,7 @@ size_t[] strideDenseStorage(const(size_t)[] dim) pure
 // Copy one slice to another one with the same dimensions
 void copySliceToSlice(T)(T[] dest, in size_t[] dstride,
                          in T[] source, in size_t[] sstride,
-                         in size_t[] dim)
+                         in size_t[] dim) pure
     in
     {
         assert(dstride.length == dim.length);
@@ -101,6 +101,47 @@ unittest // copySliceToSlice
     }
 }
 
+/* Detect whether A is a dense multidimensional array or slice
+ */
+template isArrayOrSlice(A)
+{
+    enum bool isArrayOrSlice = is(typeof(()
+        {
+            A a;
+            alias A.ElementType T;
+            static assert(is(typeof(A.rank) == uint));
+            static assert(is(typeof(A.isDynamic) == bool));
+            static assert(is(typeof(a._dim) == size_t[rank]));
+            static assert(is(typeof(a._stride) == size_t[rank]));
+            static assert(is(typeof(a._container) == T[rank]));
+        }));
+}
+
+// Structure to store slice boundaries compactly
+struct SliceBounds
+{
+    size_t lo;
+    size_t up;
+
+    this(size_t lo_, size_t up_)
+    {
+        lo = lo_;
+        up = up_;
+    }
+    
+    this(size_t i)
+    {
+        lo = i;
+        up = i;
+    }
+
+    // Whether this is regular slice or index
+    bool isRegularSlice()
+    {
+        return !(lo == up);
+    }
+}
+
 /* Multidimensional array slice.
    Unlike arrays slices do not perform memory management.
    Their dimensions and stride of slice are calculated only once
@@ -109,42 +150,130 @@ unittest // copySliceToSlice
    Support of other operations (like arithmetic) is planned.
    For other procedures they should be converted to dense arrays.
  */
-struct ArraxSlice(T, uint rank)
+struct ArraxSlice(T, uint rank_)
 {
+    alias T ElementType;
+    enum uint rank = rank_;
+    enum bool isDynamic = true;
+    
+    private size_t[rank] _dim;
+    private size_t[rank] _stride;
+    private ElementType[] _container;
+
+    // Make slice of a built-in array
+    this()(T[] source, size_t[] dim, size_t[] stride = [])
+        in
+        {
+            assert(dim.length == rank);
+            assert(!((stride != []) && (stride.length != rank)));
+            if(stride != [])
+            {
+                size_t requiredSize = 0;
+                foreach(i, d; dim)
+                    requiredSize += stride[i] * (dim[i] - 1);
+                ++requiredSize;
+                assert(source.length == requiredSize);
+            }
+            else
+                assert(source.length == reduce!("a * b")(dim));
+            foreach(i, d; dimTuple)
+                if(d != dynamicSize)
+                    assert(d == dim[i]);
+        }
+    body
+    {
+        _container = source;
+        _dim = dim;
+        // If strides are not specified create a dense array
+        if(stride != [])
+            _stride = stride;
+        else
+            _stride = strideDenseStorage(_dim);
+    }
+
+    // Make slice of an array or slice
+    this(A)(A source, SliceBounds[] bounds)
+        if(isArrayOrSlice!SourceType)
+            in
+            {
+                assert(bounds.length == source.rank);
+                assert(count!("a.isRegularSlice")(bounds) == rank);
+            }
+    body
+    {
+        size_t bndLo = 0; // Lower boundary in the container
+        size_t bndUp = 0; // Upper boundary in the container
+
+        /* Dimensions and strides should be copied for all regular slices
+           and omitted for indices.
+           Boundaries should not cover additional elements.
+        */
+        foreach(i, b; bounds)
+        {
+            bndLo += source._stride[i] * b.lo;
+            if(b.isRegularSlice)
+            {
+                bndUp += source._stride[i] * (b.up - 1);
+                _dim[i] = b.up - b.lo;
+                _stride[i] = source._stride[i];
+            }
+            else
+                bndUp += source._stride[i] * b.up;
+        }
+        ++bndUp;
+
+        _container = source.container[bndLo..bndUp];
+
+        debug(slices)
+        {
+            writeln("ArraxSlice.this(source, bounds):");
+            writeln("    _dim = ", _dim);
+            writeln("    _stride = ", _stride);
+            writeln("    _container[", bndLo, "..", bndUp, "]");
+        }
+    }
+    
+    ref ArraxSlice opAssign(SourceType)(SourceType source)
+        if(isArrayOrSlice!SourceType)
+            in
+            {
+                assert(source._dim == _dim);
+            }
+    body
+    {
+        copySliceToSlice(_contatiner, _stride, source._container, source._stride, _dim);
+    }
 }
 
-/*
-  Multidimensional array.
+/* Multidimensional not jagged array with dense storage.
+   Static version (all dimensions are fixed) takes memory only for data.
  */
-struct ArraxDense(T, dimTuple...)
+struct Arrax(T, dimTuple...)
 {
     //TODO: Make ContainerType some copy-on-write type
     //TODO: Add trusted, nothrough, pure, etc
     //FIXME: Some members should be private
     static assert(isValueOfType!(size_t, dimTuple));
     static assert(all!("a >= 0")([dimTuple]));
-    
+
+    alias T ElementType;
+    enum uint rank = dimTuple.length;
     // If the size of array is dynamic (i.e. at least one dimension is not defined)
     enum isDynamic = canFind([dimTuple], dynamicSize);
-
-    enum size_t rank = dimTuple.length;
 
     // Array dimensions stride and data container type
     static if(isDynamic)
     {
-        private size_t[rank] _dim = [dimTuple];
+        private size_t[rank] _dim;
         private size_t[rank] _stride;
-        alias T[] ContainerType;
+        private ElementType[] _container;
     }
     else
     {
         private enum size_t[] _dim = [dimTuple];
         private enum size_t[] _stride = strideDenseStorageT!(dimTuple);
-        alias T[reduce!("a * b")(_dim)] ContainerType;
+        ElementType[reduce!("a * b")(_dim)] _container;
     }
-
-    // Data container
-    private ContainerType _container;
 
     // Leading dimension
     static if(dimTuple[0] != dynamicSize)
@@ -160,35 +289,21 @@ struct ArraxDense(T, dimTuple...)
         }
 
     static if(isDynamic)
-        // Convert ordinary 1D array to dynamic MD array with given dimensions and strides
-        this(T[] source, size_t[] dim_, size_t[] stride_ = [])
+        // Convert ordinary 1D array to dense multidimensional array with given dimensions
+        this(T[] source, size_t[] dim)
             in
             {
                 assert(dim_.length == rank);
-                assert(!((stride_ != []) && (stride_.length != rank)));
-                if(stride_ != [])
-                {
-                    size_t requiredSize = 0;
-                    foreach(i, d; dim_)
-                        requiredSize += stride_[i] * (dim_[i] - 1);
-                    ++requiredSize;
-                    assert(source.length == requiredSize);
-                }
-                else
-                    assert(source.length == reduce!("a * b")(dim_));
+                assert(source.length == reduce!("a * b")(dim));
                 foreach(i, d; dimTuple)
                     if(d != dynamicSize)
-                        assert(d == dim_[i]);
+                        assert(d == dim[i]);
             }
         body
         {
             _container = source;
-            _dim = dim_;
-            // If strides are not specified create a dense array
-            if(stride_ != [])
-                _stride = stride_;
-            else
-                _stride = strideDenseStorage(_dim);
+            _dim = dim;
+            _stride = strideDenseStorage(_dim);
         }
     else
         // Convert ordinary 1D array to static MD array with dense storage (no stride)
@@ -233,11 +348,11 @@ struct ArraxDense(T, dimTuple...)
     {
         // Type of the array that corresponds to the slicing result
         static if(sliceRank > 0)
-            alias Arrax!(T, manyDynamicSize!(sliceRank)) EvalType;
+            alias ArraxSlice!(T, sliceRank) EvalType;
         else
             alias T EvalType; // Slice is just set of indices
         
-        //TODO: dynamic array is not an optimal solution
+        //FIXME: dynamic array is not an optimal solution
         SliceBounds[] bounds;
 
         // Pointer to the array for which slice is calculated
@@ -247,45 +362,6 @@ struct ArraxDense(T, dimTuple...)
         {
             source = source_;
             bounds = bounds_;
-        }
-
-        // Calculate slice dimensions, strides and position in the container
-        void sliceParams(out size_t[] dim,  // Dimensions of the resulting array
-                         out size_t[] stride,  // Strides of the resulting array
-                         out size_t bndLo,  // Lower boundary in the container
-                         out size_t bndUp)  // Upper boundary in the container
-        {
-            dim = [];
-            stride = [];
-            bndLo = 0;
-            bndUp = 0;
-
-            /* Dimensions and strides should be copied for all regular slices
-               and omitted for indices.
-               Boundaries should not cover additional elements.
-            */
-            foreach(i, b; bounds)
-            {
-                bndLo += source._stride[i] * b.lo;
-                if(b.isRegularSlice)
-                {
-                    bndUp += source._stride[i] * (b.up - 1);
-                    dim ~= b.up - b.lo;
-                    stride ~= source._stride[i];
-                }
-                else
-                    bndUp += source._stride[i] * b.up;
-            }
-            ++bndUp;
-        }
-
-        // Calculate slice position in the container
-        size_t sliceStart()
-        {
-            size_t index = 0; // Position in the container
-            foreach(i, b; bounds)
-                index += source._stride[i] * b.lo;
-            return index;
         }
         
         // Evaluate array for the slice
@@ -304,29 +380,15 @@ struct ArraxDense(T, dimTuple...)
                 static if(sliceRank > 0)
                 {
                     // Normal slice
-                    
-                    size_t[] dim;
-                    size_t[] stride;
-                    size_t bndLo;
-                    size_t bndUp;
-
-                    sliceParams(dim, stride, bndLo, bndUp);
-            
-                    debug(slices)
-                    {
-                        writeln("Arrax.SliceProxy.eval(<slice>):");
-                        writeln("    dim = ", dim);
-                        writeln("    stride = ", stride);
-                        writeln("    _container[", bndLo, "..", bndUp, "]");
-                    }
-
-                    return EvalType(source._container[bndLo..bndUp], dim, stride);
+                    return EvalType(*source, bounds);
                 }
                 else
                 {
                     // Set of indices
                     
-                    size_t index = sliceStart();
+                    size_t index = 0; // Position in the container
+                    foreach(i, b; bounds)
+                        index += source._stride[i] * b.lo;
                     
                     debug(slices)
                     {
@@ -442,31 +504,6 @@ unittest // Type properties and dimensions
     assert(d._container == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     assert(d._dim == [2, 3]);
     assert(d._stride == [6, 2]);
-}
-
-// Structure to store slice boundaries compactly
-struct SliceBounds
-{
-    size_t lo;
-    size_t up;
-
-    this(size_t lo_, size_t up_)
-    {
-        lo = lo_;
-        up = up_;
-    }
-    
-    this(size_t i)
-    {
-        lo = i;
-        up = i;
-    }
-
-    // Whether this is regular slice or index
-    bool isRegularSlice()
-    {
-        return !(lo == up);
-    }
 }
 
 unittest // Comparison
