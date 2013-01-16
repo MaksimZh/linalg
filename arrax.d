@@ -109,12 +109,17 @@ template isArrayOrSlice(A)
         {
             A a;
             alias A.ElementType T;
-            static assert(is(typeof(A.rank) == uint));
+            /*static assert(is(typeof(A.rank) == uint));
             static assert(is(typeof(A.isDynamic) == bool));
             static assert(is(typeof(a._dim) == size_t[rank]));
             static assert(is(typeof(a._stride) == size_t[rank]));
-            static assert(is(typeof(a._container) == T[rank]));
+            static assert(is(typeof(a._container) == T[rank]));*/
         }));
+}
+
+unittest // isArrayOrSlice
+{
+    static assert(isArrayOrSlice!(Arrax!(int, 2, 3, 4)));
 }
 
 // Structure to store slice boundaries compactly
@@ -219,7 +224,7 @@ struct ArraxSlice(T, uint rank_)
         }
         ++bndUp;
 
-        _container = source.container[bndLo..bndUp];
+        _container = source._container[bndLo..bndUp];
 
         debug(slices)
         {
@@ -239,19 +244,6 @@ struct ArraxSlice(T, uint rank_)
     body
     {
         copySliceToSlice(_contatiner, _stride, source._container, source._stride, _dim);
-    }
-
-    /* Compare slice with a jagged array (btw. always false if really jagged).
-     */
-    bool opEquals(MultArrayType!(ElementType, rank) a)
-    {
-        if(_dim[0] != a.length)
-            return false;
-        // Compare elements recursively
-        foreach(i; 0.._dim[0])
-            if(ArraxSlice!(T, rank - 1)(_container[(_stride[0]*i)..$], _dim[1..$], _stride[1..$]) != a[i])
-                return false;
-        return true;
     }
 }
 
@@ -274,7 +266,7 @@ struct Arrax(T, dimTuple...)
     // Array dimensions stride and data container type
     static if(isDynamic)
     {
-        private size_t[rank] _dim;
+        private size_t[rank] _dim = [dimTuple];
         private size_t[rank] _stride;
         private ElementType[] _container;
     }
