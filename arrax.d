@@ -190,9 +190,9 @@ struct ArraxSlice(T, uint rank_)
     enum uint rank = rank_;
     enum bool isDynamic = true;
     
-    private size_t[rank] _dim;
-    private size_t[rank] _stride;
-    private ElementType[] _container;
+    size_t[rank] _dim;
+    size_t[rank] _stride;
+    ElementType[] _container;
 
     // Make slice of a built-in array
     this()(T[] source, size_t[] dim, size_t[] stride = [])
@@ -223,7 +223,7 @@ struct ArraxSlice(T, uint rank_)
     }
 
     // Make slice of an array or slice
-    this(SourceType)(SourceType source, SliceBounds[] bounds)
+    this(SourceType)(ref SourceType source, SliceBounds[] bounds)
         if(isArrayOrSlice!SourceType)
             in
             {
@@ -263,7 +263,8 @@ struct ArraxSlice(T, uint rank_)
             writeln("    _dim = ", _dim);
             writeln("    _stride = ", _stride);
             writeln("    _container[", bndLo, "..", bndUp, "] = ", _container);
-            writeln(this);
+            writeln("SR: ", source._container.ptr);
+            writeln("AS: ", this._container.ptr);
         }
     }
     
@@ -304,14 +305,14 @@ struct Arrax(T, dimTuple...)
     // Array dimensions stride and data container type
     static if(isDynamic)
     {
-        private size_t[rank] _dim = [dimTuple];
-        private size_t[rank] _stride;
-        private ElementType[] _container;
+        size_t[rank] _dim = [dimTuple];
+        size_t[rank] _stride;
+        ElementType[] _container;
     }
     else
     {
-        private enum size_t[] _dim = [dimTuple];
-        private enum size_t[] _stride = strideDenseStorageT!(dimTuple);
+        enum size_t[] _dim = [dimTuple];
+        enum size_t[] _stride = strideDenseStorageT!(dimTuple);
         ElementType[reduce!("a * b")(_dim)] _container;
     }
 
@@ -390,6 +391,13 @@ struct Arrax(T, dimTuple...)
         {
             source = source_;
             bounds = bounds_;
+
+            debug(slices)
+            {
+                writeln("Arrax.SliceProxy.this:");
+                writeln("    ", source);
+                writeln("    ", bounds);
+            }            
         }
         
         // Evaluate array for the slice
@@ -409,7 +417,7 @@ struct Arrax(T, dimTuple...)
                 {
                     // Normal slice
                     auto foo = EvalType(*source, bounds);
-                    debug writeln(foo);
+                    debug writeln("SP: ", foo._container.ptr);
                     return foo;
                 }
                 else
