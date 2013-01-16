@@ -101,6 +101,35 @@ unittest // copySliceToSlice
     }
 }
 
+bool compareSliceArray(T, A)(T[] container, size_t[] dim, size_t[] stride, A a)
+{
+    static if(!is(typeof(a.length)))
+    {
+        return container[0] == a;
+    }
+    else
+    {
+        if(dim[0] != a.length)
+            return false;
+        // Compare elements recursively
+        foreach(i; 0..dim[0])
+            if(!compareSliceArray(container[(stride[0]*i)..$], dim[1..$], stride[1..$], a[i]))
+                return false;
+        return true;
+    }
+}
+
+unittest // compareSliceArray
+{
+    assert(compareSliceArray(array(iota(0, 24)), [2, 3, 4], [12, 4, 1],
+                             [[[0, 1, 2, 3],
+                               [4, 5, 6, 7],
+                               [8, 9, 10, 11]],
+                              [[12, 13, 14, 15],
+                               [16, 17, 18, 19],
+                               [20, 21, 22, 23]]]));
+}
+
 /* Detect whether A is a dense multidimensional array or slice
  */
 template isArrayOrSlice(A)
@@ -210,14 +239,16 @@ struct ArraxSlice(T, uint rank_)
            and omitted for indices.
            Boundaries should not cover additional elements.
         */
+        uint idest = 0;
         foreach(i, b; bounds)
         {
             bndLo += source._stride[i] * b.lo;
             if(b.isRegularSlice)
             {
                 bndUp += source._stride[i] * (b.up - 1);
-                _dim[i] = b.up - b.lo;
-                _stride[i] = source._stride[i];
+                _dim[idest] = b.up - b.lo;
+                _stride[idest] = source._stride[i];
+                ++idest;
             }
             else
                 bndUp += source._stride[i] * b.up;
@@ -231,7 +262,8 @@ struct ArraxSlice(T, uint rank_)
             writeln("ArraxSlice.this(source, bounds):");
             writeln("    _dim = ", _dim);
             writeln("    _stride = ", _stride);
-            writeln("    _container[", bndLo, "..", bndUp, "]");
+            writeln("    _container[", bndLo, "..", bndUp, "] = ", _container);
+            writeln(this);
         }
     }
     
@@ -243,7 +275,13 @@ struct ArraxSlice(T, uint rank_)
             }
     body
     {
-        copySliceToSlice(_contatiner, _stride, source._container, source._stride, _dim);
+        copySliceToSlice(_container, _stride, source._container, source._stride, _dim);
+        return this;
+    }
+
+    bool opEquals(MultArrayType!(ElementType, rank) a)
+    {
+        return compareSliceArray(_container, _dim, _stride, a);
     }
 }
 
@@ -370,7 +408,9 @@ struct Arrax(T, dimTuple...)
                 static if(sliceRank > 0)
                 {
                     // Normal slice
-                    return EvalType(*source, bounds);
+                    auto foo = EvalType(*source, bounds);
+                    debug writeln(foo);
+                    return foo;
                 }
                 else
                 {
@@ -536,8 +576,7 @@ unittest // Assignment
     assert(b1 == test);
 }
 */
-
-/*XXX
+/*
 unittest // Slicing
 {
     auto a = Arrax!(int, 2, 3, 4)(array(iota(0, 24)));
