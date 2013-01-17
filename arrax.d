@@ -161,6 +161,55 @@ unittest // compareSliceArray
                                [20, 21, 22, 23]]]));
 }
 
+bool isHomogeneous(A)(A a)
+{
+    static if(is(typeof(a[0].length)))
+    {
+        size_t len = a[0].length;
+        foreach(row; a)
+            if((row.length != len) || !isHomogeneous(row))
+                return false;
+    }
+    return true;
+}
+
+unittest // isHomogeneous
+{
+    assert(isHomogeneous([0, 0]));
+    assert(isHomogeneous([[0, 0], [0, 0]]));
+    assert(!isHomogeneous([[0, 0], [0, 0, 0]]));
+}
+
+size_t[] getHomogeneousDim(A)(A a)
+{
+    static if(is(typeof(a.length)))
+        return [a.length] ~ getHomogeneousDim(a[0]);
+    else
+        return [];
+}
+
+unittest // getHomogeneousDim
+{
+    assert(getHomogeneousDim([0]) == [1]);
+    assert(getHomogeneousDim([[0, 0], [0, 0], [0, 0]]) == [3, 2]);
+}
+
+size_t[] getJaggedDim(A)(A a)
+{
+    if(isHomogeneous(a))
+        return getHomogeneousDim(a);
+    else
+        return [];
+}
+
+unittest // getJaggedDim
+{
+    assert(getJaggedDim(0) == []);
+    assert(getJaggedDim([0]) == [1]);
+    assert(getJaggedDim([[0, 0], [0, 0], [0, 0]]) == [3, 2]);
+    assert(getJaggedDim([[0, 0], [0, 0], [0, 0, 0]]) == []);
+}
+
 /* Detect whether A is a dense multidimensional array or slice
  */
 template isArrayOrSlice(A)
@@ -315,6 +364,11 @@ struct ArraxSlice(T, uint rank_)
     }
 
     ref ArraxSlice opAssign()(MultArrayType!(ElementType, rank) a)
+        in
+        {
+            
+        }
+    body
     {
         copyArrayToSlice(_container, _dim, _stride, a);
         return this;
