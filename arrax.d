@@ -511,6 +511,11 @@ struct Arrax(T, dimTuple...)
         }
         return typeof(return)(&this, [SliceBounds(i)]);
     }
+
+    bool opEquals(MultArrayType!(ElementType, rank) a)
+    {
+        return compareSliceArray(_container, _dim, _stride, a);
+    }
 }
 
 unittest // Type properties and dimensions
@@ -541,7 +546,6 @@ unittest // Type properties and dimensions
     assert(d._stride == [6, 2]);
 }
 
-/*FIXME: feature is not implemented yet
 unittest // Comparison
 {
     auto a = Arrax!(int, 2, 3, 4)(array(iota(0, 24)));
@@ -558,9 +562,7 @@ unittest // Comparison
                     [16, 17, 18, 19],
                     [20, 21, 22, 23]]]));
 }
-*/
 
-/*FIXME: feature is not implemented yet
 unittest // Assignment
 {
     alias Arrax!(int, 2, 3, 4) A;
@@ -580,7 +582,6 @@ unittest // Assignment
     assert((b1 = a1) == test);
     assert(b1 == test);
 }
-*/
 
 unittest // Slicing
 {
