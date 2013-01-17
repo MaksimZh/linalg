@@ -296,7 +296,12 @@ struct ArraxSlice(T, uint rank_)
             writeln("    _container[", bndLo, "..", bndUp, "] = ", _container);
         }
     }
-    
+
+    bool opEquals(MultArrayType!(ElementType, rank) a)
+    {
+        return compareSliceArray(_container, _dim, _stride, a);
+    }
+
     ref ArraxSlice opAssign(SourceType)(SourceType source)
         if(isArrayOrSlice!SourceType)
             in
@@ -309,9 +314,10 @@ struct ArraxSlice(T, uint rank_)
         return this;
     }
 
-    bool opEquals(MultArrayType!(ElementType, rank) a)
+    ref ArraxSlice opAssign()(MultArrayType!(ElementType, rank) a)
     {
-        return compareSliceArray(_container, _dim, _stride, a);
+        copyArrayToSlice(_container, _dim, _stride, a);
+        return this;
     }
 }
 
@@ -505,6 +511,11 @@ struct Arrax(T, dimTuple...)
                 return typeof(return)(source, bounds ~ SliceBounds(i));
             }
         }
+        
+        auto opAssign()(MultArrayType!(ElementType, sliceRank) a)
+        {
+            return (eval() = a);
+        }
     }
 
     // Slicing and indexing
@@ -547,6 +558,12 @@ struct Arrax(T, dimTuple...)
     {
         return compareSliceArray(_container, _dim, _stride, a);
     }
+
+    ref Arrax opAssign(MultArrayType!(ElementType, rank) a)
+    {
+        copyArrayToSlice(_container, _dim, _stride, a);
+        return this;
+    }
 }
 
 unittest // Type properties and dimensions
@@ -586,32 +603,12 @@ unittest // Comparison
                  [[12, 13, 14, 15],
                   [16, 17, 18, 19],
                   [20, 21, 22, 23]]]);
-    assert(!(a == [[[0, 1, 2, 3],
-                    [4, 5, 6, 7],
-                    [8, 9, 10, 11]],
-                   [[12, 0, 14, 15],
-                    [16, 17, 18, 19],
-                    [20, 21, 22, 23]]]));
-}
-
-unittest // Assignment
-{
-    alias Arrax!(int, 2, 3, 4) A;
-    A a, b;
-    a = A(array(iota(0, 24)));
-    auto test = [[[0, 1, 2, 3],
+    assert(a != [[[0, 1, 2, 3],
                   [4, 5, 6, 7],
                   [8, 9, 10, 11]],
-                 [[12, 13, 14, 15],
+                 [[12, 0, 14, 15],
                   [16, 17, 18, 19],
-                  [20, 21, 22, 23]]];
-    assert((b = a) == test);
-    assert(b == test);
-    alias Arrax!(int, 0, 3, 0) A1;
-    A1 a1, b1;
-    a1 = A1(array(iota(0, 24)), [2, 3, 4]);
-    assert((b1 = a1) == test);
-    assert(b1 == test);
+                  [20, 21, 22, 23]]]);
 }
 
 unittest // Slicing
@@ -661,4 +658,54 @@ unittest // Slicing
     assert(a[1][1..3][1] == [17, 21]);
     assert(a[1][1..3][1..3] == [[17, 18],
                                 [21, 22]]);
+}
+
+unittest // Assignment
+{
+    alias Arrax!(int, 2, 3, 4) A;
+    A a, b;
+    a = A(array(iota(0, 24)));
+    auto test = [[[0, 1, 2, 3],
+                  [4, 5, 6, 7],
+                  [8, 9, 10, 11]],
+                 [[12, 13, 14, 15],
+                  [16, 17, 18, 19],
+                  [20, 21, 22, 23]]];
+    assert((b = a) == test);
+    assert(b == test);
+    alias Arrax!(int, 0, 3, 0) A1;
+    A1 a1, b1;
+    a1 = A1(array(iota(0, 24)), [2, 3, 4]);
+    assert((b1 = a1) == test);
+    assert(b1 == test);
+}
+
+unittest // Assignment, jagged array
+{
+    {
+        auto source = [[[0, 1, 2, 3],
+                        [4, 5, 6, 7],
+                        [8, 9, 10, 11]],
+                       [[12, 13, 14, 15],
+                        [16, 17, 18, 19],
+                        [20, 21, 22, 23]]];
+        Arrax!(int, 2, 3, 4) a;
+        assert((a = source) == source);
+        assert(a == source);
+    }
+    {
+        auto test = [[[0, 1, 2, 3],
+                      [4, 24, 25, 7],
+                      [8, 9, 10, 11]],
+                     [[12, 13, 14, 15],
+                      [16, 26, 27, 19],
+                      [20, 21, 22, 23]]];
+        auto source = [[24, 25],
+                       [26, 27]];
+        auto a = Arrax!(int, 2, 3, 4)(array(iota(0, 24)));
+        writeln(a[][1][1..3]);
+        assert((a[][1][1..3] = source) == source);
+        assert(a == test);
+    }
+
 }
