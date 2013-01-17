@@ -263,8 +263,6 @@ struct ArraxSlice(T, uint rank_)
             writeln("    _dim = ", _dim);
             writeln("    _stride = ", _stride);
             writeln("    _container[", bndLo, "..", bndUp, "] = ", _container);
-            writeln("SR: ", source._container.ptr);
-            writeln("AS: ", this._container.ptr);
         }
     }
     
@@ -417,7 +415,6 @@ struct Arrax(T, dimTuple...)
                 {
                     // Normal slice
                     auto foo = EvalType(*source, bounds);
-                    debug writeln("SP: ", foo._container.ptr);
                     return foo;
                 }
                 else
@@ -584,7 +581,7 @@ unittest // Assignment
     assert(b1 == test);
 }
 */
-/*
+
 unittest // Slicing
 {
     auto a = Arrax!(int, 2, 3, 4)(array(iota(0, 24)));
@@ -633,4 +630,3 @@ unittest // Slicing
     assert(a[1][1..3][1..3] == [[17, 18],
                                 [21, 22]]);
 }
-*/
