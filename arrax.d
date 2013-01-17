@@ -101,6 +101,37 @@ unittest // copySliceToSlice
     }
 }
 
+void copyArrayToSlice(T, A)(T[] container, size_t[] dim, size_t[] stride, A a)
+{
+    static if(!is(typeof(a.length)))
+    {
+        container[0] = a;
+    }
+    else
+    {
+        // Copy elements recursively
+        foreach(i; 0..dim[0])
+            copyArrayToSlice(container[(stride[0]*i)..$], dim[1..$], stride[1..$], a[i]);
+    }
+}
+
+unittest // copySliceToSlice
+{
+    auto source = [[[0, 1, 2, 3],
+                    [4, 5, 6, 7],
+                    [8, 9, 10, 11]],
+                   [[12, 13, 14, 15],
+                    [16, 17, 18, 19],
+                    [20, 21, 22, 23]]];
+    auto test = array(iota(0, 24));
+    int[] dest0 = array(iota(24, 48));
+    {
+        int[] dest = dest0.dup;
+        copyArrayToSlice(dest, [2, 3, 4], [12, 4, 1], source);
+        assert(dest == test);
+    }
+}
+
 bool compareSliceArray(T, A)(T[] container, size_t[] dim, size_t[] stride, A a)
 {
     static if(!is(typeof(a.length)))
