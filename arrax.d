@@ -218,17 +218,22 @@ template isArrayOrSlice(A)
         {
             A a;
             alias A.ElementType T;
-            /*static assert(is(typeof(A.rank) == uint));
+            static assert(is(typeof(A.rank) == uint));
             static assert(is(typeof(A.isDynamic) == bool));
-            static assert(is(typeof(a._dim) == size_t[rank]));
-            static assert(is(typeof(a._stride) == size_t[rank]));
-            static assert(is(typeof(a._container) == T[rank]));*/
+            static assert(is(typeof(a._dim)));
+            static assert(is(typeof(a._dim[0]) == size_t));
+            static assert(is(typeof(a._stride)));
+            static assert(is(typeof(a._stride[0]) == size_t));
+            static assert(is(typeof(a._container)));
+            static assert(is(typeof(a._container[0]) == T));
         }));
 }
 
 unittest // isArrayOrSlice
 {
     static assert(isArrayOrSlice!(Arrax!(int, 2, 3, 4)));
+    static assert(isArrayOrSlice!(Arrax!(int, 2, 3, 0)));
+    static assert(isArrayOrSlice!(ArraxSlice!(int, 2)));
 }
 
 // Structure to store slice boundaries compactly
