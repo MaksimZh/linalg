@@ -351,11 +351,17 @@ struct ArraxSlice(T, uint rank_)
         }
     }
 
-    bool opEquals(MultArrayType!(ElementType, rank) a)
+    ref ArraxSlice opAssign()(MultArrayType!(ElementType, rank) a)
+        in
+        {
+            
+        }
+    body
     {
-        return compareSliceArray(_container, _dim, _stride, a);
+        copyArrayToSlice(_container, _dim, _stride, a);
+        return this;
     }
-
+    
     ref ArraxSlice opAssign(SourceType)(SourceType source)
         if(isArrayOrSlice!SourceType)
             in
@@ -368,15 +374,9 @@ struct ArraxSlice(T, uint rank_)
         return this;
     }
 
-    ref ArraxSlice opAssign()(MultArrayType!(ElementType, rank) a)
-        in
-        {
-            
-        }
-    body
+    bool opEquals(MultArrayType!(ElementType, rank) a)
     {
-        copyArrayToSlice(_container, _dim, _stride, a);
-        return this;
+        return compareSliceArray(_container, _dim, _stride, a);
     }
 }
 
@@ -451,21 +451,7 @@ struct Arrax(T, dimTuple...)
         {
             _container = source;
         }
-
-    // Copy another array of the same type (rank and static dimensions must match)
-    ref Arrax opAssign(Arrax source)
-    {
-        static if(isDynamic)
-        {
-            _dim = source._dim.dup;
-            _stride = source._stride.dup;
-            _container = source._container; //FIXME: may be wrong depending on COW approach we choose
-        }
-        else
-            _container = source._container.dup;
-        return this;
-    }
-
+    
     // Auxiliary structure for slicing and indexing
     struct SliceProxy(size_t sliceRank, size_t depth)
     {
@@ -613,15 +599,29 @@ struct Arrax(T, dimTuple...)
         return typeof(return)(&this, [SliceBounds(i)]);
     }
 
-    bool opEquals(MultArrayType!(ElementType, rank) a)
+    // Copy another array of the same type (rank and static dimensions must match)
+    ref Arrax opAssign(Arrax source)
     {
-        return compareSliceArray(_container, _dim, _stride, a);
+        static if(isDynamic)
+        {
+            _dim = source._dim.dup;
+            _stride = source._stride.dup;
+            _container = source._container; //FIXME: may be wrong depending on COW approach we choose
+        }
+        else
+            _container = source._container.dup;
+        return this;
     }
 
     ref Arrax opAssign(MultArrayType!(ElementType, rank) a)
     {
         copyArrayToSlice(_container, _dim, _stride, a);
         return this;
+    }
+
+    bool opEquals(MultArrayType!(ElementType, rank) a)
+    {
+        return compareSliceArray(_container, _dim, _stride, a);
     }
 }
 
