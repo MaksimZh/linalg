@@ -174,17 +174,6 @@ struct ArraxSlice(T, uint rank_)
             writeln("    _container[", bndLo, "..", bndUp, "] = ", _container);
         }
     }
-
-    ref ArraxSlice opAssign()(MultArrayType!(ElementType, rank) a)
-        in
-        {
-            
-        }
-    body
-    {
-        copyArrayToSlice(_dim, _stride, _container, a);
-        return this;
-    }
     
     ref ArraxSlice opAssign(SourceType)(SourceType source)
         if(isArrayOrSlice!SourceType)
@@ -198,7 +187,29 @@ struct ArraxSlice(T, uint rank_)
         return this;
     }
 
-    bool opEquals(MultArrayType!(ElementType, rank) a)
+    ref ArraxSlice opAssign()(MultArrayType!(ElementType, rank) a)
+        in
+        {
+            
+        }
+    body
+    {
+        copyArrayToSlice(_dim, _stride, _container, a);
+        return this;
+    }
+
+    bool opEquals(SourceType)(SourceType source)
+        if(isArrayOrSlice!SourceType)
+            in
+            {
+                assert(source._dim == _dim);
+            }
+    body
+    {
+        return compareSliceSlice(_dim, _stride, source._stride, _container, source._container);
+    }
+    
+    bool opEquals()(MultArrayType!(ElementType, rank) a)
     {
         return compareSliceArray(_dim, _stride, _container, a);
     }
