@@ -16,6 +16,8 @@ version(unittest)
     import std.range;
 }
 
+import mdarray;
+
 // Calculates strides in data array for dense storage
 size_t[] calcDenseStrides(const(size_t)[] dim) pure
 {
@@ -102,6 +104,11 @@ unittest // copySliceToSlice
 
 // Copy built-in array to slice with the same dimensions
 void copyArrayToSlice(T, A)(size_t[] dim, size_t[] stride, T[] container, A a)
+    in
+    {
+        assert(getDimensions(a) == dim);
+    }
+body
 {
     static if(!is(typeof(a.length)))
     {
@@ -165,6 +172,11 @@ unittest // compareSliceSlice
 
 // Compare built-in array and slice with the same dimensions
 bool compareSliceArray(T, A)(size_t[] dim, size_t[] stride, T[] container, A a)
+    in
+    {
+        assert(getDimensions(a) == dim);
+    }
+body
 {
     static if(!is(typeof(a.length)))
     {
