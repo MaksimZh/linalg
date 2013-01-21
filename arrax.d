@@ -182,7 +182,7 @@ struct ArraxSlice(T, uint rank_)
         }
     body
     {
-        copyArrayToSlice(_container, _dim, _stride, a);
+        copyArrayToSlice(_dim, _stride, _container, a);
         return this;
     }
     
@@ -194,13 +194,13 @@ struct ArraxSlice(T, uint rank_)
             }
     body
     {
-        copySliceToSlice(_container, _stride, source._container, source._stride, _dim);
+        copySliceToSlice(_dim, _stride, source._stride, _container, source._container);
         return this;
     }
 
     bool opEquals(MultArrayType!(ElementType, rank) a)
     {
-        return compareSliceArray(_container, _dim, _stride, a);
+        return compareSliceArray(_dim, _stride, _container, a);
     }
 }
 
@@ -439,13 +439,13 @@ struct Arrax(T, dimTuple...)
 
     ref Arrax opAssign(MultArrayType!(ElementType, rank) a)
     {
-        copyArrayToSlice(_container, _dim, _stride, a);
+        copyArrayToSlice(_dim, _stride, _container, a);
         return this;
     }
 
     bool opEquals(MultArrayType!(ElementType, rank) a)
     {
-        return compareSliceArray(_container, _dim, _stride, a);
+        return compareSliceArray(_dim, _stride, _container, a);
     }
 }
 

@@ -51,9 +51,9 @@ unittest
 }
 
 // Copy one slice to another one with the same dimensions
-void copySliceToSlice(T)(T[] dest, in size_t[] dstride,
-                         in T[] source, in size_t[] sstride,
-                         in size_t[] dim) pure
+void copySliceToSlice(T)(in size_t[] dim,
+                         in size_t[] dstride, T[] dest,
+                         in size_t[] sstride, in T[] source) pure
     in
     {
         assert(dstride.length == dim.length);
@@ -65,9 +65,9 @@ body
         dest[0] = source[0];
     else
         foreach(i; 0..dim[0])
-            copySliceToSlice(dest[(dstride[0]*i)..$], dstride[1..$],
-                             source[(sstride[0]*i)..$], sstride[1..$],
-                             dim[1..$]);
+            copySliceToSlice(dim[1..$],
+                             dstride[1..$], dest[(dstride[0]*i)..$],
+                             sstride[1..$], source[(sstride[0]*i)..$]);
 }
 
 unittest // copySliceToSlice
@@ -76,30 +76,30 @@ unittest // copySliceToSlice
     int[] dest0 = array(iota(24, 48));
     {
         int[] dest = dest0.dup;
-        copySliceToSlice(dest, [1], source, [1], [24]);
+        copySliceToSlice([24], [1], dest, [1], source);
         assert(dest == source);
     }
     {
         int[] dest = dest0.dup;
-        copySliceToSlice(dest, [2], source, [3], [5]);
+        copySliceToSlice([5], [2], dest, [3], source);
         assert(dest[0..9] == [0, 25, 3, 27, 6, 29, 9, 31, 12]);
         assert(dest[9..$] == dest0[9..$]);
     }
     {
         int[] dest = dest0.dup;
-        copySliceToSlice(dest, [12, 4, 1], source, [12, 4, 1], [2, 3, 4]);
+        copySliceToSlice([2, 3, 4], [12, 4, 1], dest, [12, 4, 1], source);
         assert(dest == source);
     }
     {
         int[] dest = dest0.dup;
-        copySliceToSlice(dest, [12, 8, 3], source[5..24], [12, 4, 2], [2, 2, 2]);
+        copySliceToSlice([2, 2, 2], [12, 8, 3], dest, [12, 4, 2], source[5..24]);
         assert(dest == [5, 25, 26, 7,    28, 29, 30, 31,  9, 33, 34, 11,
                         17, 37, 38, 19,  40, 41, 42, 43,  21, 45, 46, 23]);
     }
 }
 
 // Copy built-in array to slice with the same dimensions
-void copyArrayToSlice(T, A)(T[] container, size_t[] dim, size_t[] stride, A a)
+void copyArrayToSlice(T, A)(size_t[] dim, size_t[] stride, T[] container, A a)
 {
     static if(!is(typeof(a.length)))
     {
@@ -109,7 +109,7 @@ void copyArrayToSlice(T, A)(T[] container, size_t[] dim, size_t[] stride, A a)
     {
         // Copy elements recursively
         foreach(i; 0..dim[0])
-            copyArrayToSlice(container[(stride[0]*i)..$], dim[1..$], stride[1..$], a[i]);
+            copyArrayToSlice(dim[1..$], stride[1..$], container[(stride[0]*i)..$], a[i]);
     }
 }
 
@@ -125,13 +125,13 @@ unittest // copyArrayToSlice
     int[] dest0 = array(iota(24, 48));
     {
         int[] dest = dest0.dup;
-        copyArrayToSlice(dest, [2, 3, 4], [12, 4, 1], source);
+        copyArrayToSlice([2, 3, 4], [12, 4, 1], dest, source);
         assert(dest == test);
     }
 }
 
 // Compare built-in array and slice with the same dimensions
-bool compareSliceArray(T, A)(T[] container, size_t[] dim, size_t[] stride, A a)
+bool compareSliceArray(T, A)(size_t[] dim, size_t[] stride, T[] container, A a)
 {
     static if(!is(typeof(a.length)))
     {
@@ -143,7 +143,7 @@ bool compareSliceArray(T, A)(T[] container, size_t[] dim, size_t[] stride, A a)
             return false;
         // Compare elements recursively
         foreach(i; 0..dim[0])
-            if(!compareSliceArray(container[(stride[0]*i)..$], dim[1..$], stride[1..$], a[i]))
+            if(!compareSliceArray(dim[1..$], stride[1..$], container[(stride[0]*i)..$], a[i]))
                 return false;
         return true;
     }
@@ -151,7 +151,7 @@ bool compareSliceArray(T, A)(T[] container, size_t[] dim, size_t[] stride, A a)
 
 unittest // compareSliceArray
 {
-    assert(compareSliceArray(array(iota(0, 24)), [2, 3, 4], [12, 4, 1],
+    assert(compareSliceArray([2, 3, 4], [12, 4, 1], array(iota(0, 24)),
                              [[[0, 1, 2, 3],
                                [4, 5, 6, 7],
                                [8, 9, 10, 11]],
