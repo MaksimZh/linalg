@@ -10,7 +10,7 @@
 module mdarray;
 
 // Test whether given array is not really jagged.
-bool isHomogeneous(A)(A a)
+bool isHomogeneous(A)(in A a) pure
 {
     static if(is(typeof(a[0].length)))
     {
@@ -30,7 +30,7 @@ unittest // isHomogeneous
 }
 
 // Get dimensions of a homogeneous array.
-size_t[] getHomogeneousDim(A)(A a)
+size_t[] getHomogeneousDim(A)(in A a) pure
 {
     static if(is(typeof(a.length)))
         return [a.length] ~ getHomogeneousDim(a[0]);
@@ -44,7 +44,7 @@ unittest // getHomogeneousDim
     assert(getHomogeneousDim([[0, 0], [0, 0], [0, 0]]) == [3, 2]);
 }
 
-size_t[] getDimensions(A)(A a)
+size_t[] getDimensions(A)(in A a) pure
 {
     if(isHomogeneous(a))
         return getHomogeneousDim(a);
