@@ -8,6 +8,8 @@
 */
 module stride;
 
+debug import std.stdio;
+
 version(unittest)
 {
     import std.array;
@@ -128,6 +130,37 @@ unittest // copyArrayToSlice
         copyArrayToSlice([2, 3, 4], [12, 4, 1], dest, source);
         assert(dest == test);
     }
+}
+
+// Compare two slices with the same dimensions
+bool compareSliceSlice(T)(in size_t[] dim,
+                          in size_t[] astride, in T[] a,
+                          in size_t[] bstride, in T[] b) pure
+    in
+    {
+        assert(astride.length == dim.length);
+        assert(bstride.length == dim.length);
+    }
+body
+{
+    if(dim.length == 0)
+        return a[0] == b[0];
+    else
+    {
+        foreach(i; 0..dim[0])
+            if(!compareSliceSlice(dim[1..$],
+                                  astride[1..$], a[(astride[0]*i)..$],
+                                  bstride[1..$], b[(bstride[0]*i)..$]))
+                return false;
+        return true;
+    }
+}
+
+unittest // compareSliceSlice
+{
+    assert(compareSliceSlice([2, 3, 4],
+                             [12, 4, 1], array(iota(0, 48, 2)),
+                             [24, 8, 2], array(iota(0, 48))));
 }
 
 // Compare built-in array and slice with the same dimensions
