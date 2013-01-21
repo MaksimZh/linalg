@@ -28,6 +28,7 @@ version(unittest)
     import std.range;
 }
 
+import stride;
 import aux;
 
 // Value to denote not fixed dimension of the array
