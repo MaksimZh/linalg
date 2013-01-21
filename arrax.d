@@ -34,26 +34,6 @@ import aux;
 // Value to denote not fixed dimension of the array
 enum size_t dynamicSize = 0;
 
-// Calculates steps in data array for each index. template
-template strideDenseStorageT(dimTuple...)
-{
-    static if(dimTuple.length == 1)
-        enum size_t[] strideDenseStorageT = [1];
-    else
-        enum size_t[] strideDenseStorageT = [strideDenseStorageT!(dimTuple[1..$])[0] * dimTuple[1]] //XXX
-            ~ strideDenseStorageT!(dimTuple[1..$]);
-}
-
-// Calculates steps in data array for each index. function
-size_t[] strideDenseStorage(const(size_t)[] dim) pure
-{
-    auto result = new size_t[dim.length];
-    result[$-1] = 1;
-    foreach_reverse(i, d; dim[0..$-1])
-        result[i] = result[i+1] * dim[i+1];
-    return result;
-}
-
 // Copy one slice to another one with the same dimensions
 void copySliceToSlice(T)(T[] dest, in size_t[] dstride,
                          in T[] source, in size_t[] sstride,
@@ -305,7 +285,7 @@ struct ArraxSlice(T, uint rank_)
         if(stride != [])
             _stride = stride;
         else
-            _stride = strideDenseStorage(_dim);
+            _stride = calcDenseStrides(_dim);
     }
 
     // Make slice of an array or slice
@@ -407,7 +387,7 @@ struct Arrax(T, dimTuple...)
     else
     {
         enum size_t[] _dim = [dimTuple];
-        enum size_t[] _stride = strideDenseStorageT!(dimTuple);
+        enum size_t[] _stride = calcDenseStrides([dimTuple]);
         ElementType[reduce!("a * b")(_dim)] _container;
     }
 
@@ -439,7 +419,7 @@ struct Arrax(T, dimTuple...)
         {
             _container = source;
             _dim = dim;
-            _stride = strideDenseStorage(_dim);
+            _stride = calcDenseStrides(_dim);
         }
     else
         // Convert ordinary 1D array to static MD array with dense storage (no stride)
