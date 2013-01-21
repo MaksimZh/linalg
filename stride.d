@@ -98,7 +98,7 @@ unittest // copySliceToSlice
     }
 }
 
-// Copy jagged array to slice with the same dimensions
+// Copy built-in array to slice with the same dimensions
 void copyArrayToSlice(T, A)(T[] container, size_t[] dim, size_t[] stride, A a)
 {
     static if(!is(typeof(a.length)))
@@ -130,7 +130,7 @@ unittest // copyArrayToSlice
     }
 }
 
-// Compare jagged array and slice with the same dimensions
+// Compare built-in array and slice with the same dimensions
 bool compareSliceArray(T, A)(T[] container, size_t[] dim, size_t[] stride, A a)
 {
     static if(!is(typeof(a.length)))
