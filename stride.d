@@ -19,7 +19,7 @@ version(unittest)
 import mdarray;
 
 // Calculates strides in data array for dense storage
-size_t[] calcDenseStrides(const(size_t)[] dim) pure
+size_t[] calcDenseStrides(in size_t[] dim) pure
 {
     if(dim.length == 1)
         return [1];
@@ -37,7 +37,7 @@ unittest
 }
 
 // Calculates strides in data array for transposed dense storage
-size_t[] calcDenseStridesTransp(const(size_t)[] dim) pure
+size_t[] calcDenseStridesTransp(in size_t[] dim) pure
 {
     if(dim.length == 1)
         return [1];
@@ -103,7 +103,7 @@ unittest // copySliceToSlice
 }
 
 // Copy built-in array to slice with the same dimensions
-void copyArrayToSlice(T, A)(size_t[] dim, size_t[] stride, T[] container, A a)
+void copyArrayToSlice(T, A)(in size_t[] dim, in size_t[] stride, T[] container, in A a) pure
     in
     {
         assert(getDimensions(a) == dim);
@@ -171,7 +171,7 @@ unittest // compareSliceSlice
 }
 
 // Compare built-in array and slice with the same dimensions
-bool compareSliceArray(T, A)(size_t[] dim, size_t[] stride, T[] container, A a)
+bool compareSliceArray(T, A)(in size_t[] dim, in size_t[] stride, in T[] container, in A a) pure
     in
     {
         assert(getDimensions(a) == dim);
