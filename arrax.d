@@ -28,187 +28,11 @@ version(unittest)
     import std.range;
 }
 
+import stride;
 import aux;
 
 // Value to denote not fixed dimension of the array
 enum size_t dynamicSize = 0;
-
-// Calculates steps in data array for each index. template
-template strideDenseStorageT(dimTuple...)
-{
-    static if(dimTuple.length == 1)
-        enum size_t[] strideDenseStorageT = [1];
-    else
-        enum size_t[] strideDenseStorageT = [strideDenseStorageT!(dimTuple[1..$])[0] * dimTuple[1]] //XXX
-            ~ strideDenseStorageT!(dimTuple[1..$]);
-}
-
-// Calculates steps in data array for each index. function
-size_t[] strideDenseStorage(const(size_t)[] dim) pure
-{
-    auto result = new size_t[dim.length];
-    result[$-1] = 1;
-    foreach_reverse(i, d; dim[0..$-1])
-        result[i] = result[i+1] * dim[i+1];
-    return result;
-}
-
-// Copy one slice to another one with the same dimensions
-void copySliceToSlice(T)(T[] dest, in size_t[] dstride,
-                         in T[] source, in size_t[] sstride,
-                         in size_t[] dim) pure
-    in
-    {
-        assert(dstride.length == dim.length);
-        assert(sstride.length == dim.length);
-    }
-body
-{
-    if(dim.length == 0)
-        dest[0] = source[0];
-    else
-        foreach(i; 0..dim[0])
-            copySliceToSlice(dest[(dstride[0]*i)..$], dstride[1..$],
-                             source[(sstride[0]*i)..$], sstride[1..$],
-                             dim[1..$]);
-}
-
-unittest // copySliceToSlice
-{
-    int[] source = array(iota(0, 24));
-    int[] dest0 = array(iota(24, 48));
-    {
-        int[] dest = dest0.dup;
-        copySliceToSlice(dest, [1], source, [1], [24]);
-        assert(dest == source);
-    }
-    {
-        int[] dest = dest0.dup;
-        copySliceToSlice(dest, [2], source, [3], [5]);
-        assert(dest[0..9] == [0, 25, 3, 27, 6, 29, 9, 31, 12]);
-        assert(dest[9..$] == dest0[9..$]);
-    }
-    {
-        int[] dest = dest0.dup;
-        copySliceToSlice(dest, [12, 4, 1], source, [12, 4, 1], [2, 3, 4]);
-        assert(dest == source);
-    }
-    {
-        int[] dest = dest0.dup;
-        copySliceToSlice(dest, [12, 8, 3], source[5..24], [12, 4, 2], [2, 2, 2]);
-        assert(dest == [5, 25, 26, 7,    28, 29, 30, 31,  9, 33, 34, 11,
-                        17, 37, 38, 19,  40, 41, 42, 43,  21, 45, 46, 23]);
-    }
-}
-
-void copyArrayToSlice(T, A)(T[] container, size_t[] dim, size_t[] stride, A a)
-{
-    static if(!is(typeof(a.length)))
-    {
-        container[0] = a;
-    }
-    else
-    {
-        // Copy elements recursively
-        foreach(i; 0..dim[0])
-            copyArrayToSlice(container[(stride[0]*i)..$], dim[1..$], stride[1..$], a[i]);
-    }
-}
-
-unittest // copySliceToSlice
-{
-    auto source = [[[0, 1, 2, 3],
-                    [4, 5, 6, 7],
-                    [8, 9, 10, 11]],
-                   [[12, 13, 14, 15],
-                    [16, 17, 18, 19],
-                    [20, 21, 22, 23]]];
-    auto test = array(iota(0, 24));
-    int[] dest0 = array(iota(24, 48));
-    {
-        int[] dest = dest0.dup;
-        copyArrayToSlice(dest, [2, 3, 4], [12, 4, 1], source);
-        assert(dest == test);
-    }
-}
-
-bool compareSliceArray(T, A)(T[] container, size_t[] dim, size_t[] stride, A a)
-{
-    static if(!is(typeof(a.length)))
-    {
-        return container[0] == a;
-    }
-    else
-    {
-        if(dim[0] != a.length)
-            return false;
-        // Compare elements recursively
-        foreach(i; 0..dim[0])
-            if(!compareSliceArray(container[(stride[0]*i)..$], dim[1..$], stride[1..$], a[i]))
-                return false;
-        return true;
-    }
-}
-
-unittest // compareSliceArray
-{
-    assert(compareSliceArray(array(iota(0, 24)), [2, 3, 4], [12, 4, 1],
-                             [[[0, 1, 2, 3],
-                               [4, 5, 6, 7],
-                               [8, 9, 10, 11]],
-                              [[12, 13, 14, 15],
-                               [16, 17, 18, 19],
-                               [20, 21, 22, 23]]]));
-}
-
-bool isHomogeneous(A)(A a)
-{
-    static if(is(typeof(a[0].length)))
-    {
-        size_t len = a[0].length;
-        foreach(row; a)
-            if((row.length != len) || !isHomogeneous(row))
-                return false;
-    }
-    return true;
-}
-
-unittest // isHomogeneous
-{
-    assert(isHomogeneous([0, 0]));
-    assert(isHomogeneous([[0, 0], [0, 0]]));
-    assert(!isHomogeneous([[0, 0], [0, 0, 0]]));
-}
-
-size_t[] getHomogeneousDim(A)(A a)
-{
-    static if(is(typeof(a.length)))
-        return [a.length] ~ getHomogeneousDim(a[0]);
-    else
-        return [];
-}
-
-unittest // getHomogeneousDim
-{
-    assert(getHomogeneousDim([0]) == [1]);
-    assert(getHomogeneousDim([[0, 0], [0, 0], [0, 0]]) == [3, 2]);
-}
-
-size_t[] getJaggedDim(A)(A a)
-{
-    if(isHomogeneous(a))
-        return getHomogeneousDim(a);
-    else
-        return [];
-}
-
-unittest // getJaggedDim
-{
-    assert(getJaggedDim(0) == []);
-    assert(getJaggedDim([0]) == [1]);
-    assert(getJaggedDim([[0, 0], [0, 0], [0, 0]]) == [3, 2]);
-    assert(getJaggedDim([[0, 0], [0, 0], [0, 0, 0]]) == []);
-}
 
 /* Detect whether A is a dense multidimensional array or slice
  */
@@ -304,7 +128,7 @@ struct ArraxSlice(T, uint rank_)
         if(stride != [])
             _stride = stride;
         else
-            _stride = strideDenseStorage(_dim);
+            _stride = calcDenseStrides(_dim);
     }
 
     // Make slice of an array or slice
@@ -358,7 +182,7 @@ struct ArraxSlice(T, uint rank_)
         }
     body
     {
-        copyArrayToSlice(_container, _dim, _stride, a);
+        copyArrayToSlice(_dim, _stride, _container, a);
         return this;
     }
     
@@ -370,13 +194,13 @@ struct ArraxSlice(T, uint rank_)
             }
     body
     {
-        copySliceToSlice(_container, _stride, source._container, source._stride, _dim);
+        copySliceToSlice(_dim, _stride, source._stride, _container, source._container);
         return this;
     }
 
     bool opEquals(MultArrayType!(ElementType, rank) a)
     {
-        return compareSliceArray(_container, _dim, _stride, a);
+        return compareSliceArray(_dim, _stride, _container, a);
     }
 }
 
@@ -406,7 +230,7 @@ struct Arrax(T, dimTuple...)
     else
     {
         enum size_t[] _dim = [dimTuple];
-        enum size_t[] _stride = strideDenseStorageT!(dimTuple);
+        enum size_t[] _stride = calcDenseStrides([dimTuple]);
         ElementType[reduce!("a * b")(_dim)] _container;
     }
 
@@ -438,7 +262,7 @@ struct Arrax(T, dimTuple...)
         {
             _container = source;
             _dim = dim;
-            _stride = strideDenseStorage(_dim);
+            _stride = calcDenseStrides(_dim);
         }
     else
         // Convert ordinary 1D array to static MD array with dense storage (no stride)
@@ -615,13 +439,13 @@ struct Arrax(T, dimTuple...)
 
     ref Arrax opAssign(MultArrayType!(ElementType, rank) a)
     {
-        copyArrayToSlice(_container, _dim, _stride, a);
+        copyArrayToSlice(_dim, _stride, _container, a);
         return this;
     }
 
     bool opEquals(MultArrayType!(ElementType, rank) a)
     {
-        return compareSliceArray(_container, _dim, _stride, a);
+        return compareSliceArray(_dim, _stride, _container, a);
     }
 }
 
