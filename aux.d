@@ -31,15 +31,16 @@ unittest // isValueOfType
     static assert(isValueOfType!(ulong, 1, 2));
 }
 
-template isValueOfTypeStrict(T, alias v)
+template isValueOfTypeStrict(T, v...)
 {
-    enum bool isValueOfTypeStrict = isValueOfType!(T, v) && is(typeof(v) == T);
+    enum bool isValueOfTypeStrict = (v.length == 1) && isValueOfType!(T, v[0]) && is(typeof(v[0]) == T);
 }
 
 unittest // isValueOfTypeStrict
 {
     static assert(isValueOfTypeStrict!(bool, true));
     static assert(!isValueOfTypeStrict!(bool, 1));
+    static assert(!isValueOfTypeStrict!(bool, int));
 }
 
 // Auxiliary tuple
