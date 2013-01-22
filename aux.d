@@ -5,12 +5,6 @@ import std.algorithm;
 
 debug import std.stdio;
 
-version(unittest)
-{
-    import std.array;
-    import std.range;
-}
-
 template AuxTypeValue(T, T a){}
 
 // Check whether the tuple is a tuple of values that can be implicitly converted to given type
@@ -35,6 +29,17 @@ unittest // isValueOfType
     static assert(isValueOfType!(float, 1, 1.));
     static assert(isValueOfType!(ulong, 1));
     static assert(isValueOfType!(ulong, 1, 2));
+}
+
+template isValueOfTypeStrict(T, alias v)
+{
+    enum bool isValueOfTypeStrict = isValueOfType!(T, v) && is(typeof(v) == T);
+}
+
+unittest // isValueOfTypeStrict
+{
+    static assert(isValueOfTypeStrict!(bool, true));
+    static assert(!isValueOfTypeStrict!(bool, 1));
 }
 
 // Auxiliary tuple
