@@ -29,6 +29,7 @@ version(unittest)
 }
 
 import stride;
+import mdarray;
 import aux;
 
 // Value to denote not fixed dimension of the array

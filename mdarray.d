@@ -9,6 +9,15 @@
 */
 module mdarray;
 
+// Type of multidimensional jagged array
+template MultArrayType(T, size_t N)
+{
+    static if(N > 0)
+        alias MultArrayType!(T, N-1)[] MultArrayType;
+    else
+        alias T MultArrayType;
+}
+
 // Test whether given array is not really jagged.
 bool isHomogeneous(A)(in A a) pure
 {
