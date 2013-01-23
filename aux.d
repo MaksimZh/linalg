@@ -62,12 +62,3 @@ unittest
 {
     
 }
-
-// Type of multidimensional jagged array
-template MultArrayType(T, size_t N)
-{
-    static if(N > 0)
-        alias MultArrayType!(T, N-1)[] MultArrayType;
-    else
-        alias T MultArrayType;
-}

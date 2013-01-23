@@ -29,6 +29,7 @@ version(unittest)
 }
 
 import stride;
+import mdarray;
 import aux;
 
 // Value to denote not fixed dimension of the array
@@ -173,6 +174,11 @@ struct ArraxSlice(T, uint rank_)
             writeln("    _stride = ", _stride);
             writeln("    _container[", bndLo, "..", bndUp, "] = ", _container);
         }
+    }
+
+    MultArrayType!(ElementType, rank) opCast()
+    {
+        return sliceToArray!(ElementType, rank)(_dim, _stride, _container);
     }
     
     ref ArraxSlice opAssign(SourceType)(SourceType source)
@@ -403,6 +409,11 @@ struct Arrax(T, params...)
                 return typeof(return)(source, bounds ~ SliceBounds(i));
             }
         }
+
+        MultArrayType!(ElementType, sliceRank) opCast()
+        {
+            return cast(MultArrayType!(ElementType, sliceRank))(eval());
+        }
         
         auto opAssign()(MultArrayType!(ElementType, sliceRank) a)
         {
@@ -446,6 +457,11 @@ struct Arrax(T, params...)
         return typeof(return)(&this, [SliceBounds(i)]);
     }
 
+    MultArrayType!(ElementType, rank) opCast()
+    {
+        return sliceToArray!(ElementType, rank)(_dim, _stride, _container);
+    }
+    
     // Copy another array of the same type (rank and static dimensions must match)
     ref Arrax opAssign(Arrax source)
     {
@@ -524,100 +540,135 @@ unittest // Comparison
 unittest // Slicing
 {
     auto a = Arrax!(int, 2, 3, 4)(array(iota(0, 24)));
-    assert(a[][][] == [[[0, 1, 2, 3],
-                        [4, 5, 6, 7],
-                        [8, 9, 10, 11]],
-                       [[12, 13, 14, 15],
-                        [16, 17, 18, 19],
-                        [20, 21, 22, 23]]]);
-    assert(a[][][1] == [[1, 5, 9],
-                        [13, 17, 21]]);
-    assert(a[][][1..3] == [[[1, 2],
-                            [5, 6],
-                            [9, 10]],
-                           [[13, 14],
-                            [17, 18],
-                            [21, 22]]]);
-    assert(a[][1][] == [[4, 5, 6, 7],
-                        [16, 17, 18, 19]]);
-    assert(a[][1][1] == [5, 17]);
-    assert(a[][1][1..3] == [[5, 6],
-                            [17, 18]]);
-    assert(a[][1..3][] == [[[4, 5, 6, 7],
-                            [8, 9, 10, 11]],
-                           [[16, 17, 18, 19],
-                            [20, 21, 22, 23]]]);
-    assert(a[][1..3][1] == [[5, 9],
-                            [17, 21]]);
-    assert(a[][1..3][1..3] == [[[5, 6],
-                                [9, 10]],
-                               [[17, 18],
-                                [21, 22]]]);
-    assert(a[1][][] == [[12, 13, 14, 15],
-                        [16, 17, 18, 19],
-                        [20, 21, 22, 23]]);
-    assert(a[1][][1] == [13, 17, 21]);
-    assert(a[1][][1..3] == [[13, 14],
-                            [17, 18],
-                            [21, 22]]);
-    assert(a[1][1][] == [16, 17, 18, 19]);
+    assert(cast(int[][][]) a[][][]
+           == [[[0, 1, 2, 3],
+                [4, 5, 6, 7],
+                [8, 9, 10, 11]],
+               [[12, 13, 14, 15],
+                [16, 17, 18, 19],
+                [20, 21, 22, 23]]]);
+    assert(cast(int[][]) a[][][1]
+           == [[1, 5, 9],
+               [13, 17, 21]]);
+    assert(cast(int[][][]) a[][][1..3]
+           == [[[1, 2],
+                [5, 6],
+                [9, 10]],
+               [[13, 14],
+                [17, 18],
+                [21, 22]]]);
+    assert(cast(int[][]) a[][1][]
+           == [[4, 5, 6, 7],
+               [16, 17, 18, 19]]);
+    assert(cast(int[]) a[][1][1]
+           == [5, 17]);
+    assert(cast(int[][]) a[][1][1..3]
+           == [[5, 6],
+               [17, 18]]);
+    assert(cast(int[][][]) a[][1..3][]
+           == [[[4, 5, 6, 7],
+                [8, 9, 10, 11]],
+               [[16, 17, 18, 19],
+                [20, 21, 22, 23]]]);
+    assert(cast(int[][]) a[][1..3][1]
+           == [[5, 9],
+               [17, 21]]);
+    assert(cast(int[][][]) a[][1..3][1..3]
+           == [[[5, 6],
+                [9, 10]],
+               [[17, 18],
+                [21, 22]]]);
+    assert(cast(int[][]) a[1][][]
+           == [[12, 13, 14, 15],
+               [16, 17, 18, 19],
+               [20, 21, 22, 23]]);
+    assert(cast(int[]) a[1][][1]
+           == [13, 17, 21]);
+    assert(cast(int[][]) a[1][][1..3]
+           == [[13, 14],
+               [17, 18],
+               [21, 22]]);
+    assert(cast(int[]) a[1][1][]
+           == [16, 17, 18, 19]);
     assert(a[1][1][1] == 17);
-    assert(a[1][1][1..3] == [17, 18]);
-    assert(a[1][1..3][] == [[16, 17, 18, 19],
-                            [20, 21, 22, 23]]);
-    assert(a[1][1..3][1] == [17, 21]);
-    assert(a[1][1..3][1..3] == [[17, 18],
-                                [21, 22]]);
+    assert(cast(int[]) a[1][1][1..3]
+           == [17, 18]);
+    assert(cast(int[][]) a[1][1..3][]
+           == [[16, 17, 18, 19],
+               [20, 21, 22, 23]]);
+    assert(cast(int[]) a[1][1..3][1]
+           == [17, 21]);
+    assert(cast(int[][]) a[1][1..3][1..3]
+           == [[17, 18],
+               [21, 22]]);
 }
 
 unittest // Slicing, transposed
 {
     auto a = Arrax!(int, 2, 3, 4, true)(array(iota(0, 24)));
-    assert(a[][][] == [[[0, 6, 12, 18],
-                        [2, 8, 14, 20],
-                        [4, 10, 16, 22]],
-                       [[1, 7, 13, 19],
-                        [3, 9, 15, 21],
-                        [5, 11, 17, 23]]]);
-    assert(a[][][1] == [[6, 8, 10],
-                        [7, 9, 11]]);
-    assert(a[][][1..3] == [[[6, 12],
-                            [8, 14],
-                            [10, 16]],
-                           [[7, 13],
-                            [9, 15],
-                            [11, 17]]]);
+    assert(cast(int[][][]) a[][][]
+           == [[[0, 6, 12, 18],
+                [2, 8, 14, 20],
+                [4, 10, 16, 22]],
+               [[1, 7, 13, 19],
+                [3, 9, 15, 21],
+                [5, 11, 17, 23]]]);
+    assert(cast(int[][]) a[][][1]
+           == [[6, 8, 10],
+               [7, 9, 11]]);
+    assert(cast(int[][][]) a[][][1..3]
+           == [[[6, 12],
+                [8, 14],
+                [10, 16]],
+               [[7, 13],
+                [9, 15],
+                [11, 17]]]);
     
-    assert(a[][1][] == [[2, 8, 14, 20],
-                        [3, 9, 15, 21]]);
-    assert(a[][1][1] == [8, 9]);
-    assert(a[][1][1..3] == [[8, 14],
-                            [9, 15]]);
-    assert(a[][1..3][] == [[[2, 8, 14, 20],
-                            [4, 10, 16, 22]],
-                           [[3, 9, 15, 21],
-                            [5, 11, 17, 23]]]);
-    assert(a[][1..3][1] == [[8, 10],
-                            [9, 11]]);
-    assert(a[][1..3][1..3] == [[[8, 14],
-                                [10, 16]],
-                               [[9, 15],
-                                [11, 17]]]);
-    assert(a[1][][] == [[1, 7, 13, 19],
-                        [3, 9, 15, 21],
-                        [5, 11, 17, 23]]);
-    assert(a[1][][1] == [7, 9, 11]);
-    assert(a[1][][1..3] == [[7, 13],
-                            [9, 15],
-                            [11, 17]]);
-    assert(a[1][1][] == [3, 9, 15, 21]);
-    assert(a[1][1][1] == 9);
-    assert(a[1][1][1..3] == [9, 15]);
-    assert(a[1][1..3][] == [[3, 9, 15, 21],
-                            [5, 11, 17, 23]]);
-    assert(a[1][1..3][1] == [9, 11]);
-    assert(a[1][1..3][1..3] == [[9, 15],
-                                [11, 17]]);
+    assert(cast(int[][]) a[][1][]
+           == [[2, 8, 14, 20],
+               [3, 9, 15, 21]]);
+    assert(cast(int[]) a[][1][1]
+           == [8, 9]);
+    assert(cast(int[][]) a[][1][1..3]
+           == [[8, 14],
+               [9, 15]]);
+    assert(cast(int[][][]) a[][1..3][]
+           == [[[2, 8, 14, 20],
+                [4, 10, 16, 22]],
+               [[3, 9, 15, 21],
+                [5, 11, 17, 23]]]);
+    assert(cast(int[][]) a[][1..3][1]
+           == [[8, 10],
+               [9, 11]]);
+    assert(cast(int[][][]) a[][1..3][1..3]
+           == [[[8, 14],
+                [10, 16]],
+               [[9, 15],
+                [11, 17]]]);
+    assert(cast(int[][]) a[1][][]
+           == [[1, 7, 13, 19],
+               [3, 9, 15, 21],
+               [5, 11, 17, 23]]);
+    assert(cast(int[]) a[1][][1]
+           == [7, 9, 11]);
+    assert(cast(int[][]) a[1][][1..3]
+           == [[7, 13],
+               [9, 15],
+               [11, 17]]);
+    assert(cast(int[]) a[1][1][]
+           == [3, 9, 15, 21]);
+    assert(a[1][1][1]
+           == 9);
+    assert(cast(int[]) a[1][1][1..3]
+           == [9, 15]);
+    assert(cast(int[][]) a[1][1..3][]
+           == [[3, 9, 15, 21],
+               [5, 11, 17, 23]]);
+    assert(cast(int[]) a[1][1..3][1]
+           == [9, 11]);
+    assert(cast(int[][]) a[1][1..3][1..3]
+           == [[9, 15],
+               [11, 17]]);
 }
 
 unittest // Assignment
