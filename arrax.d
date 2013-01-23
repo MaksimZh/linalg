@@ -218,36 +218,48 @@ struct ArraxSlice(T, uint rank_)
 /* Multidimensional not jagged array with dense storage.
    Static version (all dimensions are fixed) takes memory only for data.
  */
-struct Arrax(T, dimTuple...)
+struct Arrax(T, params...)
 {
     //TODO: Make ContainerType some copy-on-write type
     //TODO: Add trusted, nothrough, pure, etc
     //FIXME: Some members should be private
+    static if(isValueOfTypeStrict!(bool, params[$-1]))
+    {
+        enum bool isTransposed = params[$-1];
+        alias params[0..$-1] dimTuple;
+    }
+    else
+    {
+        enum bool isTransposed = false;
+        alias params dimTuple;
+    }
+    
     static assert(isValueOfType!(size_t, dimTuple));
     static assert(all!("a >= 0")([dimTuple]));
+    enum size_t[] dimPattern = [dimTuple];
 
     alias T ElementType;
-    enum uint rank = dimTuple.length;
+    enum uint rank = dimPattern.length;
     // If the size of array is dynamic (i.e. at least one dimension is not defined)
-    enum isDynamic = canFind([dimTuple], dynamicSize);
+    enum isDynamic = canFind(dimPattern, dynamicSize);
 
     // Array dimensions stride and data container type
     static if(isDynamic)
     {
-        size_t[rank] _dim = [dimTuple];
+        size_t[rank] _dim = dimPattern;
         size_t[rank] _stride;
         ElementType[] _container;
     }
     else
     {
-        enum size_t[] _dim = [dimTuple];
-        enum size_t[] _stride = calcDenseStrides([dimTuple]);
+        enum size_t[] _dim = dimPattern;
+        enum size_t[] _stride = calcDenseStrides(dimPattern, isTransposed);
         ElementType[reduce!("a * b")(_dim)] _container;
     }
 
     // Leading dimension
-    static if(dimTuple[0] != dynamicSize)
-        enum size_t length = dimTuple[0];
+    static if(dimPattern[0] != dynamicSize)
+        enum size_t length = dimPattern[0];
     else
         size_t length() { return _dim[0]; }
     
@@ -265,7 +277,7 @@ struct Arrax(T, dimTuple...)
             {
                 assert(dim.length == rank);
                 assert(source.length == reduce!("a * b")(dim));
-                foreach(i, d; dimTuple)
+                foreach(i, d; dimPattern)
                     if(d != dynamicSize)
                         assert(d == dim[i]);
             }
@@ -273,7 +285,7 @@ struct Arrax(T, dimTuple...)
         {
             _container = source;
             _dim = dim;
-            _stride = calcDenseStrides(_dim);
+            _stride = calcDenseStrides(_dim, isTransposed);
         }
     else
         // Convert ordinary 1D array to static MD array with dense storage (no stride)
@@ -356,7 +368,7 @@ struct Arrax(T, dimTuple...)
         alias eval this;
 
         // Slicing and indexing
-        static if(depth < dimTuple.length)
+        static if(depth < dimPattern.length)
         {
             SliceProxy!(sliceRank, depth + 1) opSlice()
             {
@@ -467,9 +479,13 @@ unittest // Type properties and dimensions
     static assert(!(Arrax!(int, 1).isDynamic));
     static assert(!(Arrax!(int, 1, 2).isDynamic));
 
+    static assert(Arrax!(int, 1, 0, true).isTransposed);
+    static assert(!(Arrax!(int, 1).isTransposed));
+
     static assert(Arrax!(int, 1, 2)._dim == [1, 2]);
     static assert(Arrax!(int, 4, 2, 3)._stride == [6, 3, 1]);
     static assert(Arrax!(int, 1, 2).length == 1);
+    static assert(Arrax!(int, 4, 2, 3, true)._stride == [1, 4, 8]);
     Arrax!(int, 1, 2, 0) a;
     assert(a.rank == 3);
     assert(a._dim == [1, 2, 0]);
@@ -552,6 +568,56 @@ unittest // Slicing
     assert(a[1][1..3][1] == [17, 21]);
     assert(a[1][1..3][1..3] == [[17, 18],
                                 [21, 22]]);
+}
+
+unittest // Slicing, transposed
+{
+    auto a = Arrax!(int, 2, 3, 4, true)(array(iota(0, 24)));
+    assert(a[][][] == [[[0, 6, 12, 18],
+                        [2, 8, 14, 20],
+                        [4, 10, 16, 22]],
+                       [[1, 7, 13, 19],
+                        [3, 9, 15, 21],
+                        [5, 11, 17, 23]]]);
+    assert(a[][][1] == [[6, 8, 10],
+                        [7, 9, 11]]);
+    assert(a[][][1..3] == [[[6, 12],
+                            [8, 14],
+                            [10, 16]],
+                           [[7, 13],
+                            [9, 15],
+                            [11, 17]]]);
+    
+    assert(a[][1][] == [[2, 8, 14, 20],
+                        [3, 9, 15, 21]]);
+    assert(a[][1][1] == [8, 9]);
+    assert(a[][1][1..3] == [[8, 14],
+                            [9, 15]]);
+    assert(a[][1..3][] == [[[2, 8, 14, 20],
+                            [4, 10, 16, 22]],
+                           [[3, 9, 15, 21],
+                            [5, 11, 17, 23]]]);
+    assert(a[][1..3][1] == [[8, 10],
+                            [9, 11]]);
+    assert(a[][1..3][1..3] == [[[8, 14],
+                                [10, 16]],
+                               [[9, 15],
+                                [11, 17]]]);
+    assert(a[1][][] == [[1, 7, 13, 19],
+                        [3, 9, 15, 21],
+                        [5, 11, 17, 23]]);
+    assert(a[1][][1] == [7, 9, 11]);
+    assert(a[1][][1..3] == [[7, 13],
+                            [9, 15],
+                            [11, 17]]);
+    assert(a[1][1][] == [3, 9, 15, 21]);
+    assert(a[1][1][1] == 9);
+    assert(a[1][1][1..3] == [9, 15]);
+    assert(a[1][1..3][] == [[3, 9, 15, 21],
+                            [5, 11, 17, 23]]);
+    assert(a[1][1..3][1] == [9, 11]);
+    assert(a[1][1..3][1..3] == [[9, 15],
+                                [11, 17]]);
 }
 
 unittest // Assignment
