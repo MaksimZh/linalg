@@ -61,6 +61,51 @@ unittest // isArrayOrSlice
     static assert(isArrayOrSlice!(ArraxSlice!(int, 2)));
 }
 
+mixin template IteratorByElementGeneric(ArrayType)
+{
+    //TODO: optimize
+    struct ByElement
+    {
+        private ArrayType* _source;
+        private ElementType* _ptr;
+        private size_t[rank] _index;
+        private bool _empty;
+
+        this(ArrayType* source)
+        {
+            _source = source;
+            _ptr = _source._container.ptr;
+            _index[] = 0;
+            _empty = false;
+        }
+
+        @property bool empty() { return _empty; }
+        @property ref ElementType front() { return *_ptr; }
+        void popFront()
+        {
+            int i = rank - 1;
+            while((i >= 0) && (_index[i] == _source._dim[i] - 1))
+            {
+                _ptr -= _source._stride[i] * _index[i];
+                _index[i] = 0;
+                --i;
+            }
+            if(i >= 0)
+            {
+                _ptr += _source._stride[i];
+                ++_index[i];
+            }
+            else
+                _empty = true;
+        }
+    }
+
+    ByElement byElement()
+    {
+        return ByElement(&this);
+    }
+}
+
 // Structure to store slice boundaries compactly
 struct SliceBounds
 {
@@ -174,6 +219,11 @@ struct ArraxSlice(T, uint rank_)
             writeln("    _stride = ", _stride);
             writeln("    _container[", bndLo, "..", bndUp, "] = ", _container);
         }
+    }
+
+    public // Iterators
+    {
+        mixin IteratorByElementGeneric!(ArraxSlice);
     }
 
     MultArrayType!(ElementType, rank) opCast()
@@ -305,163 +355,171 @@ struct Arrax(T, params...)
             _container = source;
         }
     
-    // Auxiliary structure for slicing and indexing
-    struct SliceProxy(size_t sliceRank, size_t depth)
+    public // Slicing and indexing
     {
-        // Type of the array that corresponds to the slicing result
-        static if(sliceRank > 0)
-            alias ArraxSlice!(T, sliceRank) EvalType;
-        else
-            alias T EvalType; // Slice is just set of indices
-        
-        //FIXME: dynamic array is not an optimal solution
-        SliceBounds[] bounds;
-
-        // Pointer to the array for which slice is calculated
-        Arrax* source;
-
-        this(Arrax* source_, SliceBounds[] bounds_)
+        // Auxiliary structure for slicing and indexing
+        struct SliceProxy(size_t sliceRank, size_t depth)
         {
-            source = source_;
-            bounds = bounds_;
-
-            debug(slices)
-            {
-                writeln("Arrax.SliceProxy.this:");
-                writeln("    ", source);
-                writeln("    ", bounds);
-            }            
-        }
+            // Type of the array that corresponds to the slicing result
+            static if(sliceRank > 0)
+                alias ArraxSlice!(T, sliceRank) EvalType;
+            else
+                alias T EvalType; // Slice is just set of indices
         
-        // Evaluate array for the slice
-        static if(depth < rank)
-        {
-            // If there is not enough bracket pairs - add empty []
-            EvalType eval()
+            //FIXME: dynamic array is not an optimal solution
+            SliceBounds[] bounds;
+
+            // Pointer to the array for which slice is calculated
+            Arrax* source;
+
+            this(Arrax* source_, SliceBounds[] bounds_)
             {
-                return this[].eval;
+                source = source_;
+                bounds = bounds_;
+
+                debug(slices)
+                {
+                    writeln("Arrax.SliceProxy.this:");
+                    writeln("    ", source);
+                    writeln("    ", bounds);
+                }            
             }
-        }
-        else
-        {
-            EvalType eval()
+        
+            // Evaluate array for the slice
+            static if(depth < rank)
             {
-                static if(sliceRank > 0)
+                // If there is not enough bracket pairs - add empty []
+                EvalType eval()
                 {
-                    // Normal slice
-                    auto foo = EvalType(*source, bounds);
-                    return foo;
+                    return this[].eval;
                 }
-                else
+            }
+            else
+            {
+                EvalType eval()
                 {
-                    // Set of indices
+                    static if(sliceRank > 0)
+                    {
+                        // Normal slice
+                        auto foo = EvalType(*source, bounds);
+                        return foo;
+                    }
+                    else
+                    {
+                        // Set of indices
                     
-                    size_t index = 0; // Position in the container
-                    foreach(i, b; bounds)
-                        index += source._stride[i] * b.lo;
+                        size_t index = 0; // Position in the container
+                        foreach(i, b; bounds)
+                            index += source._stride[i] * b.lo;
                     
+                        debug(slices)
+                        {
+                            writeln("Arrax.SliceProxy.eval(<index>):");
+                            writeln("    _container[", index, "]");
+                        }
+                
+                        return source._container[index];
+                    }
+                }
+            }
+
+            alias eval this;
+
+            // Slicing and indexing
+            static if(depth < dimPattern.length)
+            {
+                SliceProxy!(sliceRank, depth + 1) opSlice()
+                {
                     debug(slices)
                     {
-                        writeln("Arrax.SliceProxy.eval(<index>):");
-                        writeln("    _container[", index, "]");
+                        writeln("Arrax.SliceProxy.opSlice():");
+                        writeln("    ", typeof(return).stringof);
+                        writeln("    ", bounds ~ SliceBounds(0, source._dim[depth]));
                     }
-                
-                    return source._container[index];
+                    return typeof(return)(source, bounds ~ SliceBounds(0, source._dim[depth]));
+                }
+
+                SliceProxy!(sliceRank, depth + 1) opSlice(size_t lo, size_t up)
+                {
+                    debug(slices)
+                    {
+                        writeln("Arrax.SliceProxy.opSlice(lo, up):");
+                        writeln("    ", typeof(return).stringof);
+                        writeln("    ", bounds ~ SliceBounds(lo, up));
+                    }
+                    return typeof(return)(source, bounds ~ SliceBounds(lo, up));
+                }
+
+                SliceProxy!(sliceRank - 1, depth + 1) opIndex(size_t i)
+                {
+                    debug(slices)
+                    {
+                        writeln("Arrax.SliceProxy.opIndex(i):");
+                        writeln("    ", typeof(return).stringof);
+                        writeln("    ", bounds ~ SliceBounds(i));
+                    }
+                    return typeof(return)(source, bounds ~ SliceBounds(i));
                 }
             }
-        }
 
-        alias eval this;
+            MultArrayType!(ElementType, sliceRank) opCast()
+            {
+                return cast(MultArrayType!(ElementType, sliceRank))(eval());
+            }
+        
+            auto opAssign()(MultArrayType!(ElementType, sliceRank) a)
+            {
+                return (eval() = a);
+            }
+        }
 
         // Slicing and indexing
-        static if(depth < dimPattern.length)
+        SliceProxy!(rank, 1) opSlice()
         {
-            SliceProxy!(sliceRank, depth + 1) opSlice()
+            debug(slices)
             {
-                debug(slices)
-                {
-                    writeln("Arrax.SliceProxy.opSlice():");
-                    writeln("    ", typeof(return).stringof);
-                    writeln("    ", bounds ~ SliceBounds(0, source._dim[depth]));
-                }
-                return typeof(return)(source, bounds ~ SliceBounds(0, source._dim[depth]));
+                writeln("Arrax.opSlice():");
+                writeln("    ", typeof(return).stringof);
+                writeln("    ", SliceBounds(0, _dim[0]));
             }
-
-            SliceProxy!(sliceRank, depth + 1) opSlice(size_t lo, size_t up)
-            {
-                debug(slices)
-                {
-                    writeln("Arrax.SliceProxy.opSlice(lo, up):");
-                    writeln("    ", typeof(return).stringof);
-                    writeln("    ", bounds ~ SliceBounds(lo, up));
-                }
-                return typeof(return)(source, bounds ~ SliceBounds(lo, up));
-            }
-
-            SliceProxy!(sliceRank - 1, depth + 1) opIndex(size_t i)
-            {
-                debug(slices)
-                {
-                    writeln("Arrax.SliceProxy.opIndex(i):");
-                    writeln("    ", typeof(return).stringof);
-                    writeln("    ", bounds ~ SliceBounds(i));
-                }
-                return typeof(return)(source, bounds ~ SliceBounds(i));
-            }
+            return typeof(return)(&this, [SliceBounds(0, _dim[0])]);
         }
 
-        MultArrayType!(ElementType, sliceRank) opCast()
+        //ditto
+        SliceProxy!(rank, 1) opSlice(size_t lo, size_t up)
         {
-            return cast(MultArrayType!(ElementType, sliceRank))(eval());
+            debug(slices)
+            {
+                writeln("Arrax.opSlice(lo, up):");
+                writeln("    ", typeof(return).stringof);
+                writeln("    ", SliceBounds(lo, up));
+            }
+            return typeof(return)(&this, [SliceBounds(lo, up)]);
         }
-        
-        auto opAssign()(MultArrayType!(ElementType, sliceRank) a)
+
+        //ditto
+        SliceProxy!(rank - 1, 1) opIndex(size_t i)
         {
-            return (eval() = a);
+            debug(slices)
+            {
+                writeln("Arrax.opIndex(i):");
+                writeln("    ", typeof(return).stringof);
+                writeln("    ", SliceBounds(i));
+            }
+            return typeof(return)(&this, [SliceBounds(i)]);
         }
     }
 
-    // Slicing and indexing
-    SliceProxy!(rank, 1) opSlice()
+    public // Iterators
     {
-        debug(slices)
-        {
-            writeln("Arrax.opSlice():");
-            writeln("    ", typeof(return).stringof);
-            writeln("    ", SliceBounds(0, _dim[0]));
-        }
-        return typeof(return)(&this, [SliceBounds(0, _dim[0])]);
-    }
-
-    //ditto
-    SliceProxy!(rank, 1) opSlice(size_t lo, size_t up)
-    {
-        debug(slices)
-        {
-            writeln("Arrax.opSlice(lo, up):");
-            writeln("    ", typeof(return).stringof);
-            writeln("    ", SliceBounds(lo, up));
-        }
-        return typeof(return)(&this, [SliceBounds(lo, up)]);
-    }
-
-    //ditto
-    SliceProxy!(rank - 1, 1) opIndex(size_t i)
-    {
-        debug(slices)
-        {
-            writeln("Arrax.opIndex(i):");
-            writeln("    ", typeof(return).stringof);
-            writeln("    ", SliceBounds(i));
-        }
-        return typeof(return)(&this, [SliceBounds(i)]);
+        mixin IteratorByElementGeneric!(Arrax);
     }
 
     MultArrayType!(ElementType, rank) opCast()
     {
         return sliceToArray!(ElementType, rank)(_dim, _stride, _container);
     }
-    
+
     // Copy another array of the same type (rank and static dimensions must match)
     ref Arrax opAssign(Arrax source)
     {
@@ -714,9 +772,51 @@ unittest // Assignment, jagged array
         auto source = [[24, 25],
                        [26, 27]];
         auto a = Arrax!(int, 2, 3, 4)(array(iota(0, 24)));
-        writeln(a[][1][1..3]);
         assert((a[][1][1..3] = source) == source);
         assert(a == test);
     }
 
+}
+
+unittest // Iterators
+{
+    {
+        auto a = Arrax!(int, 2, 3, 4)(array(iota(24)));
+        int[] test = array(iota(24));
+        int[] result = [];
+        foreach(v; a.byElement)
+            result ~= v;
+        assert(result == test);
+    }
+
+    {
+        auto a = Arrax!(int, 2, 3, 4, true)(array(iota(0, 24)));
+        int[] test = [0, 6, 12, 18,
+                      2, 8, 14, 20,
+                      4, 10, 16, 22,
+                      
+                      1, 7, 13, 19,
+                      3, 9, 15, 21,
+                      5, 11, 17, 23];
+        int[] result = [];
+        foreach(v; a.byElement)
+            result ~= v;
+        assert(result == test);
+    }
+}
+
+unittest // Iterators for slice
+{
+    {
+        auto a = Arrax!(int, 2, 3, 4)(array(iota(24)));
+        int[] test = [5, 6,
+                      9, 10,
+                      
+                      17, 18,
+                      21, 22];
+        int[] result = [];
+        foreach(v; a[][1..3][1..3].byElement)
+            result ~= v;
+        assert(result == test);
+    }
 }
