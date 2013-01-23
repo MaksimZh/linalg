@@ -218,18 +218,30 @@ struct ArraxSlice(T, uint rank_)
 /* Multidimensional not jagged array with dense storage.
    Static version (all dimensions are fixed) takes memory only for data.
  */
-struct Arrax(T, dimTuple...)
+struct Arrax(T, params...)
 {
     //TODO: Make ContainerType some copy-on-write type
     //TODO: Add trusted, nothrough, pure, etc
     //FIXME: Some members should be private
+    static if(isValueOfTypeStrict!(bool, params[$-1]))
+    {
+        enum bool isTransposed = params[$-1];
+        alias params[0..$-1] dimTuple;
+    }
+    else
+    {
+        enum bool isTransposed = false;
+        alias params dimTuple;
+    }
+    
     static assert(isValueOfType!(size_t, dimTuple));
     static assert(all!("a >= 0")([dimTuple]));
+    enum size_t[] dimPattern = [dimTuple];
 
     alias T ElementType;
-    enum uint rank = dimTuple.length;
+    enum uint rank = dimPattern.length;
     // If the size of array is dynamic (i.e. at least one dimension is not defined)
-    enum isDynamic = canFind([dimTuple], dynamicSize);
+    enum isDynamic = canFind(dimPattern, dynamicSize);
 
     // Array dimensions stride and data container type
     static if(isDynamic)
@@ -246,8 +258,8 @@ struct Arrax(T, dimTuple...)
     }
 
     // Leading dimension
-    static if(dimTuple[0] != dynamicSize)
-        enum size_t length = dimTuple[0];
+    static if(dimPattern[0] != dynamicSize)
+        enum size_t length = dimPattern[0];
     else
         size_t length() { return _dim[0]; }
     
@@ -265,7 +277,7 @@ struct Arrax(T, dimTuple...)
             {
                 assert(dim.length == rank);
                 assert(source.length == reduce!("a * b")(dim));
-                foreach(i, d; dimTuple)
+                foreach(i, d; dimPattern)
                     if(d != dynamicSize)
                         assert(d == dim[i]);
             }
@@ -356,7 +368,7 @@ struct Arrax(T, dimTuple...)
         alias eval this;
 
         // Slicing and indexing
-        static if(depth < dimTuple.length)
+        static if(depth < dimPattern.length)
         {
             SliceProxy!(sliceRank, depth + 1) opSlice()
             {
@@ -466,6 +478,9 @@ unittest // Type properties and dimensions
     static assert(Arrax!(int, 1, 0).isDynamic);
     static assert(!(Arrax!(int, 1).isDynamic));
     static assert(!(Arrax!(int, 1, 2).isDynamic));
+
+    static assert(Arrax!(int, 1, 0, true).isTransposed);
+    static assert(!(Arrax!(int, 1).isTransposed));
 
     static assert(Arrax!(int, 1, 2)._dim == [1, 2]);
     static assert(Arrax!(int, 4, 2, 3)._stride == [6, 3, 1]);
