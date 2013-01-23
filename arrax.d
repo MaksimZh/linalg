@@ -61,6 +61,51 @@ unittest // isArrayOrSlice
     static assert(isArrayOrSlice!(ArraxSlice!(int, 2)));
 }
 
+mixin template IteratorByElementGeneric(ArrayType)
+{
+    //TODO: optimize
+    struct ByElement
+    {
+        private ArrayType* _source;
+        private ElementType* _ptr;
+        private size_t[rank] _index;
+        private bool _empty;
+
+        this(ArrayType* source)
+        {
+            _source = source;
+            _ptr = _source._container.ptr;
+            _index[] = 0;
+            _empty = false;
+        }
+
+        @property bool empty() { return _empty; }
+        @property ref ElementType front() { return *_ptr; }
+        void popFront()
+        {
+            int i = rank - 1;
+            while((i >= 0) && (_index[i] == _source._dim[i] - 1))
+            {
+                _ptr -= _source._stride[i] * _index[i];
+                _index[i] = 0;
+                --i;
+            }
+            if(i >= 0)
+            {
+                _ptr += _source._stride[i];
+                ++_index[i];
+            }
+            else
+                _empty = true;
+        }
+    }
+
+    ByElement byElement()
+    {
+        return ByElement(&this);
+    }
+}
+
 // Structure to store slice boundaries compactly
 struct SliceBounds
 {
@@ -174,6 +219,11 @@ struct ArraxSlice(T, uint rank_)
             writeln("    _stride = ", _stride);
             writeln("    _container[", bndLo, "..", bndUp, "] = ", _container);
         }
+    }
+
+    public // Iterators
+    {
+        mixin IteratorByElementGeneric!(ArraxSlice);
     }
 
     MultArrayType!(ElementType, rank) opCast()
@@ -462,47 +512,7 @@ struct Arrax(T, params...)
 
     public // Iterators
     {
-        //TODO: optimize
-        struct ByElement
-        {
-            private Arrax* _source;
-            private ElementType* _ptr;
-            private size_t[rank] _index;
-            private bool _empty;
-
-            this(Arrax* source)
-            {
-                _source = source;
-                _ptr = _source._container.ptr;
-                _index[] = 0;
-                _empty = false;
-            }
-
-            @property bool empty() { return _empty; }
-            @property ref ElementType front() { return *_ptr; }
-            void popFront()
-            {
-                int i = rank - 1;
-                while((i >= 0) && (_index[i] == _source._dim[i] - 1))
-                {
-                    _ptr -= _source._stride[i] * _index[i];
-                    _index[i] = 0;
-                    --i;
-                }
-                if(i >= 0)
-                {
-                    _ptr += _source._stride[i];
-                    ++_index[i];
-                }
-                else
-                    _empty = true;
-            }
-        }
-
-        ByElement byElement()
-        {
-            return ByElement(&this);
-        }
+        mixin IteratorByElementGeneric!(Arrax);
     }
 
     MultArrayType!(ElementType, rank) opCast()
@@ -790,6 +800,22 @@ unittest // Iterators
                       5, 11, 17, 23];
         int[] result = [];
         foreach(v; a.byElement)
+            result ~= v;
+        assert(result == test);
+    }
+}
+
+unittest // Iterators for slice
+{
+    {
+        auto a = Arrax!(int, 2, 3, 4)(array(iota(24)));
+        int[] test = [5, 6,
+                      9, 10,
+                      
+                      17, 18,
+                      21, 22];
+        int[] result = [];
+        foreach(v; a[][1..3][1..3].byElement)
             result ~= v;
         assert(result == test);
     }
