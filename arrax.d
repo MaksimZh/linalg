@@ -246,14 +246,14 @@ struct Arrax(T, params...)
     // Array dimensions stride and data container type
     static if(isDynamic)
     {
-        size_t[rank] _dim = [dimTuple];
+        size_t[rank] _dim = dimPattern;
         size_t[rank] _stride;
         ElementType[] _container;
     }
     else
     {
-        enum size_t[] _dim = [dimTuple];
-        enum size_t[] _stride = calcDenseStrides([dimTuple]);
+        enum size_t[] _dim = dimPattern;
+        enum size_t[] _stride = calcDenseStrides(dimPattern, isTransposed);
         ElementType[reduce!("a * b")(_dim)] _container;
     }
 
@@ -285,7 +285,7 @@ struct Arrax(T, params...)
         {
             _container = source;
             _dim = dim;
-            _stride = calcDenseStrides(_dim);
+            _stride = calcDenseStrides(_dim, isTransposed);
         }
     else
         // Convert ordinary 1D array to static MD array with dense storage (no stride)
@@ -485,6 +485,7 @@ unittest // Type properties and dimensions
     static assert(Arrax!(int, 1, 2)._dim == [1, 2]);
     static assert(Arrax!(int, 4, 2, 3)._stride == [6, 3, 1]);
     static assert(Arrax!(int, 1, 2).length == 1);
+    static assert(Arrax!(int, 4, 2, 3, true)._stride == [1, 4, 8]);
     Arrax!(int, 1, 2, 0) a;
     assert(a.rank == 3);
     assert(a._dim == [1, 2, 0]);

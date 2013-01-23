@@ -54,6 +54,12 @@ unittest
     static assert(calcDenseStridesTransp([2, 3, 4]) == [1, 2, 6]);
 }
 
+// Calculates strides in data array for dense storage
+size_t[] calcDenseStrides(in size_t[] dim, bool isTransposed) pure
+{
+    return isTransposed ? calcDenseStridesTransp(dim) : calcDenseStrides(dim);
+}
+
 // Copy one slice to another one with the same dimensions
 void copySliceToSlice(T)(in size_t[] dim,
                          in size_t[] dstride, T[] dest,
