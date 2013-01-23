@@ -175,6 +175,11 @@ struct ArraxSlice(T, uint rank_)
             writeln("    _container[", bndLo, "..", bndUp, "] = ", _container);
         }
     }
+
+    MultArrayType!(ElementType, rank) opCast()
+    {
+        return sliceToArray!(ElementType, rank)(_dim, _stride, _container);
+    }
     
     ref ArraxSlice opAssign(SourceType)(SourceType source)
         if(isArrayOrSlice!SourceType)
@@ -404,6 +409,11 @@ struct Arrax(T, params...)
                 return typeof(return)(source, bounds ~ SliceBounds(i));
             }
         }
+
+        MultArrayType!(ElementType, sliceRank) opCast()
+        {
+            return cast(MultArrayType!(ElementType, sliceRank))(eval());
+        }
         
         auto opAssign()(MultArrayType!(ElementType, sliceRank) a)
         {
@@ -447,6 +457,11 @@ struct Arrax(T, params...)
         return typeof(return)(&this, [SliceBounds(i)]);
     }
 
+    MultArrayType!(ElementType, rank) opCast()
+    {
+        return sliceToArray!(ElementType, rank)(_dim, _stride, _container);
+    }
+    
     // Copy another array of the same type (rank and static dimensions must match)
     ref Arrax opAssign(Arrax source)
     {
