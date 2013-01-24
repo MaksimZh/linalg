@@ -293,9 +293,12 @@ struct Arrax(T, params...)
     enum size_t[] dimPattern = [dimTuple];
 
     alias T ElementType;
+    // Number of dimensions
     enum uint rank = dimPattern.length;
+    // Number of dynamic dimensions
+    enum uint rankDynamic = count(dimPattern, dynamicSize);
     // If the size of array is dynamic (i.e. at least one dimension is not defined)
-    enum isDynamic = canFind(dimPattern, dynamicSize);
+    enum isDynamic = (rankDynamic > 0);
 
     // Array dimensions stride and data container type
     static if(isDynamic)
@@ -307,15 +310,15 @@ struct Arrax(T, params...)
     else
     {
         enum size_t[] _dim = dimPattern;
-        enum size_t[] _stride = calcDenseStrides(dimPattern, isTransposed);
-        ElementType[reduce!("a * b")(_dim)] _container;
+        enum size_t[] _stride = calcDenseStrides(_dim, isTransposed);
+        ElementType[calcDenseContainerSize(_dim)] _container;
     }
 
-    bool isCompatibleDimensions(size_t[] dim1)
+    bool isCompatibleDimensions(size_t[] dim)
     {
-        if(dim1.length != rank)
+        if(dim.length != rank)
             return false;
-        foreach(i, d; dim1)
+        foreach(i, d; dim)
             if((d != dimPattern[i]) && (dimPattern[i] != dynamicSize))
                 return false;
         return true;
@@ -328,10 +331,25 @@ struct Arrax(T, params...)
         size_t length() { return _dim[0]; }
     
     static if(isDynamic)
-        // Change the size of the container
-        private void _resize(size_t newSize)
+        /* Change dynamic array dimensions
+           Number of parameters must coincide with number of dynamic dimensions
+         */
+        private void setDimensions(size_t[] dim...)
+            in
+            {
+                assert(dim.length == rankDynamic);
+            }
+        body
         {
-            _container.length = newSize;
+            uint i = 0;
+            foreach(d; dim)
+            {
+                while(dimPattern[i] != dynamicSize) ++i;
+                _dim[i] = d;
+                ++i;
+            }
+            _stride = calcDenseStrides(_dim, isTransposed);
+            _container.length = calcDenseContainerSize(_dim);
         }
 
     static if(isDynamic)
@@ -575,6 +593,13 @@ unittest // Type properties and dimensions
     assert(d._container == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     assert(d._dim == [2, 3]);
     assert(d._stride == [6, 2]);
+
+    Arrax!(int, 1, 2, 0, 3, 0, 4) a1;
+    assert(a1.rank == 6);
+    a1.setDimensions(5, 6);
+    assert(a1._dim == [1, 2, 5, 3, 6, 4]);
+    assert(a1._stride == [720, 360, 72, 24, 4, 1]);
+    assert(a1._container.length == 720);
 }
 
 unittest // Slicing

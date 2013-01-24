@@ -60,6 +60,16 @@ size_t[] calcDenseStrides(in size_t[] dim, bool isTransposed) pure
     return isTransposed ? calcDenseStridesTransp(dim) : calcDenseStrides(dim);
 }
 
+// Calculates container size for dense storage
+size_t calcDenseContainerSize(in size_t[] dim) pure
+{
+    //TODO: Clean this when std.algorithm functions become pure
+    uint result = 1;
+    foreach(d; dim)
+        result *= d;
+    return result;
+}
+
 // Convert slice to built-in multidimensional array
 auto sliceToArray(T, uint rank)(size_t[] dim, size_t[] stride, T[] container)
     in
