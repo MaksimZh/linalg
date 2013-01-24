@@ -311,6 +311,16 @@ struct Arrax(T, params...)
         ElementType[reduce!("a * b")(_dim)] _container;
     }
 
+    bool isCompatibleDimensions(size_t[] dim1)
+    {
+        if(dim1.length != rank)
+            return false;
+        foreach(i, d; dim1)
+            if((d != dimPattern[i]) && (dimPattern[i] != dynamicSize))
+                return false;
+        return true;
+    }
+
     // Leading dimension
     static if(dimPattern[0] != dynamicSize)
         enum size_t length = dimPattern[0];
@@ -551,6 +561,8 @@ unittest // Type properties and dimensions
     assert(a.rank == 3);
     assert(a._dim == [1, 2, 0]);
     assert(a.length == 1);
+    assert(a.isCompatibleDimensions([1, 2, 3]));
+    assert(!(a.isCompatibleDimensions([1, 3, 3])));
     
     Arrax!(int, 0, 2) b;
     assert(b.length == 0);
