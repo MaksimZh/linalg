@@ -314,7 +314,7 @@ struct Arrax(T, params...)
         ElementType[calcDenseContainerSize(_dim)] _container;
     }
 
-    bool isCompatibleDimensions(size_t[] dim)
+    bool isCompatibleDimensions(in size_t[] dim) pure
     {
         if(dim.length != rank)
             return false;
@@ -331,10 +331,34 @@ struct Arrax(T, params...)
         size_t length() { return _dim[0]; }
     
     static if(isDynamic)
+    {
+        /* Recalculate strides and reallocate container for current dimensions
+         */
+        private void _resize() pure
+        {
+            _stride = calcDenseStrides(_dim, isTransposed);
+            _container.length = calcDenseContainerSize(_dim);
+        }
+        
+        /* Change dynamic array dimensions.
+           Dimensions passed to the function must be compatible.
+         */
+        void setAllDimensions(in size_t[] dim) pure
+            in
+            {
+                assert(dim.length == rank);
+                assert(isCompatibleDimensions(dim));
+            }
+        body
+        {
+            _dim = dim;
+            _resize();
+        }
+        
         /* Change dynamic array dimensions
            Number of parameters must coincide with number of dynamic dimensions
          */
-        private void setDimensions(size_t[] dim...)
+        void setDimensions(in size_t[] dim...) pure
             in
             {
                 assert(dim.length == rankDynamic);
@@ -348,9 +372,9 @@ struct Arrax(T, params...)
                 _dim[i] = d;
                 ++i;
             }
-            _stride = calcDenseStrides(_dim, isTransposed);
-            _container.length = calcDenseContainerSize(_dim);
+            _resize();
         }
+    }
 
     static if(isDynamic)
         // Convert ordinary 1D array to dense multidimensional array with given dimensions
@@ -600,6 +624,10 @@ unittest // Type properties and dimensions
     assert(a1._dim == [1, 2, 5, 3, 6, 4]);
     assert(a1._stride == [720, 360, 72, 24, 4, 1]);
     assert(a1._container.length == 720);
+    a1.setAllDimensions([1, 2, 1, 3, 1, 4]);
+    assert(a1._dim == [1, 2, 1, 3, 1, 4]);
+    assert(a1._stride == [24, 12, 12, 4, 4, 1]);
+    assert(a1._container.length == 24);
 }
 
 unittest // Slicing
