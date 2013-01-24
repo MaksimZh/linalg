@@ -545,12 +545,24 @@ struct Arrax(T, params...)
     }
 
     Arrax opUnary(string op)()
-        if((op == "-") || (op == "+"))
+        if(((op == "-") || (op == "+")) && (is(typeof(mixin(op ~ "this.byElement().front")))))
     {
         Arrax result;
         static if(result.isDynamic)
             result.setAllDimensions(_dim);
         iteration.applyUnary!op(this.byElement(), result.byElement());
+        return result;
+    }
+
+    Arrax opBinary(string op, Trhs)(Trhs rhs)
+        if(((op == "-") || (op == "+") || (op == "*") || (op == "/"))
+           && isArrayOrSlice!Trhs
+           && (is(typeof(mixin("this.byElement().front" ~ op ~ "rhs.byElement().front")))))
+    {
+        Arrax result;
+        static if(result.isDynamic)
+            result.setAllDimensions(_dim);
+        iteration.applyBinary!op(this.byElement(), rhs.byElement(), result.byElement());
         return result;
     }
 }
@@ -841,4 +853,12 @@ unittest // Unary operations
                [[-12, -13, -14, -15],
                 [-16, -17, -18, -19],
                 [-20, -21, -22, -23]]]);
+}
+
+unittest // Binary operations
+{
+    alias Arrax!(int, 2, 3, 4) A;
+    auto a1 = A(array(iota(24)));
+    auto a2 = A(array(iota(24, 48)));
+    assert(a1 + a2 == A(array(iota(24, 72, 2))));
 }
