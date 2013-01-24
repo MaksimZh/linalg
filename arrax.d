@@ -211,14 +211,6 @@ struct ArraxSlice(T, uint rank_)
         ++bndUp;
 
         _container = source._container[bndLo..bndUp];
-
-        debug(slices)
-        {
-            writeln("ArraxSlice.this(source, bounds):");
-            writeln("    _dim = ", _dim);
-            writeln("    _stride = ", _stride);
-            writeln("    _container[", bndLo, "..", bndUp, "] = ", _container);
-        }
     }
 
     public // Iterators
@@ -426,13 +418,6 @@ struct Arrax(T, params...)
             {
                 source = source_;
                 bounds = bounds_;
-
-                debug(slices)
-                {
-                    writeln("Arrax.SliceProxy.this:");
-                    writeln("    ", source);
-                    writeln("    ", bounds);
-                }            
             }
         
             // Evaluate array for the slice
@@ -446,6 +431,7 @@ struct Arrax(T, params...)
             }
             else
             {
+                
                 EvalType eval()
                 {
                     static if(sliceRank > 0)
@@ -457,17 +443,9 @@ struct Arrax(T, params...)
                     else
                     {
                         // Set of indices
-                    
                         size_t index = 0; // Position in the container
                         foreach(i, b; bounds)
                             index += source._stride[i] * b.lo;
-                    
-                        debug(slices)
-                        {
-                            writeln("Arrax.SliceProxy.eval(<index>):");
-                            writeln("    _container[", index, "]");
-                        }
-                
                         return source._container[index];
                     }
                 }
@@ -480,34 +458,16 @@ struct Arrax(T, params...)
             {
                 SliceProxy!(sliceRank, depth + 1) opSlice()
                 {
-                    debug(slices)
-                    {
-                        writeln("Arrax.SliceProxy.opSlice():");
-                        writeln("    ", typeof(return).stringof);
-                        writeln("    ", bounds ~ SliceBounds(0, source._dim[depth]));
-                    }
                     return typeof(return)(source, bounds ~ SliceBounds(0, source._dim[depth]));
                 }
 
                 SliceProxy!(sliceRank, depth + 1) opSlice(size_t lo, size_t up)
                 {
-                    debug(slices)
-                    {
-                        writeln("Arrax.SliceProxy.opSlice(lo, up):");
-                        writeln("    ", typeof(return).stringof);
-                        writeln("    ", bounds ~ SliceBounds(lo, up));
-                    }
                     return typeof(return)(source, bounds ~ SliceBounds(lo, up));
                 }
 
                 SliceProxy!(sliceRank - 1, depth + 1) opIndex(size_t i)
                 {
-                    debug(slices)
-                    {
-                        writeln("Arrax.SliceProxy.opIndex(i):");
-                        writeln("    ", typeof(return).stringof);
-                        writeln("    ", bounds ~ SliceBounds(i));
-                    }
                     return typeof(return)(source, bounds ~ SliceBounds(i));
                 }
             }
@@ -526,36 +486,18 @@ struct Arrax(T, params...)
         // Slicing and indexing
         SliceProxy!(rank, 1) opSlice()
         {
-            debug(slices)
-            {
-                writeln("Arrax.opSlice():");
-                writeln("    ", typeof(return).stringof);
-                writeln("    ", SliceBounds(0, _dim[0]));
-            }
             return typeof(return)(&this, [SliceBounds(0, _dim[0])]);
         }
 
         //ditto
         SliceProxy!(rank, 1) opSlice(size_t lo, size_t up)
         {
-            debug(slices)
-            {
-                writeln("Arrax.opSlice(lo, up):");
-                writeln("    ", typeof(return).stringof);
-                writeln("    ", SliceBounds(lo, up));
-            }
             return typeof(return)(&this, [SliceBounds(lo, up)]);
         }
 
         //ditto
         SliceProxy!(rank - 1, 1) opIndex(size_t i)
         {
-            debug(slices)
-            {
-                writeln("Arrax.opIndex(i):");
-                writeln("    ", typeof(return).stringof);
-                writeln("    ", SliceBounds(i));
-            }
             return typeof(return)(&this, [SliceBounds(i)]);
         }
     }
