@@ -517,9 +517,9 @@ struct Arrax(T, params...)
                 return cast(MultArrayType!(ElementType, sliceRank))(eval());
             }
         
-            auto opAssign()(MultArrayType!(ElementType, sliceRank) a)
+            auto opAssign(Tsource)(Tsource source)
             {
-                return (eval() = a);
+                return (eval() = source);
             }
         }
 
@@ -789,6 +789,21 @@ unittest // Assignment
     a1 = A1(array(iota(0, 24)), [2, 3, 4]);
     assert(cast(int[][][])(b1 = a1) == test);
     assert(cast(int[][][])b1 == test);
+}
+
+unittest // Assignment for slices
+{
+    auto a = Arrax!(int, 2, 3, 4)(array(iota(0, 24)));
+    auto b = Arrax!(int, 2, 2, 2)(array(iota(24, 32)));
+    auto c = a[][1..3][1..3];
+    auto test = [[[0, 1, 2, 3],
+                  [4, 24, 25, 7],
+                  [8, 26, 27, 11]],
+                 [[12, 13, 14, 15],
+                  [16, 28, 29, 19],
+                  [20, 30, 31, 23]]];
+    assert(cast(int[][][]) (c = b) == cast(int[][][]) b);
+    assert(cast(int[][][]) a == test);
 }
 
 unittest // Iterators
