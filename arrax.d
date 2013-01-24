@@ -816,7 +816,12 @@ unittest // Assignment for slices
 
 unittest // Comparison
 {
-    
+    auto a = Arrax!(int, 2, 3, 4)(array(iota(24)));
+    auto b = Arrax!(int, dynamicSize, dynamicSize, dynamicSize)(array(iota(24)), [2, 3, 4]);
+    assert(a == b);
+    assert(b == a);
+    assert(a[][1..3][2] == b[][1..3][2]);
+    assert(a[][1..3][2] != b[][1..3][3]);
 }
 
 unittest // Unary operations 
