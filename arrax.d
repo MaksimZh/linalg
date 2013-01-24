@@ -421,40 +421,36 @@ struct Arrax(T, params...)
             }
         
             // Evaluate array for the slice
-            static if(depth < rank)
+            EvalType eval()
             {
-                // If there is not enough bracket pairs - add empty []
-                EvalType eval()
+                static if(depth < rank)
                 {
-                    return this[].eval;
-                }
-            }
-            else
-            {
-                
-                EvalType eval()
-                {
-                    static if(sliceRank > 0)
-                    {
-                        // Normal slice
-                        auto foo = EvalType(*source, bounds);
-                        return foo;
-                    }
+                    // If there is not enough bracket pairs - add empty []
+                    static if(depth == rank - 1)
+                        return this[];
                     else
-                    {
-                        // Set of indices
-                        size_t index = 0; // Position in the container
-                        foreach(i, b; bounds)
-                            index += source._stride[i] * b.lo;
-                        return source._container[index];
-                    }
+                        return this[].eval();
+                }
+                else static if(sliceRank > 0)
+                {
+                    // Normal slice
+                    auto foo = EvalType(*source, bounds);
+                    return foo;
+                }
+                else
+                {
+                    // Set of indices
+                    size_t index = 0; // Position in the container
+                    foreach(i, b; bounds)
+                        index += source._stride[i] * b.lo;
+                    return source._container[index];
                 }
             }
 
             alias eval this;
 
             // Slicing and indexing
-            static if(depth < dimPattern.length)
+            static if(depth < dimPattern.length - 1)
             {
                 SliceProxy!(sliceRank, depth + 1) opSlice()
                 {
@@ -469,6 +465,28 @@ struct Arrax(T, params...)
                 SliceProxy!(sliceRank - 1, depth + 1) opIndex(size_t i)
                 {
                     return typeof(return)(source, bounds ~ SliceBounds(i));
+                }
+            }
+            else static if(depth == (dimPattern.length - 1))
+            {
+                // If only one more slicing can be done then return slice not proxy
+                
+                auto opSlice()
+                {
+                    return SliceProxy!(sliceRank, depth + 1)(
+                        source, bounds ~ SliceBounds(0, source._dim[depth])).eval();
+                }
+
+                auto opSlice(size_t lo, size_t up)
+                {
+                    return SliceProxy!(sliceRank, depth + 1)(
+                        source, bounds ~ SliceBounds(lo, up)).eval();
+                }
+
+                auto opIndex(size_t i)
+                {
+                    return SliceProxy!(sliceRank - 1, depth + 1)(
+                        source, bounds ~ SliceBounds(i)).eval();
                 }
             }
 
