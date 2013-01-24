@@ -569,18 +569,25 @@ struct Arrax(T, params...)
     {
         return sliceToArray!(ElementType, rank)(_dim, _stride, _container);
     }
-
-    // Copy another array of the same type (rank and static dimensions must match)
-    ref Arrax opAssign(Arrax source)
+    
+    ref Arrax opAssign(SourceType)(SourceType source)
+        if(isArrayOrSlice!SourceType)
+            in
+            {
+                assert(isCompatibleDimensions(source._dim));
+            }
+    body
     {
         static if(isDynamic)
+            if(_dim != source._dim)
+                setAllDimensions(source._dim);
+        auto iter = byElement;
+        auto iterSource = source.byElement;
+        foreach(ref v; iter)
         {
-            _dim = source._dim.dup;
-            _stride = source._stride.dup;
-            _container = source._container; //FIXME: may be wrong depending on COW approach we choose
+            v = iterSource.front;
+            iterSource.popFront();
         }
-        else
-            _container = source._container.dup;
         return this;
     }
 }
