@@ -239,7 +239,13 @@ struct ArraxSlice(T, uint rank_)
             }
     body
     {
-        copySliceToSlice(_dim, _stride, source._stride, _container, source._container);
+        auto iter = byElement;
+        auto iterSource = source.byElement;
+        foreach(ref v; iter)
+        {
+            v = iterSource.front;
+            iterSource.popFront();
+        }
         return this;
     }
 
@@ -262,7 +268,15 @@ struct ArraxSlice(T, uint rank_)
             }
     body
     {
-        return compareSliceSlice(_dim, _stride, source._stride, _container, source._container);
+        auto iter = byElement;
+        auto iterSource = source.byElement;
+        foreach(v; iter)
+        {
+            if(v != iterSource.front)
+                return false;
+            iterSource.popFront();
+        }
+        return true;
     }
     
     bool opEquals()(MultArrayType!(ElementType, rank) a)
