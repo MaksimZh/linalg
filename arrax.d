@@ -244,15 +244,7 @@ struct ArraxSlice(T, uint rank_)
             }
     body
     {
-        auto iter = byElement;
-        auto iterSource = source.byElement;
-        foreach(v; iter)
-        {
-            if(v != iterSource.front)
-                return false;
-            iterSource.popFront();
-        }
-        return true;
+        return equal(source.byElement(), this.byElement());
     }
 }
 
@@ -539,6 +531,17 @@ struct Arrax(T, params...)
                 setAllDimensions(source._dim);
         iteration.copy(source.byElement(), this.byElement());
         return this;
+    }
+
+    bool opEquals(SourceType)(SourceType source)
+        if(isArrayOrSlice!SourceType)
+            in
+            {
+                assert(source._dim == _dim);
+            }
+    body
+    {
+        return equal(source.byElement(), this.byElement());
     }
 
     Arrax opUnary(string op)()
