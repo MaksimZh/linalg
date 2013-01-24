@@ -31,6 +31,7 @@ version(unittest)
 import stride;
 import mdarray;
 import aux;
+import iteration;
 
 // Value to denote not fixed dimension of the array
 enum size_t dynamicSize = 0;
@@ -231,13 +232,7 @@ struct ArraxSlice(T, uint rank_)
             }
     body
     {
-        auto iter = byElement;
-        auto iterSource = source.byElement;
-        foreach(ref v; iter)
-        {
-            v = iterSource.front;
-            iterSource.popFront();
-        }
+        iteration.copy(source.byElement(), this.byElement());
         return this;
     }
 
@@ -249,15 +244,7 @@ struct ArraxSlice(T, uint rank_)
             }
     body
     {
-        auto iter = byElement;
-        auto iterSource = source.byElement;
-        foreach(v; iter)
-        {
-            if(v != iterSource.front)
-                return false;
-            iterSource.popFront();
-        }
-        return true;
+        return equal(source.byElement(), this.byElement());
     }
 }
 
@@ -542,14 +529,19 @@ struct Arrax(T, params...)
         static if(isDynamic)
             if(_dim != source._dim)
                 setAllDimensions(source._dim);
-        auto iter = byElement;
-        auto iterSource = source.byElement;
-        foreach(ref v; iter)
-        {
-            v = iterSource.front;
-            iterSource.popFront();
-        }
+        iteration.copy(source.byElement(), this.byElement());
         return this;
+    }
+
+    bool opEquals(SourceType)(SourceType source)
+        if(isArrayOrSlice!SourceType)
+            in
+            {
+                assert(source._dim == _dim);
+            }
+    body
+    {
+        return equal(source.byElement(), this.byElement());
     }
 
     Arrax opUnary(string op)()
@@ -558,13 +550,7 @@ struct Arrax(T, params...)
         Arrax result;
         static if(result.isDynamic)
             result.setAllDimensions(_dim);
-        auto iter = byElement;
-        auto iterResult = result.byElement;
-        foreach(ref v; iter)
-        {
-            iterResult.front = mixin(op ~ "v");
-            iterResult.popFront();
-        }
+        iteration.applyUnary!op(this.byElement(), result.byElement());
         return result;
     }
 }
@@ -748,41 +734,6 @@ unittest // Slicing, transposed
                [11, 17]]);
 }
 
-unittest // Assignment
-{
-    alias Arrax!(int, 2, 3, 4) A;
-    A a, b;
-    a = A(array(iota(0, 24)));
-    auto test = [[[0, 1, 2, 3],
-                  [4, 5, 6, 7],
-                  [8, 9, 10, 11]],
-                 [[12, 13, 14, 15],
-                  [16, 17, 18, 19],
-                  [20, 21, 22, 23]]];
-    assert(cast(int[][][])(b = a) == test);
-    assert(cast(int[][][])b == test);
-    alias Arrax!(int, 0, 3, 0) A1;
-    A1 a1, b1;
-    a1 = A1(array(iota(0, 24)), [2, 3, 4]);
-    assert(cast(int[][][])(b1 = a1) == test);
-    assert(cast(int[][][])b1 == test);
-}
-
-unittest // Assignment for slices
-{
-    auto a = Arrax!(int, 2, 3, 4)(array(iota(0, 24)));
-    auto b = Arrax!(int, 2, 2, 2)(array(iota(24, 32)));
-    auto c = a[][1..3][1..3];
-    auto test = [[[0, 1, 2, 3],
-                  [4, 24, 25, 7],
-                  [8, 26, 27, 11]],
-                 [[12, 13, 14, 15],
-                  [16, 28, 29, 19],
-                  [20, 30, 31, 23]]];
-    assert(cast(int[][][]) (c = b) == cast(int[][][]) b);
-    assert(cast(int[][][]) a == test);
-}
-
 unittest // Iterators
 {
     // Normal
@@ -826,6 +777,51 @@ unittest // Iterators for slice
             result ~= v;
         assert(result == test);
     }
+}
+
+unittest // Assignment
+{
+    alias Arrax!(int, 2, 3, 4) A;
+    A a, b;
+    a = A(array(iota(0, 24)));
+    auto test = [[[0, 1, 2, 3],
+                  [4, 5, 6, 7],
+                  [8, 9, 10, 11]],
+                 [[12, 13, 14, 15],
+                  [16, 17, 18, 19],
+                  [20, 21, 22, 23]]];
+    assert(cast(int[][][])(b = a) == test);
+    assert(cast(int[][][])b == test);
+    alias Arrax!(int, 0, 3, 0) A1;
+    A1 a1, b1;
+    a1 = A1(array(iota(0, 24)), [2, 3, 4]);
+    assert(cast(int[][][])(b1 = a1) == test);
+    assert(cast(int[][][])b1 == test);
+}
+
+unittest // Assignment for slices
+{
+    auto a = Arrax!(int, 2, 3, 4)(array(iota(0, 24)));
+    auto b = Arrax!(int, 2, 2, 2)(array(iota(24, 32)));
+    auto c = a[][1..3][1..3];
+    auto test = [[[0, 1, 2, 3],
+                  [4, 24, 25, 7],
+                  [8, 26, 27, 11]],
+                 [[12, 13, 14, 15],
+                  [16, 28, 29, 19],
+                  [20, 30, 31, 23]]];
+    assert(cast(int[][][]) (c = b) == cast(int[][][]) b);
+    assert(cast(int[][][]) a == test);
+}
+
+unittest // Comparison
+{
+    auto a = Arrax!(int, 2, 3, 4)(array(iota(24)));
+    auto b = Arrax!(int, dynamicSize, dynamicSize, dynamicSize)(array(iota(24)), [2, 3, 4]);
+    assert(a == b);
+    assert(b == a);
+    assert(a[][1..3][2] == b[][1..3][2]);
+    assert(a[][1..3][2] != b[][1..3][3]);
 }
 
 unittest // Unary operations 

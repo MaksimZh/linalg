@@ -1,4 +1,4 @@
-test: test.d arrax.d stride.d mdarray.d aux.d
+test: test.d arrax.d stride.d mdarray.d aux.d iteration.d
 	dmd -debug -unittest $^
 
 backup:
