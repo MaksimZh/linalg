@@ -7,7 +7,7 @@ import std.range;
 debug import std.stdio;
 
 void copy(Tsource, Tdest)(Tsource source, Tdest dest)
-    if(isForwardRange!Tsource && isForwardRange!Tdest)
+    if(isInputRange!Tsource && isInputRange!Tdest)
 {
     foreach(ref d; dest)
     {
@@ -25,7 +25,7 @@ unittest
 }
 
 void applyUnary(string op, Tsource, Tdest)(Tsource source, Tdest dest)
-    if(isForwardRange!Tsource && isForwardRange!Tdest)
+    if(isInputRange!Tsource && isInputRange!Tdest)
 {
     foreach(ref d; dest)
     {
@@ -43,7 +43,7 @@ unittest
 }
 
 void applyBinary(string op, Tsource1, Tsource2, Tdest)(Tsource1 source1, Tsource2 source2, Tdest dest)
-    if(isForwardRange!Tsource1 && isForwardRange!Tsource2 && isForwardRange!Tdest)
+    if(isInputRange!Tsource1 && isInputRange!Tsource2 && isInputRange!Tdest)
 {
     foreach(ref d; dest)
     {

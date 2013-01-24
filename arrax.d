@@ -31,6 +31,7 @@ version(unittest)
 import stride;
 import mdarray;
 import aux;
+import iteration;
 
 // Value to denote not fixed dimension of the array
 enum size_t dynamicSize = 0;
@@ -231,13 +232,7 @@ struct ArraxSlice(T, uint rank_)
             }
     body
     {
-        auto iter = byElement;
-        auto iterSource = source.byElement;
-        foreach(ref v; iter)
-        {
-            v = iterSource.front;
-            iterSource.popFront();
-        }
+        iteration.copy(source.byElement(), this.byElement());
         return this;
     }
 
@@ -542,13 +537,7 @@ struct Arrax(T, params...)
         static if(isDynamic)
             if(_dim != source._dim)
                 setAllDimensions(source._dim);
-        auto iter = byElement;
-        auto iterSource = source.byElement;
-        foreach(ref v; iter)
-        {
-            v = iterSource.front;
-            iterSource.popFront();
-        }
+        iteration.copy(source.byElement(), this.byElement());
         return this;
     }
 
@@ -558,13 +547,7 @@ struct Arrax(T, params...)
         Arrax result;
         static if(result.isDynamic)
             result.setAllDimensions(_dim);
-        auto iter = byElement;
-        auto iterResult = result.byElement;
-        foreach(ref v; iter)
-        {
-            iterResult.front = mixin(op ~ "v");
-            iterResult.popFront();
-        }
+        iteration.applyUnary!op(this.byElement(), result.byElement());
         return result;
     }
 }
