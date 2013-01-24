@@ -249,17 +249,6 @@ struct ArraxSlice(T, uint rank_)
         return this;
     }
 
-    ref ArraxSlice opAssign()(MultArrayType!(ElementType, rank) a)
-        in
-        {
-            
-        }
-    body
-    {
-        copyArrayToSlice(_dim, _stride, _container, a);
-        return this;
-    }
-
     bool opEquals(SourceType)(SourceType source)
         if(isArrayOrSlice!SourceType)
             in
@@ -277,11 +266,6 @@ struct ArraxSlice(T, uint rank_)
             iterSource.popFront();
         }
         return true;
-    }
-    
-    bool opEquals()(MultArrayType!(ElementType, rank) a)
-    {
-        return compareSliceArray(_dim, _stride, _container, a);
     }
 }
 
@@ -547,17 +531,6 @@ struct Arrax(T, params...)
             _container = source._container.dup;
         return this;
     }
-
-    ref Arrax opAssign(MultArrayType!(ElementType, rank) a)
-    {
-        copyArrayToSlice(_dim, _stride, _container, a);
-        return this;
-    }
-
-    bool opEquals(MultArrayType!(ElementType, rank) a)
-    {
-        return compareSliceArray(_dim, _stride, _container, a);
-    }
 }
 
 unittest // Type properties and dimensions
@@ -590,23 +563,6 @@ unittest // Type properties and dimensions
     assert(d._container == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     assert(d._dim == [2, 3]);
     assert(d._stride == [6, 2]);
-}
-
-unittest // Comparison
-{
-    auto a = Arrax!(int, 2, 3, 4)(array(iota(0, 24)));
-    assert(a == [[[0, 1, 2, 3],
-                  [4, 5, 6, 7],
-                  [8, 9, 10, 11]],
-                 [[12, 13, 14, 15],
-                  [16, 17, 18, 19],
-                  [20, 21, 22, 23]]]);
-    assert(a != [[[0, 1, 2, 3],
-                  [4, 5, 6, 7],
-                  [8, 9, 10, 11]],
-                 [[12, 0, 14, 15],
-                  [16, 17, 18, 19],
-                  [20, 21, 22, 23]]]);
 }
 
 unittest // Slicing
@@ -754,46 +710,18 @@ unittest // Assignment
                  [[12, 13, 14, 15],
                   [16, 17, 18, 19],
                   [20, 21, 22, 23]]];
-    assert((b = a) == test);
-    assert(b == test);
+    assert(cast(int[][][])(b = a) == test);
+    assert(cast(int[][][])b == test);
     alias Arrax!(int, 0, 3, 0) A1;
     A1 a1, b1;
     a1 = A1(array(iota(0, 24)), [2, 3, 4]);
-    assert((b1 = a1) == test);
-    assert(b1 == test);
-}
-
-unittest // Assignment, jagged array
-{
-    {
-        auto source = [[[0, 1, 2, 3],
-                        [4, 5, 6, 7],
-                        [8, 9, 10, 11]],
-                       [[12, 13, 14, 15],
-                        [16, 17, 18, 19],
-                        [20, 21, 22, 23]]];
-        Arrax!(int, 2, 3, 4) a;
-        assert((a = source) == source);
-        assert(a == source);
-    }
-    {
-        auto test = [[[0, 1, 2, 3],
-                      [4, 24, 25, 7],
-                      [8, 9, 10, 11]],
-                     [[12, 13, 14, 15],
-                      [16, 26, 27, 19],
-                      [20, 21, 22, 23]]];
-        auto source = [[24, 25],
-                       [26, 27]];
-        auto a = Arrax!(int, 2, 3, 4)(array(iota(0, 24)));
-        assert((a[][1][1..3] = source) == source);
-        assert(a == test);
-    }
-
+    assert(cast(int[][][])(b1 = a1) == test);
+    assert(cast(int[][][])b1 == test);
 }
 
 unittest // Iterators
 {
+    // Normal
     {
         auto a = Arrax!(int, 2, 3, 4)(array(iota(24)));
         int[] test = array(iota(24));
@@ -803,6 +731,7 @@ unittest // Iterators
         assert(result == test);
     }
 
+    // Transposed
     {
         auto a = Arrax!(int, 2, 3, 4, true)(array(iota(0, 24)));
         int[] test = [0, 6, 12, 18,
