@@ -321,7 +321,8 @@ struct Arrax(T, params...)
         enum size_t length = dimPattern[0];
     else
         size_t length() { return _dim[0]; }
-    
+
+    // Change dimensions
     static if(isDynamic)
     {
         /* Recalculate strides and reallocate container for current dimensions
@@ -549,6 +550,22 @@ struct Arrax(T, params...)
             iterSource.popFront();
         }
         return this;
+    }
+
+    Arrax opUnary(string op)()
+        if((op == "-") || (op == "+"))
+    {
+        Arrax result;
+        static if(result.isDynamic)
+            result.setAllDimensions(_dim);
+        auto iter = byElement;
+        auto iterResult = result.byElement;
+        foreach(ref v; iter)
+        {
+            iterResult.front = mixin(op ~ "v");
+            iterResult.popFront();
+        }
+        return result;
     }
 }
 
@@ -809,4 +826,23 @@ unittest // Iterators for slice
             result ~= v;
         assert(result == test);
     }
+}
+
+unittest // Unary operations 
+{
+    auto a = Arrax!(int, 2, 3, 4)(array(iota(24)));
+    assert(cast(int[][][]) (+a)
+           == [[[0, 1, 2, 3],
+                [4, 5, 6, 7],
+                [8, 9, 10, 11]],
+               [[12, 13, 14, 15],
+                [16, 17, 18, 19],
+                [20, 21, 22, 23]]]);
+    assert(cast(int[][][]) (-a)
+           == [[[-0, -1, -2, -3],
+                [-4, -5, -6, -7],
+                [-8, -9, -10, -11]],
+               [[-12, -13, -14, -15],
+                [-16, -17, -18, -19],
+                [-20, -21, -22, -23]]]);
 }
