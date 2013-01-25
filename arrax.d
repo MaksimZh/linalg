@@ -31,6 +31,7 @@ version(unittest)
 import stride;
 import mdarray;
 import aux;
+import iteration;
 
 // Value to denote not fixed dimension of the array
 enum size_t dynamicSize = 0;
@@ -139,16 +140,18 @@ struct SliceBounds
    Support of other operations (like arithmetic) is planned.
    For other procedures they should be converted to dense arrays.
  */
-struct ArraxSlice(T, uint rank_)
+struct ArraxSlice(T, uint rank_, bool transposed = false)
 {
     alias T ElementType;
     enum uint rank = rank_;
     enum bool isDynamic = true;
+    enum bool isTransposed = transposed;
+    alias Arrax!(ElementType, repeatTuple!(rank, dynamicSize), transposed) ArrayType;
     
     size_t[rank] _dim;
     size_t[rank] _stride;
     ElementType[] _container;
-
+    
     // Make slice of a built-in array
     this()(T[] source, size_t[] dim, size_t[] stride = [])
         in
@@ -231,13 +234,7 @@ struct ArraxSlice(T, uint rank_)
             }
     body
     {
-        auto iter = byElement;
-        auto iterSource = source.byElement;
-        foreach(ref v; iter)
-        {
-            v = iterSource.front;
-            iterSource.popFront();
-        }
+        iteration.copy(source.byElement(), this.byElement());
         return this;
     }
 
@@ -249,15 +246,27 @@ struct ArraxSlice(T, uint rank_)
             }
     body
     {
-        auto iter = byElement;
-        auto iterSource = source.byElement;
-        foreach(v; iter)
-        {
-            if(v != iterSource.front)
-                return false;
-            iterSource.popFront();
-        }
-        return true;
+        return equal(source.byElement(), this.byElement());
+    }
+
+    ArrayType opUnary(string op)()
+        if(((op == "-") || (op == "+")) && (is(typeof(mixin(op ~ "this.byElement().front")))))
+    {
+        ArrayType result;
+        result.setAllDimensions(_dim);
+        iteration.applyUnary!op(this.byElement(), result.byElement());
+        return result;
+    }
+
+    ArrayType opBinary(string op, Trhs)(Trhs rhs)
+        if(((op == "-") || (op == "+") || (op == "*") || (op == "/"))
+           && isArrayOrSlice!Trhs
+           && (is(typeof(mixin("this.byElement().front" ~ op ~ "rhs.byElement().front")))))
+    {
+        ArrayType result;
+        result.setAllDimensions(_dim);
+        iteration.applyBinary!op(this.byElement(), rhs.byElement(), result.byElement());
+        return result;
     }
 }
 
@@ -321,7 +330,8 @@ struct Arrax(T, params...)
         enum size_t length = dimPattern[0];
     else
         size_t length() { return _dim[0]; }
-    
+
+    // Change dimensions
     static if(isDynamic)
     {
         /* Recalculate strides and reallocate container for current dimensions
@@ -404,7 +414,7 @@ struct Arrax(T, params...)
         {
             // Type of the array that corresponds to the slicing result
             static if(sliceRank > 0)
-                alias ArraxSlice!(T, sliceRank) EvalType;
+                alias ArraxSlice!(T, sliceRank, isTransposed) EvalType;
             else
                 alias T EvalType; // Slice is just set of indices
         
@@ -421,23 +431,29 @@ struct Arrax(T, params...)
             }
         
             // Evaluate array for the slice
-            EvalType eval()
+            static if(sliceRank > 0)
             {
-                static if(depth < rank)
+                EvalType eval()
                 {
-                    // If there is not enough bracket pairs - add empty []
-                    static if(depth == rank - 1)
-                        return this[];
+                    static if(depth < rank)
+                    {
+                        // If there is not enough bracket pairs - add empty []
+                        static if(depth == rank - 1)
+                            return this[];
+                        else
+                            return this[].eval();
+                    }
                     else
-                        return this[].eval();
+                    {
+                        // Normal slice
+                        return EvalType(*source, bounds);
+                    }
                 }
-                else static if(sliceRank > 0)
-                {
-                    // Normal slice
-                    auto foo = EvalType(*source, bounds);
-                    return foo;
-                }
-                else
+            }
+            else
+            {
+                // If simple index return element by reference
+                ref EvalType eval()
                 {
                     // Set of indices
                     size_t index = 0; // Position in the container
@@ -446,8 +462,9 @@ struct Arrax(T, params...)
                     return source._container[index];
                 }
             }
-
-            alias eval this;
+            
+            //XXX: DMD segmentation fault:
+            //alias eval this;
 
             // Slicing and indexing
             static if(depth < dimPattern.length - 1)
@@ -483,10 +500,22 @@ struct Arrax(T, params...)
                         source, bounds ~ SliceBounds(lo, up)).eval();
                 }
 
-                auto opIndex(size_t i)
+                static if(sliceRank > 1)
                 {
-                    return SliceProxy!(sliceRank - 1, depth + 1)(
-                        source, bounds ~ SliceBounds(i)).eval();
+                    auto opIndex(size_t i)
+                    {
+                        return SliceProxy!(sliceRank - 1, depth + 1)(
+                            source, bounds ~ SliceBounds(i)).eval();
+                    }
+                }
+                else
+                {
+                    // If simple index return element by reference
+                    ref auto opIndex(size_t i)
+                    {
+                        return SliceProxy!(sliceRank - 1, depth + 1)(
+                            source, bounds ~ SliceBounds(i)).eval();
+                    }
                 }
             }
 
@@ -494,11 +523,14 @@ struct Arrax(T, params...)
             {
                 return cast(MultArrayType!(ElementType, sliceRank))(eval());
             }
-        
+            
+            //XXX: Mystic errors for DMD from git
+            /*
             auto opAssign(Tsource)(Tsource source)
             {
                 return (eval() = source);
             }
+            */
         }
 
         // Slicing and indexing
@@ -541,14 +573,41 @@ struct Arrax(T, params...)
         static if(isDynamic)
             if(_dim != source._dim)
                 setAllDimensions(source._dim);
-        auto iter = byElement;
-        auto iterSource = source.byElement;
-        foreach(ref v; iter)
-        {
-            v = iterSource.front;
-            iterSource.popFront();
-        }
+        iteration.copy(source.byElement(), this.byElement());
         return this;
+    }
+
+    bool opEquals(SourceType)(SourceType source)
+        if(isArrayOrSlice!SourceType)
+            in
+            {
+                assert(source._dim == _dim);
+            }
+    body
+    {
+        return equal(source.byElement(), this.byElement());
+    }
+
+    Arrax opUnary(string op)()
+        if(((op == "-") || (op == "+")) && (is(typeof(mixin(op ~ "this.byElement().front")))))
+    {
+        Arrax result;
+        static if(result.isDynamic)
+            result.setAllDimensions(_dim);
+        iteration.applyUnary!op(this.byElement(), result.byElement());
+        return result;
+    }
+
+    Arrax opBinary(string op, Trhs)(Trhs rhs)
+        if(((op == "-") || (op == "+") || (op == "*") || (op == "/"))
+           && isArrayOrSlice!Trhs
+           && (is(typeof(mixin("this.byElement().front" ~ op ~ "rhs.byElement().front")))))
+    {
+        Arrax result;
+        static if(result.isDynamic)
+            result.setAllDimensions(_dim);
+        iteration.applyBinary!op(this.byElement(), rhs.byElement(), result.byElement());
+        return result;
     }
 }
 
@@ -731,41 +790,6 @@ unittest // Slicing, transposed
                [11, 17]]);
 }
 
-unittest // Assignment
-{
-    alias Arrax!(int, 2, 3, 4) A;
-    A a, b;
-    a = A(array(iota(0, 24)));
-    auto test = [[[0, 1, 2, 3],
-                  [4, 5, 6, 7],
-                  [8, 9, 10, 11]],
-                 [[12, 13, 14, 15],
-                  [16, 17, 18, 19],
-                  [20, 21, 22, 23]]];
-    assert(cast(int[][][])(b = a) == test);
-    assert(cast(int[][][])b == test);
-    alias Arrax!(int, 0, 3, 0) A1;
-    A1 a1, b1;
-    a1 = A1(array(iota(0, 24)), [2, 3, 4]);
-    assert(cast(int[][][])(b1 = a1) == test);
-    assert(cast(int[][][])b1 == test);
-}
-
-unittest // Assignment for slices
-{
-    auto a = Arrax!(int, 2, 3, 4)(array(iota(0, 24)));
-    auto b = Arrax!(int, 2, 2, 2)(array(iota(24, 32)));
-    auto c = a[][1..3][1..3];
-    auto test = [[[0, 1, 2, 3],
-                  [4, 24, 25, 7],
-                  [8, 26, 27, 11]],
-                 [[12, 13, 14, 15],
-                  [16, 28, 29, 19],
-                  [20, 30, 31, 23]]];
-    assert(cast(int[][][]) (c = b) == cast(int[][][]) b);
-    assert(cast(int[][][]) a == test);
-}
-
 unittest // Iterators
 {
     // Normal
@@ -809,4 +833,86 @@ unittest // Iterators for slice
             result ~= v;
         assert(result == test);
     }
+}
+
+unittest // Assignment
+{
+    alias Arrax!(int, 2, 3, 4) A;
+    A a, b;
+    a = A(array(iota(0, 24)));
+    auto test = [[[0, 1, 2, 3],
+                  [4, 5, 6, 7],
+                  [8, 9, 10, 11]],
+                 [[12, 13, 14, 15],
+                  [16, 17, 18, 19],
+                  [20, 21, 22, 23]]];
+    assert(cast(int[][][])(b = a) == test);
+    assert(cast(int[][][])b == test);
+    alias Arrax!(int, 0, 3, 0) A1;
+    A1 a1, b1;
+    a1 = A1(array(iota(0, 24)), [2, 3, 4]);
+    assert(cast(int[][][])(b1 = a1) == test);
+    assert(cast(int[][][])b1 == test);
+}
+
+unittest // Assignment for slices
+{
+    auto a = Arrax!(int, 2, 3, 4)(array(iota(0, 24)));
+    auto b = Arrax!(int, 2, 2, 2)(array(iota(24, 32)));
+    auto c = a[][1..3][1..3];
+    auto test = [[[0, 1, 2, 3],
+                  [4, 24, 25, 7],
+                  [8, 26, 27, 11]],
+                 [[12, 13, 14, 15],
+                  [16, 28, 29, 19],
+                  [20, 30, 31, 23]]];
+    assert(cast(int[][][]) (c = b) == cast(int[][][]) b);
+    assert(cast(int[][][]) a == test);
+    a[1][1][1] = 100;
+    assert(a[1][1][1] == 100);
+}
+
+unittest // Comparison
+{
+    auto a = Arrax!(int, 2, 3, 4)(array(iota(24)));
+    auto b = Arrax!(int, dynamicSize, dynamicSize, dynamicSize)(array(iota(24)), [2, 3, 4]);
+    assert(a == b);
+    assert(b == a);
+    assert(a[][1..3][2] == b[][1..3][2]);
+    assert(a[][1..3][2] != b[][1..3][3]);
+}
+
+unittest // Unary operations 
+{
+    auto a = Arrax!(int, 2, 3, 4)(array(iota(24)));
+    assert(cast(int[][][]) (+a)
+           == [[[0, 1, 2, 3],
+                [4, 5, 6, 7],
+                [8, 9, 10, 11]],
+               [[12, 13, 14, 15],
+                [16, 17, 18, 19],
+                [20, 21, 22, 23]]]);
+    assert(cast(int[][][]) (-a)
+           == [[[-0, -1, -2, -3],
+                [-4, -5, -6, -7],
+                [-8, -9, -10, -11]],
+               [[-12, -13, -14, -15],
+                [-16, -17, -18, -19],
+                [-20, -21, -22, -23]]]);
+    assert(cast(int[][][]) (-a[][1..3][1..3])
+           == [[[-5, -6],
+                [-9, -10]],
+               [[-17, -18],
+                [-21, -22]]]);
+}
+
+unittest // Binary operations
+{
+    alias Arrax!(int, 2, 3, 4) A;
+    auto a1 = A(array(iota(24)));
+    auto a2 = A(array(iota(24, 48)));
+    assert(a1 + a2 == A(array(iota(24, 24 + 48, 2))));
+    assert(cast(int[][]) (a1[1][1..3][1..3] + a2[0][1..3][1..3])
+           == [[17 + 29, 18 + 30],
+               [21 + 33, 22 + 34]]);
 }
