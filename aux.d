@@ -7,7 +7,9 @@ debug import std.stdio;
 
 template AuxTypeValue(T, T a){}
 
-// Check whether the tuple is a tuple of values that can be implicitly converted to given type
+/* Check whether the tuple is a tuple of values
+   that can be implicitly converted to given type
+ */
 template isValueOfType(T, v...)
 {
     static if(v.length == 0)
@@ -15,7 +17,9 @@ template isValueOfType(T, v...)
     else static if(v.length == 1)
         enum bool isValueOfType = is(typeof(AuxTypeValue!(T, v[0])));
     else
-        enum bool isValueOfType = isValueOfType!(T, v[0..1]) && isValueOfType!(T, v[1..$]);
+        enum bool isValueOfType =
+            isValueOfType!(T, v[0..1])
+            && isValueOfType!(T, v[1..$]);
 }
 
 unittest // isValueOfType
@@ -33,7 +37,10 @@ unittest // isValueOfType
 
 template isValueOfTypeStrict(T, v...)
 {
-    enum bool isValueOfTypeStrict = (v.length == 1) && isValueOfType!(T, v[0]) && is(typeof(v[0]) == T);
+    enum bool isValueOfTypeStrict =
+        (v.length == 1)
+        && isValueOfType!(T, v[0])
+        && is(typeof(v[0]) == T);
 }
 
 unittest // isValueOfTypeStrict
@@ -60,5 +67,5 @@ template repeatTuple(size_t N, tuple...)
 
 unittest
 {
-    
+    assert([repeatTuple!(3, 0)] == [0, 0, 0]);
 }

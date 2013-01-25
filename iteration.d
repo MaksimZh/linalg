@@ -42,7 +42,9 @@ unittest
     assert(b == [-1, -2, -3]);
 }
 
-void applyBinary(string op, Tsource1, Tsource2, Tdest)(Tsource1 source1, Tsource2 source2, Tdest dest)
+void applyBinary(string op, Tsource1, Tsource2, Tdest)(Tsource1 source1,
+                                                       Tsource2 source2,
+                                                       Tdest dest)
     if(isInputRange!Tsource1 && isInputRange!Tsource2 && isInputRange!Tdest)
 {
     foreach(ref d; dest)

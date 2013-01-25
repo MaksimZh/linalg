@@ -1,12 +1,5 @@
 // Written in the D programming language.
 
-/** This module contains auxiliary functions to work with
-    built-in multidimensional arrays.
-
-    Authors:    Maksim S. Zholudev
-    Copyright:  Copyright (c) 2013, Maksim S. Zholudev.
-    License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
-*/
 module mdarray;
 
 // Type of multidimensional jagged array
@@ -18,6 +11,8 @@ template MultArrayType(T, size_t N)
         alias T MultArrayType;
 }
 
+version(none) //XXX: Temporary not needed
+{
 // Test whether given array is not really jagged.
 bool isHomogeneous(A)(in A a) pure
 {
@@ -67,4 +62,5 @@ unittest // getDimensions
     assert(getDimensions([0]) == [1]);
     assert(getDimensions([[0, 0], [0, 0], [0, 0]]) == [3, 2]);
     assert(getDimensions([[0, 0], [0, 0], [0, 0, 0]]) == []);
+}
 }

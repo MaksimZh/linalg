@@ -1,11 +1,5 @@
 // Written in the D programming language.
 
-/** This module contains functions for strides.
-
-    Authors:    Maksim S. Zholudev
-    Copyright:  Copyright (c) 2013, Maksim S. Zholudev.
-    License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
-*/
 module stride;
 
 debug import std.stdio;
@@ -83,7 +77,10 @@ body
     {
         auto result = new MultArrayType!(T, rank - 1)[dim[0]];
         foreach(i; 0..dim[0])
-            result[i] = sliceToArray!(T, rank - 1)(dim[1..$], stride[1..$], container[(stride[0] * i)..$]);
+            result[i] =
+                sliceToArray!(T, rank - 1)(dim[1..$],
+                                           stride[1..$],
+                                           container[(stride[0] * i)..$]);
         return result;
     }
     else
