@@ -1,5 +1,11 @@
 // Written in the D programming language.
 
+/** Functions used to connect compact arrays and built-in jagged arrays.
+
+    Authors:    Maksim S. Zholudev
+    Copyright:  Copyright (c) 2013, Maksim S. Zholudev.
+    License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
+*/
 module mdarray;
 
 // Type of multidimensional jagged array

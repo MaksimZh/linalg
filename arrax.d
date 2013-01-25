@@ -1,6 +1,7 @@
 // Written in the D programming language.
 
-/** Multidimensional arrays with dense storage.
+/** Dynamic and static multidimensional arrays with compact storage
+    (all data in one place).
 
     Authors:    Maksim S. Zholudev
     Copyright:  Copyright (c) 2013, Maksim S. Zholudev.
@@ -23,11 +24,10 @@ import mdarray;
 import aux;
 import iteration;
 
-// Value to denote not fixed dimension of the array
+/** Value to denote not fixed dimension of the array */
 enum size_t dynamicSize = 0;
 
-/* Detect whether A is a dense multidimensional array or slice
- */
+/** Detect whether A is a dense multidimensional array or slice */
 template isArrayOrSlice(A)
 {
     enum bool isArrayOrSlice = is(typeof(()
@@ -47,12 +47,12 @@ template isArrayOrSlice(A)
 
 unittest // isArrayOrSlice
 {
-    static assert(isArrayOrSlice!(Arrax!(int, 2, 3, 4)));
-    static assert(isArrayOrSlice!(Arrax!(int, 2, 3, 0)));
-    static assert(isArrayOrSlice!(ArraxSlice!(int, 2)));
+    static assert(isArrayOrSlice!(Array!(int, 2, 3, 4)));
+    static assert(isArrayOrSlice!(Array!(int, 2, 3, 0)));
+    static assert(isArrayOrSlice!(Slice!(int, 2)));
 }
 
-mixin template IteratorByElementGeneric(ArrayType)
+mixin template GenericIteratorByElement(ArrayType)
 {
     //TODO: optimize
     struct ByElement
@@ -97,8 +97,8 @@ mixin template IteratorByElementGeneric(ArrayType)
     }
 }
 
-// Structure to store slice boundaries compactly
-struct SliceBounds
+/* Structure to store slice boundaries compactly */
+private struct SliceBounds
 {
     size_t lo;
     size_t up;
@@ -122,25 +122,23 @@ struct SliceBounds
     }
 }
 
-/* Multidimensional array slice.
-   Unlike arrays slices do not perform memory management.
-   Their dimensions and stride of slice are calculated only once
-   and can not be changed.
- */
-struct ArraxSlice(T, uint rank_, bool transposed = false)
+/** Slice of a compact multidimensional array.
+    Unlike arrays slices do not perform memory management.
+*/
+struct Slice(T, uint rank_, bool transposed = false)
 {
     alias T ElementType;
     enum uint rank = rank_;
     enum bool isDynamic = true;
     enum bool isTransposed = transposed;
-    alias Arrax!(ElementType, repeatTuple!(rank, dynamicSize), transposed)
+    alias Array!(ElementType, repeatTuple!(rank, dynamicSize), transposed)
         ArrayType;
 
-    size_t[rank] _dim;
-    size_t[rank] _stride;
-    ElementType[] _container;
+    private size_t[rank] _dim;
+    private size_t[rank] _stride;
+    private ElementType[] _container;
 
-    // Make slice of a built-in array
+    /** Make slice of a built-in array */
     this()(T[] source, size_t[] dim, size_t[] stride = [])
         in
         {
@@ -161,15 +159,15 @@ struct ArraxSlice(T, uint rank_, bool transposed = false)
     {
         _container = source;
         _dim = dim;
-        // If strides are not specified create a dense array
+        /* If strides are not specified create a dense array */
         if(stride != [])
             _stride = stride;
         else
             _stride = calcDenseStrides(_dim);
     }
 
-    // Make slice of an array or slice
-    this(SourceType)(ref SourceType source, SliceBounds[] bounds)
+    /* Make slice of an array or slice */
+    private this(SourceType)(ref SourceType source, SliceBounds[] bounds)
         if(isArrayOrSlice!SourceType)
             in
             {
@@ -206,15 +204,16 @@ struct ArraxSlice(T, uint rank_, bool transposed = false)
 
     public // Iterators
     {
-        mixin IteratorByElementGeneric!(ArraxSlice);
+        mixin GenericIteratorByElement!(Slice);
     }
 
+    /* Convert to a built-in multidimensional array */
     MultArrayType!(ElementType, rank) opCast()
     {
         return sliceToArray!(ElementType, rank)(_dim, _stride, _container);
     }
 
-    ref ArraxSlice opAssign(SourceType)(SourceType source)
+    ref Slice opAssign(SourceType)(SourceType source)
         if(isArrayOrSlice!SourceType)
             in
             {
@@ -262,14 +261,14 @@ struct ArraxSlice(T, uint rank_, bool transposed = false)
     }
 }
 
-/* Multidimensional not jagged array with dense storage.
-   Static version (all dimensions are fixed) takes memory only for data.
- */
-struct Arrax(T, params...)
+/** Multidimensional compact array.
+    Static version (all dimensions are fixed) takes memory only for data.
+*/
+struct Array(T, params...)
 {
-    //TODO: Make ContainerType some copy-on-write type
     //TODO: Add trusted, nothrough, pure, etc
-    //FIXME: Some members should be private
+
+    /* Check the transposition flag (false by default). */
     static if(isValueOfTypeStrict!(bool, params[$-1]))
     {
         enum bool isTransposed = params[$-1];
@@ -281,6 +280,7 @@ struct Arrax(T, params...)
         alias params dimTuple;
     }
 
+    /* Check and store array dimensions */
     static assert(isValueOfType!(size_t, dimTuple));
     static assert(all!("a >= 0")([dimTuple]));
     enum size_t[] dimPattern = [dimTuple];
@@ -293,18 +293,18 @@ struct Arrax(T, params...)
     // If the size of array is dynamic
     enum isDynamic = (rankDynamic > 0);
 
-    // Array dimensions stride and data container type
+    /* Array dimensions stride and data container type */
     static if(isDynamic)
     {
-        size_t[rank] _dim = dimPattern;
-        size_t[rank] _stride;
-        ElementType[] _container;
+        private size_t[rank] _dim = dimPattern;
+        private size_t[rank] _stride;
+        private ElementType[] _container;
     }
     else
     {
-        enum size_t[] _dim = dimPattern;
-        enum size_t[] _stride = calcDenseStrides(_dim, isTransposed);
-        ElementType[calcDenseContainerSize(_dim)] _container;
+        private enum size_t[] _dim = dimPattern;
+        private enum size_t[] _stride = calcDenseStrides(_dim, isTransposed);
+        private ElementType[calcDenseContainerSize(_dim)] _container;
     }
 
     bool isCompatibleDimensions(in size_t[] dim) pure
@@ -408,7 +408,7 @@ struct Arrax(T, params...)
         {
             // Type of the array that corresponds to the slicing result
             static if(sliceRank > 0)
-                alias ArraxSlice!(T, sliceRank, isTransposed) EvalType;
+                alias Slice!(T, sliceRank, isTransposed) EvalType;
             else
                 alias T EvalType; // Slice is just set of indices
 
@@ -416,9 +416,9 @@ struct Arrax(T, params...)
             SliceBounds[] bounds;
 
             // Pointer to the array for which slice is calculated
-            Arrax* source;
+            Array* source;
 
-            this(Arrax* source_, SliceBounds[] bounds_)
+            private this(Array* source_, SliceBounds[] bounds_)
             {
                 source = source_;
                 bounds = bounds_;
@@ -548,7 +548,7 @@ struct Arrax(T, params...)
 
     public // Iterators
     {
-        mixin IteratorByElementGeneric!(Arrax);
+        mixin GenericIteratorByElement!(Array);
     }
 
     MultArrayType!(ElementType, rank) opCast()
@@ -556,7 +556,7 @@ struct Arrax(T, params...)
         return sliceToArray!(ElementType, rank)(_dim, _stride, _container);
     }
 
-    ref Arrax opAssign(SourceType)(SourceType source)
+    ref Array opAssign(SourceType)(SourceType source)
         if(isArrayOrSlice!SourceType)
             in
             {
@@ -582,24 +582,24 @@ struct Arrax(T, params...)
         return equal(source.byElement(), this.byElement());
     }
 
-    Arrax opUnary(string op)()
+    Array opUnary(string op)()
         if(((op == "-") || (op == "+"))
            && (is(typeof(mixin(op ~ "this.byElement().front")))))
     {
-        Arrax result;
+        Array result;
         static if(result.isDynamic)
             result.setAllDimensions(_dim);
         iteration.applyUnary!op(this.byElement(), result.byElement());
         return result;
     }
 
-    Arrax opBinary(string op, Trhs)(Trhs rhs)
+    Array opBinary(string op, Trhs)(Trhs rhs)
         if(((op == "-") || (op == "+") || (op == "*") || (op == "/"))
            && isArrayOrSlice!Trhs
            && (is(typeof(mixin("this.byElement().front"
                                ~ op ~ "rhs.byElement().front")))))
     {
-        Arrax result;
+        Array result;
         static if(result.isDynamic)
             result.setAllDimensions(_dim);
         iteration.applyBinary!op(this.byElement(),
@@ -611,40 +611,40 @@ struct Arrax(T, params...)
 
 unittest // Type properties and dimensions
 {
-    static assert(Arrax!(int, dynamicSize).isDynamic);
-    static assert(Arrax!(int, 1, dynamicSize).isDynamic);
-    static assert(!(Arrax!(int, 1).isDynamic));
-    static assert(!(Arrax!(int, 1, 2).isDynamic));
+    static assert(Array!(int, dynamicSize).isDynamic);
+    static assert(Array!(int, 1, dynamicSize).isDynamic);
+    static assert(!(Array!(int, 1).isDynamic));
+    static assert(!(Array!(int, 1, 2).isDynamic));
 
-    static assert(Arrax!(int, 1, dynamicSize, true).isTransposed);
-    static assert(!(Arrax!(int, 1).isTransposed));
+    static assert(Array!(int, 1, dynamicSize, true).isTransposed);
+    static assert(!(Array!(int, 1).isTransposed));
 
-    static assert(Arrax!(int, 1, 2)._dim == [1, 2]);
-    static assert(Arrax!(int, 4, 2, 3)._stride == [6, 3, 1]);
-    static assert(Arrax!(int, 1, 2).length == 1);
-    static assert(Arrax!(int, 4, 2, 3, true)._stride == [1, 4, 8]);
-    Arrax!(int, 1, 2, dynamicSize) a;
+    static assert(Array!(int, 1, 2)._dim == [1, 2]);
+    static assert(Array!(int, 4, 2, 3)._stride == [6, 3, 1]);
+    static assert(Array!(int, 1, 2).length == 1);
+    static assert(Array!(int, 4, 2, 3, true)._stride == [1, 4, 8]);
+    Array!(int, 1, 2, dynamicSize) a;
     assert(a.rank == 3);
     assert(a._dim == [1, 2, 0]);
     assert(a.length == 1);
     assert(a.isCompatibleDimensions([1, 2, 3]));
     assert(!(a.isCompatibleDimensions([1, 3, 3])));
 
-    Arrax!(int, dynamicSize, 2) b;
+    Array!(int, dynamicSize, 2) b;
     assert(b.length == 0);
 
-    auto c = Arrax!(int, dynamicSize, dynamicSize, dynamicSize)(
+    auto c = Array!(int, dynamicSize, dynamicSize, dynamicSize)(
         [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], [2, 2, 3]);
     assert(c._container == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
     assert(c._dim == [2, 2, 3]);
     assert(c._stride == [6, 3, 1]);
-    auto d = ArraxSlice!(int, 2)(
+    auto d = Slice!(int, 2)(
         [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [2, 3], [6, 2]);
     assert(d._container == [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     assert(d._dim == [2, 3]);
     assert(d._stride == [6, 2]);
 
-    Arrax!(int, 1, 2, dynamicSize, 3, dynamicSize, 4) a1;
+    Array!(int, 1, 2, dynamicSize, 3, dynamicSize, 4) a1;
     assert(a1.rank == 6);
     a1.setDimensions(5, 6);
     assert(a1._dim == [1, 2, 5, 3, 6, 4]);
@@ -658,7 +658,7 @@ unittest // Type properties and dimensions
 
 unittest // Slicing
 {
-    auto a = Arrax!(int, 2, 3, 4)(array(iota(0, 24)));
+    auto a = Array!(int, 2, 3, 4)(array(iota(0, 24)));
     assert(cast(int[][][]) a[][][]
            == [[[0, 1, 2, 3],
                 [4, 5, 6, 7],
@@ -724,7 +724,7 @@ unittest // Slicing
 
 unittest // Slicing, transposed
 {
-    auto a = Arrax!(int, 2, 3, 4, true)(array(iota(0, 24)));
+    auto a = Array!(int, 2, 3, 4, true)(array(iota(0, 24)));
     assert(cast(int[][][]) a[][][]
            == [[[0, 6, 12, 18],
                 [2, 8, 14, 20],
@@ -794,7 +794,7 @@ unittest // Iterators
 {
     // Normal
     {
-        auto a = Arrax!(int, 2, 3, 4)(array(iota(24)));
+        auto a = Array!(int, 2, 3, 4)(array(iota(24)));
         int[] test = array(iota(24));
         int[] result = [];
         foreach(v; a.byElement)
@@ -804,7 +804,7 @@ unittest // Iterators
 
     // Transposed
     {
-        auto a = Arrax!(int, 2, 3, 4, true)(array(iota(0, 24)));
+        auto a = Array!(int, 2, 3, 4, true)(array(iota(0, 24)));
         int[] test = [0, 6, 12, 18,
                       2, 8, 14, 20,
                       4, 10, 16, 22,
@@ -822,7 +822,7 @@ unittest // Iterators
 unittest // Iterators for slice
 {
     {
-        auto a = Arrax!(int, 2, 3, 4)(array(iota(24)));
+        auto a = Array!(int, 2, 3, 4)(array(iota(24)));
         int[] test = [5, 6,
                       9, 10,
 
@@ -837,7 +837,7 @@ unittest // Iterators for slice
 
 unittest // Assignment
 {
-    alias Arrax!(int, 2, 3, 4) A;
+    alias Array!(int, 2, 3, 4) A;
     A a, b;
     a = A(array(iota(0, 24)));
     auto test = [[[0, 1, 2, 3],
@@ -848,7 +848,7 @@ unittest // Assignment
                   [20, 21, 22, 23]]];
     assert(cast(int[][][])(b = a) == test);
     assert(cast(int[][][])b == test);
-    alias Arrax!(int, 0, 3, 0) A1;
+    alias Array!(int, 0, 3, 0) A1;
     A1 a1, b1;
     a1 = A1(array(iota(0, 24)), [2, 3, 4]);
     assert(cast(int[][][])(b1 = a1) == test);
@@ -857,8 +857,8 @@ unittest // Assignment
 
 unittest // Assignment for slices
 {
-    auto a = Arrax!(int, 2, 3, 4)(array(iota(0, 24)));
-    auto b = Arrax!(int, 2, 2, 2)(array(iota(24, 32)));
+    auto a = Array!(int, 2, 3, 4)(array(iota(0, 24)));
+    auto b = Array!(int, 2, 2, 2)(array(iota(24, 32)));
     auto c = a[][1..3][1..3];
     auto test = [[[0, 1, 2, 3],
                   [4, 24, 25, 7],
@@ -874,8 +874,8 @@ unittest // Assignment for slices
 
 unittest // Comparison
 {
-    auto a = Arrax!(int, 2, 3, 4)(array(iota(24)));
-    auto b = Arrax!(int, dynamicSize, dynamicSize, dynamicSize)(array(iota(24)),
+    auto a = Array!(int, 2, 3, 4)(array(iota(24)));
+    auto b = Array!(int, dynamicSize, dynamicSize, dynamicSize)(array(iota(24)),
                                                                 [2, 3, 4]);
     assert(a == b);
     assert(b == a);
@@ -885,7 +885,7 @@ unittest // Comparison
 
 unittest // Unary operations
 {
-    auto a = Arrax!(int, 2, 3, 4)(array(iota(24)));
+    auto a = Array!(int, 2, 3, 4)(array(iota(24)));
     assert(cast(int[][][]) (+a)
            == [[[0, 1, 2, 3],
                 [4, 5, 6, 7],
@@ -909,7 +909,7 @@ unittest // Unary operations
 
 unittest // Binary operations
 {
-    alias Arrax!(int, 2, 3, 4) A;
+    alias Array!(int, 2, 3, 4) A;
     auto a1 = A(array(iota(24)));
     auto a2 = A(array(iota(24, 48)));
     assert(a1 + a2 == A(array(iota(24, 24 + 48, 2))));

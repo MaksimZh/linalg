@@ -1,4 +1,12 @@
 // Written in the D programming language.
+
+/** Some auxiliary functions that are too general to be a part of Array package.
+    One day they should be moved somewhere else.
+
+    Authors:    Maksim S. Zholudev
+    Copyright:  Copyright (c) 2013, Maksim S. Zholudev.
+    License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
+*/
 module aux;
 
 import std.algorithm;
