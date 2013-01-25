@@ -522,11 +522,14 @@ struct Arrax(T, params...)
             {
                 return cast(MultArrayType!(ElementType, sliceRank))(eval());
             }
-        
+            
+            //XXX: Mystic errors for DMD from git
+            /*
             auto opAssign(Tsource)(Tsource source)
             {
                 return (eval() = source);
             }
+            */
         }
 
         // Slicing and indexing
@@ -895,6 +898,14 @@ unittest // Unary operations
                [[-12, -13, -14, -15],
                 [-16, -17, -18, -19],
                 [-20, -21, -22, -23]]]);
+    //XXX: DMD segmentation fault:
+    /*
+    assert(cast(int[][][]) (-a[][1..3][1..3])
+           == [[[-5, -6],
+                [-9, -10]],
+               [[-17, -18],
+               [-21, -22]]]);
+    */
 }
 
 unittest // Binary operations
