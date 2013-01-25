@@ -1,4 +1,5 @@
-DMD=~/programming/dlang/dmd/src/dmd
+//DMD=~/programming/dlang/dmd/src/dmd
+DMD=dmd
 
 test: test.d arrax.d stride.d mdarray.d aux.d iteration.d
 	$(DMD) -debug -unittest $^
