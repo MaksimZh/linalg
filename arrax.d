@@ -140,16 +140,18 @@ struct SliceBounds
    Support of other operations (like arithmetic) is planned.
    For other procedures they should be converted to dense arrays.
  */
-struct ArraxSlice(T, uint rank_)
+struct ArraxSlice(T, uint rank_, bool transposed = false)
 {
     alias T ElementType;
     enum uint rank = rank_;
     enum bool isDynamic = true;
+    enum bool isTransposed = transposed;
+    alias Arrax!(ElementType, repeatTuple!(rank, dynamicSize), transposed) ArrayType;
     
     size_t[rank] _dim;
     size_t[rank] _stride;
     ElementType[] _container;
-
+    
     // Make slice of a built-in array
     this()(T[] source, size_t[] dim, size_t[] stride = [])
         in
@@ -245,6 +247,26 @@ struct ArraxSlice(T, uint rank_)
     body
     {
         return equal(source.byElement(), this.byElement());
+    }
+
+    ArrayType opUnary(string op)()
+        if(((op == "-") || (op == "+")) && (is(typeof(mixin(op ~ "this.byElement().front")))))
+    {
+        ArrayType result;
+        result.setAllDimensions(_dim);
+        iteration.applyUnary!op(this.byElement(), result.byElement());
+        return result;
+    }
+
+    ArrayType opBinary(string op, Trhs)(Trhs rhs)
+        if(((op == "-") || (op == "+") || (op == "*") || (op == "/"))
+           && isArrayOrSlice!Trhs
+           && (is(typeof(mixin("this.byElement().front" ~ op ~ "rhs.byElement().front")))))
+    {
+        ArrayType result;
+        result.setAllDimensions(_dim);
+        iteration.applyBinary!op(this.byElement(), rhs.byElement(), result.byElement());
+        return result;
     }
 }
 
@@ -392,7 +414,7 @@ struct Arrax(T, params...)
         {
             // Type of the array that corresponds to the slicing result
             static if(sliceRank > 0)
-                alias ArraxSlice!(T, sliceRank) EvalType;
+                alias ArraxSlice!(T, sliceRank, isTransposed) EvalType;
             else
                 alias T EvalType; // Slice is just set of indices
         
@@ -409,23 +431,29 @@ struct Arrax(T, params...)
             }
         
             // Evaluate array for the slice
-            EvalType eval()
+            static if(sliceRank > 0)
             {
-                static if(depth < rank)
+                EvalType eval()
                 {
-                    // If there is not enough bracket pairs - add empty []
-                    static if(depth == rank - 1)
-                        return this[];
+                    static if(depth < rank)
+                    {
+                        // If there is not enough bracket pairs - add empty []
+                        static if(depth == rank - 1)
+                            return this[];
+                        else
+                            return this[].eval();
+                    }
                     else
-                        return this[].eval();
+                    {
+                        // Normal slice
+                        return EvalType(*source, bounds);
+                    }
                 }
-                else static if(sliceRank > 0)
-                {
-                    // Normal slice
-                    auto foo = EvalType(*source, bounds);
-                    return foo;
-                }
-                else
+            }
+            else
+            {
+                // If simple index return element by reference
+                ref EvalType eval()
                 {
                     // Set of indices
                     size_t index = 0; // Position in the container
@@ -471,10 +499,22 @@ struct Arrax(T, params...)
                         source, bounds ~ SliceBounds(lo, up)).eval();
                 }
 
-                auto opIndex(size_t i)
+                static if(sliceRank > 1)
                 {
-                    return SliceProxy!(sliceRank - 1, depth + 1)(
-                        source, bounds ~ SliceBounds(i)).eval();
+                    auto opIndex(size_t i)
+                    {
+                        return SliceProxy!(sliceRank - 1, depth + 1)(
+                            source, bounds ~ SliceBounds(i)).eval();
+                    }
+                }
+                else
+                {
+                    // If simple index return element by reference
+                    ref auto opIndex(size_t i)
+                    {
+                        return SliceProxy!(sliceRank - 1, depth + 1)(
+                            source, bounds ~ SliceBounds(i)).eval();
+                    }
                 }
             }
 
@@ -824,6 +864,8 @@ unittest // Assignment for slices
                   [20, 30, 31, 23]]];
     assert(cast(int[][][]) (c = b) == cast(int[][][]) b);
     assert(cast(int[][][]) a == test);
+    a[1][1][1] = 100;
+    assert(a[1][1][1] == 100);
 }
 
 unittest // Comparison
