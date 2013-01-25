@@ -462,8 +462,9 @@ struct Arrax(T, params...)
                     return source._container[index];
                 }
             }
-
-            alias eval this;
+            
+            //XXX: DMD segmentation fault:
+            //alias eval this;
 
             // Slicing and indexing
             static if(depth < dimPattern.length - 1)
@@ -898,14 +899,11 @@ unittest // Unary operations
                [[-12, -13, -14, -15],
                 [-16, -17, -18, -19],
                 [-20, -21, -22, -23]]]);
-    //XXX: DMD segmentation fault:
-    /*
     assert(cast(int[][][]) (-a[][1..3][1..3])
            == [[[-5, -6],
                 [-9, -10]],
                [[-17, -18],
-               [-21, -22]]]);
-    */
+                [-21, -22]]]);
 }
 
 unittest // Binary operations
