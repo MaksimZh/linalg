@@ -911,5 +911,8 @@ unittest // Binary operations
     alias Arrax!(int, 2, 3, 4) A;
     auto a1 = A(array(iota(24)));
     auto a2 = A(array(iota(24, 48)));
-    assert(a1 + a2 == A(array(iota(24, 72, 2))));
+    assert(a1 + a2 == A(array(iota(24, 24 + 48, 2))));
+    assert(cast(int[][]) (a1[1][1..3][1..3] + a2[0][1..3][1..3])
+           == [[17 + 29, 18 + 30],
+               [21 + 33, 22 + 34]]);
 }
