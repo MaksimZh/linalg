@@ -159,6 +159,7 @@ private struct SliceBounds
     }
 }
 
+/* Slicing and indexing management for arrays and matrices */
 mixin template sliceProxy(SourceType, alias constructSlice)
 {
     /* Auxiliary structure for slicing and indexing */
@@ -334,6 +335,8 @@ struct Slice(T, uint rank_, StorageOrder storageOrder = StorageOrder.rowMajor)
     }
 }
 
+/** Multidimensional compact array
+*/
 struct Array(T, params...)
 {
     /* Check the transposition flag (false by default). */
@@ -355,6 +358,7 @@ struct Array(T, params...)
 
     mixin storage!(T, dimPattern, StorageType.dynamic, storageOrder);
 
+    /* Slicing and indexing */
     auto constructSlice(uint sliceRank)(Array* source, SliceBounds[] bounds)
     {
         return Slice!(T, sliceRank, storageOrder)(source, bounds);
