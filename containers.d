@@ -10,6 +10,12 @@ module containers;
 
 import std.algorithm;
 
+version(unittest)
+{
+    import std.array;
+    import std.range;
+}
+
 import aux;
 import mdarray;
 import stride;
@@ -387,7 +393,44 @@ struct Array(T, params...)
     static assert(all!("a >= 0")([dimTuple]));
     enum size_t[] dimPattern = [dimTuple];
 
-    mixin storage!(T, dimPattern, StorageType.resizeable, storageOrder);
+    enum StorageType storageType =
+        canFind(dimPattern, dynamicSize)
+        ? StorageType.resizeable
+        : StorageType.fixed;
+
+    mixin storage!(T, dimPattern, storageType, storageOrder);
+
+    static if(storageType == StorageType.fixed)
+        // Convert ordinary 1D array to static MD array with dense storage
+        this(T[] source)
+            in
+            {
+                assert(source.length == reduce!("a * b")(_dim));
+            }
+        body
+        {
+            _data = source;
+        }
+    else
+        /* Convert ordinary 1D array to dense multidimensional array
+           with given dimensions
+         */
+        this(T[] source, size_t[] dim)
+            in
+            {
+                assert(dim.length == rank);
+                assert(source.length == reduce!("a * b")(dim));
+                foreach(i, d; dimPattern)
+                    if(d != dynamicSize)
+                        assert(d == dim[i]);
+            }
+        body
+        {
+            _data = source;
+            _dim = dim;
+            _stride = calcDenseStrides(
+                _dim, storageOrder == StorageOrder.columnMajor);
+        }
 
     /* Slicing and indexing */
     auto constructSlice(uint sliceRank)(Array* source, SliceBounds[] bounds)
@@ -396,11 +439,77 @@ struct Array(T, params...)
     }
 
     mixin sliceProxy!(Array, Array.constructSlice);
-    mixin basicOperations!(StorageType.resizeable, storageOrder);
+    mixin basicOperations!(storageType, storageOrder);
 }
 
 unittest
 {
     alias Slice!(int, 2) S;
     alias Array!(int, 2, 0) A;
+}
+
+unittest // Slicing
+{
+    auto a = Array!(int, 2, 3, 4)(array(iota(0, 24)));
+    assert(cast(int[][][]) a[][][]
+           == [[[0, 1, 2, 3],
+                [4, 5, 6, 7],
+                [8, 9, 10, 11]],
+               [[12, 13, 14, 15],
+                [16, 17, 18, 19],
+                [20, 21, 22, 23]]]);
+    assert(cast(int[][]) a[][][1]
+           == [[1, 5, 9],
+               [13, 17, 21]]);
+    assert(cast(int[][][]) a[][][1..3]
+           == [[[1, 2],
+                [5, 6],
+                [9, 10]],
+               [[13, 14],
+                [17, 18],
+                [21, 22]]]);
+    assert(cast(int[][]) a[][1][]
+           == [[4, 5, 6, 7],
+               [16, 17, 18, 19]]);
+    assert(cast(int[]) a[][1][1]
+           == [5, 17]);
+    assert(cast(int[][]) a[][1][1..3]
+           == [[5, 6],
+               [17, 18]]);
+    assert(cast(int[][][]) a[][1..3][]
+           == [[[4, 5, 6, 7],
+                [8, 9, 10, 11]],
+               [[16, 17, 18, 19],
+                [20, 21, 22, 23]]]);
+    assert(cast(int[][]) a[][1..3][1]
+           == [[5, 9],
+               [17, 21]]);
+    assert(cast(int[][][]) a[][1..3][1..3]
+           == [[[5, 6],
+                [9, 10]],
+               [[17, 18],
+                [21, 22]]]);
+    assert(cast(int[][]) a[1][][]
+           == [[12, 13, 14, 15],
+               [16, 17, 18, 19],
+               [20, 21, 22, 23]]);
+    assert(cast(int[]) a[1][][1]
+           == [13, 17, 21]);
+    assert(cast(int[][]) a[1][][1..3]
+           == [[13, 14],
+               [17, 18],
+               [21, 22]]);
+    assert(cast(int[]) a[1][1][]
+           == [16, 17, 18, 19]);
+    assert(a[1][1][1] == 17);
+    assert(cast(int[]) a[1][1][1..3]
+           == [17, 18]);
+    assert(cast(int[][]) a[1][1..3][]
+           == [[16, 17, 18, 19],
+               [20, 21, 22, 23]]);
+    assert(cast(int[]) a[1][1..3][1]
+           == [17, 21]);
+    assert(cast(int[][]) a[1][1..3][1..3]
+           == [[17, 18],
+               [21, 22]]);
 }
