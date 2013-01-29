@@ -332,9 +332,10 @@ mixin template basicOperations(StorageType storageType,
 /** Slice of a compact multidimensional array.
     Unlike arrays slices do not perform memory management.
 */
-struct Slice(T, uint rank_, StorageOrder storageOrder = StorageOrder.rowMajor)
+struct Slice(T, uint rank_, StorageOrder storageOrder_ = StorageOrder.rowMajor)
 {
     enum size_t[] dimPattern = [repeatTuple!(rank_, dynamicSize)];
+    enum StorageOrder storageOrder = storageOrder_;
 
     mixin storage!(T, dimPattern, false, storageOrder);
 
@@ -442,10 +443,32 @@ struct Array(T, params...)
     mixin basicOperations!(storageType, storageOrder);
 }
 
-unittest
+unittest // Type properties and dimensions
 {
-    alias Slice!(int, 2) S;
-    alias Array!(int, 2, 0) A;
+    {
+        alias Slice!(int, 3) A;
+        static assert(is(A.ElementType == int));
+        static assert(A.storageType == StorageType.dynamic);
+        static assert(A.storageOrder == StorageOrder.rowMajor);
+    }
+    {
+        alias Array!(int, dynamicSize, dynamicSize, dynamicSize) A;
+        static assert(is(A.ElementType == int));
+        static assert(A.storageType == StorageType.resizeable);
+        static assert(A.storageOrder == StorageOrder.rowMajor);
+        A a = A(array(iota(24)), [2, 3, 4]);
+        assert(a.length == 2);
+        assert(a.dimensions == [2, 3, 4]);
+    }
+    {
+        alias Array!(int, 2, 3, 4) A;
+        static assert(is(A.ElementType == int));
+        static assert(A.storageType == StorageType.fixed);
+        static assert(A.storageOrder == StorageOrder.rowMajor);
+        A a = A(array(iota(24)));
+        assert(a.length == 2);
+        assert(a.dimensions == [2, 3, 4]);
+    }
 }
 
 unittest // Slicing
