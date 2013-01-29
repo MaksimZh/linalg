@@ -69,6 +69,24 @@ mixin template storage(T, alias dimPattern,
     else
         public @property size_t[rank] dimensions() pure const { return _dim; }
 
+    /* Test dimensions for compatibility */
+    bool isCompatibleDimensions(in size_t[] dim) pure
+    {
+        static if(storageType == StorageType.resizeable)
+        {
+            if(dim.length != rank)
+                return false;
+            foreach(i, d; dim)
+                if((d != dimPattern[i]) && (dimPattern[i] != dynamicSize))
+                    return false;
+            return true;
+        }
+        else
+        {
+            return dim == _dim;
+        }
+    }
+
     /* Change dimensions */
     static if(storageType == StorageType.resizeable)
     {
@@ -76,7 +94,8 @@ mixin template storage(T, alias dimPattern,
          */
         private void _resize() pure
         {
-            _stride = calcDenseStrides(_dim, isTransposed);
+            _stride = calcDenseStrides(
+                _dim, storageOrder == StorageOrder.columnMajor);
             _data.length = calcDenseContainerSize(_dim);
         }
 
@@ -101,7 +120,7 @@ mixin template storage(T, alias dimPattern,
         void setDimensions(in size_t[] dim...) pure
             in
             {
-                assert(dim.length == rankDynamic);
+                assert(dim.length == count(dimPattern, dynamicSize));
             }
         body
         {
@@ -356,7 +375,7 @@ struct Array(T, params...)
     static assert(all!("a >= 0")([dimTuple]));
     enum size_t[] dimPattern = [dimTuple];
 
-    mixin storage!(T, dimPattern, StorageType.dynamic, storageOrder);
+    mixin storage!(T, dimPattern, StorageType.resizeable, storageOrder);
 
     /* Slicing and indexing */
     auto constructSlice(uint sliceRank)(Array* source, SliceBounds[] bounds)
