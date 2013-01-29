@@ -8,6 +8,10 @@
 */
 module containers;
 
+import std.algorithm;
+
+import aux;
+
 import stride;
 
 /** Value to denote not fixed dimension of the array */
@@ -29,12 +33,13 @@ enum StorageType
 }
 
 /* Storage and dimension management for arrays and matrices */
-mixin template storage(ElementType, alias dimPattern,
+mixin template storage(T, alias dimPattern,
                        StorageType storageType,
                        StorageOrder storageOrder)
 {
     static assert(is(typeof(dimPattern[0]) : size_t));
 
+    alias T ElementType; // Type of the array elements
     public enum uint rank = dimPattern.length; // Number of dimensions
 
     /* dimensions, strides and data */
@@ -72,7 +77,7 @@ mixin template storage(ElementType, alias dimPattern,
         private void _resize() pure
         {
             _stride = calcDenseStrides(_dim, isTransposed);
-            _container.length = calcDenseContainerSize(_dim);
+            _data.length = calcDenseContainerSize(_dim);
         }
 
         /* Change dynamic array dimensions.
@@ -110,6 +115,23 @@ mixin template storage(ElementType, alias dimPattern,
             _resize();
         }
     }
+}
+
+/** Detect whether A has storage mixin inside */
+template isStorage(A)
+{
+    enum bool isStorage = is(typeof(()
+        {
+            A a;
+            static assert(is(typeof(A.rank) == uint));
+            static assert(is(typeof(a._dim)));
+            static assert(is(typeof(a._dim[0]) == size_t));
+            static assert(is(typeof(a._stride)));
+            static assert(is(typeof(a._stride[0]) == size_t));
+            static assert(is(typeof(a._data)));
+            //XXX: DMD issue 9424
+            //static assert(is(typeof(a._data[0]) == A.ElementType));
+        }));
 }
 
 /* Structure to store slice boundaries compactly */
@@ -157,10 +179,10 @@ mixin template sliceProxy(SourceType, alias constructSlice)
         {
             auto eval()
             {
-                static if(depth < rank)
+                static if(sliceDepth < rank)
                 {
                     /* If there is not enough bracket pairs - add empty [] */
-                    static if(depth == rank - 1)
+                    static if(sliceDepth == rank - 1)
                         return this[];
                     else
                         return this[].eval();
@@ -168,7 +190,7 @@ mixin template sliceProxy(SourceType, alias constructSlice)
                 else
                 {
                     /* Normal slice */
-                    return constructSlice(*source, bounds);
+                    return constructSlice!(sliceRank)(source, bounds);
                 }
             }
         }
@@ -180,46 +202,47 @@ mixin template sliceProxy(SourceType, alias constructSlice)
                 size_t index = 0; // Position in the container
                 foreach(i, b; bounds)
                     index += source._stride[i] * b.lo;
-                return source._container[index];
+                return source._data[index];
             }
         }
 
         /* Slicing and indexing */
-        static if(depth < dimPattern.length - 1)
+        static if(sliceDepth < dimPattern.length - 1)
         {
             /* Return slice proxy for incomplete bracket construction
             */
-            SliceProxy!(sliceRank, depth + 1) opSlice()
+            SliceProxy!(sliceRank, sliceDepth + 1) opSlice()
             {
                 return typeof(return)(
-                    source, bounds ~ SliceBounds(0, source._dim[depth]));
+                    source, bounds ~ SliceBounds(0, source._dim[sliceDepth]));
             }
 
-            SliceProxy!(sliceRank, depth + 1) opSlice(size_t lo, size_t up)
+            SliceProxy!(sliceRank, sliceDepth + 1) opSlice(size_t lo, size_t up)
             {
                 return typeof(return)(source, bounds ~ SliceBounds(lo, up));
             }
 
-            SliceProxy!(sliceRank - 1, depth + 1) opIndex(size_t i)
+            SliceProxy!(sliceRank - 1, sliceDepth + 1) opIndex(size_t i)
             {
                 return typeof(return)(source, bounds ~ SliceBounds(i));
             }
         }
-        else static if(depth == (dimPattern.length - 1))
+        else static if(sliceDepth == (dimPattern.length - 1))
              {
                  /* If only one more slicing can be done
                     then return slice not proxy
                  */
                  auto opSlice()
                  {
-                     return SliceProxy!(sliceRank, depth + 1)(
-                         source, bounds ~ SliceBounds(0, source._dim[depth])
+                     return SliceProxy!(sliceRank, sliceDepth + 1)(
+                         source,
+                         bounds ~ SliceBounds(0, source._dim[sliceDepth])
                          ).eval();
                  }
 
                  auto opSlice(size_t lo, size_t up)
                  {
-                     return SliceProxy!(sliceRank, depth + 1)(
+                     return SliceProxy!(sliceRank, sliceDepth + 1)(
                          source, bounds ~ SliceBounds(lo, up)).eval();
                  }
 
@@ -227,7 +250,7 @@ mixin template sliceProxy(SourceType, alias constructSlice)
                  {
                      auto opIndex(size_t i)
                      {
-                         return SliceProxy!(sliceRank - 1, depth + 1)(
+                         return SliceProxy!(sliceRank - 1, sliceDepth + 1)(
                              source, bounds ~ SliceBounds(i)).eval();
                      }
                  }
@@ -236,7 +259,7 @@ mixin template sliceProxy(SourceType, alias constructSlice)
                      /* If simple index return element by reference */
                      ref auto opIndex(size_t i)
                      {
-                         return SliceProxy!(sliceRank - 1, depth + 1)(
+                         return SliceProxy!(sliceRank - 1, sliceDepth + 1)(
                              source, bounds ~ SliceBounds(i)).eval();
                      }
                  }
@@ -263,4 +286,85 @@ mixin template sliceProxy(SourceType, alias constructSlice)
     {
         return typeof(return)(&this, [SliceBounds(i)]);
     }
+}
+
+/** Slice of a compact multidimensional array.
+    Unlike arrays slices do not perform memory management.
+*/
+struct Slice(T, uint rank_, StorageOrder storageOrder = StorageOrder.rowMajor)
+{
+    enum size_t[] dimPattern = [repeatTuple!(rank_, dynamicSize)];
+
+    mixin storage!(T, dimPattern, StorageType.dynamic, storageOrder);
+
+    /* Make slice of an array or slice */
+    private this(SourceType)(ref SourceType source, SliceBounds[] bounds)
+        if(isStorage!SourceType)
+            in
+            {
+                assert(bounds.length == source.rank);
+                assert(count!("a.isRegularSlice")(bounds) == rank);
+            }
+    body
+    {
+        size_t bndLo = 0; // Lower boundary in the container
+        size_t bndUp = 0; // Upper boundary in the container
+
+        /* Dimensions and strides should be copied for all regular slices
+           and omitted for indices.
+           Boundaries should not cover additional elements.
+        */
+        uint idest = 0;
+        foreach(i, b; bounds)
+        {
+            bndLo += source._stride[i] * b.lo;
+            if(b.isRegularSlice)
+            {
+                bndUp += source._stride[i] * (b.up - 1);
+                _dim[idest] = b.up - b.lo;
+                _stride[idest] = source._stride[i];
+                ++idest;
+            }
+            else
+                bndUp += source._stride[i] * b.up;
+        }
+        ++bndUp;
+
+        _data = source._data[bndLo..bndUp];
+    }
+}
+
+struct Array(T, params...)
+{
+    /* Check the transposition flag (false by default). */
+    static if(isValueOfTypeStrict!(StorageOrder, params[$-1]))
+    {
+        enum StorageOrder storageOrder = params[$-1];
+        alias params[0..$-1] dimTuple;
+    }
+    else
+    {
+        enum StorageOrder storageOrder = StorageOrder.rowMajor;
+        alias params dimTuple;
+    }
+
+    /* Check and store array dimensions */
+    static assert(isValueOfType!(size_t, dimTuple));
+    static assert(all!("a >= 0")([dimTuple]));
+    enum size_t[] dimPattern = [dimTuple];
+
+    mixin storage!(T, dimPattern, StorageType.dynamic, storageOrder);
+
+    auto constructSlice(uint sliceRank)(Array* source, SliceBounds[] bounds)
+    {
+        return Slice!(T, sliceRank, storageOrder)(source, bounds);
+    }
+
+    mixin sliceProxy!(Array, Array.constructSlice);
+}
+
+unittest
+{
+    alias Slice!(int, 2) S;
+    alias Array!(int, 2, 0) A;
 }
