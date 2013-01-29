@@ -11,7 +11,7 @@ module containers;
 import std.algorithm;
 
 import aux;
-
+import mdarray;
 import stride;
 
 /** Value to denote not fixed dimension of the array */
@@ -308,6 +308,16 @@ mixin template sliceProxy(SourceType, alias constructSlice)
     }
 }
 
+/* Operations that are common for both arrays and matrices */
+mixin template basicOperations(StorageType storageType,
+                               StorageOrder storageOrder)
+{
+    MultArrayType!(ElementType, rank) opCast()
+    {
+        return sliceToArray!(ElementType, rank)(_dim, _stride, _data);
+    }
+}
+
 /** Slice of a compact multidimensional array.
     Unlike arrays slices do not perform memory management.
 */
@@ -352,6 +362,8 @@ struct Slice(T, uint rank_, StorageOrder storageOrder = StorageOrder.rowMajor)
 
         _data = source._data[bndLo..bndUp];
     }
+
+    mixin basicOperations!(StorageType.dynamic, storageOrder);
 }
 
 /** Multidimensional compact array
@@ -384,6 +396,7 @@ struct Array(T, params...)
     }
 
     mixin sliceProxy!(Array, Array.constructSlice);
+    mixin basicOperations!(StorageType.resizeable, storageOrder);
 }
 
 unittest
