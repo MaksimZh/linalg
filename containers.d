@@ -40,13 +40,18 @@ enum StorageType
 
 /* Storage and dimension management for arrays and matrices */
 mixin template storage(T, alias dimPattern,
-                       StorageType storageType,
+                       bool allowResize,
                        StorageOrder storageOrder)
 {
     static assert(is(typeof(dimPattern[0]) : size_t));
 
     alias T ElementType; // Type of the array elements
     public enum uint rank = dimPattern.length; // Number of dimensions
+
+    enum StorageType storageType =
+        canFind(dimPattern, dynamicSize)
+        ? (allowResize ? StorageType.resizeable : StorageType.dynamic)
+        : StorageType.fixed;
 
     /* dimensions, strides and data */
     private static if(storageType == StorageType.fixed)
@@ -331,7 +336,7 @@ struct Slice(T, uint rank_, StorageOrder storageOrder = StorageOrder.rowMajor)
 {
     enum size_t[] dimPattern = [repeatTuple!(rank_, dynamicSize)];
 
-    mixin storage!(T, dimPattern, StorageType.dynamic, storageOrder);
+    mixin storage!(T, dimPattern, false, storageOrder);
 
     /* Make slice of an array or slice */
     private this(SourceType)(ref SourceType source, SliceBounds[] bounds)
@@ -393,12 +398,7 @@ struct Array(T, params...)
     static assert(all!("a >= 0")([dimTuple]));
     enum size_t[] dimPattern = [dimTuple];
 
-    enum StorageType storageType =
-        canFind(dimPattern, dynamicSize)
-        ? StorageType.resizeable
-        : StorageType.fixed;
-
-    mixin storage!(T, dimPattern, storageType, storageOrder);
+    mixin storage!(T, dimPattern, true, storageOrder);
 
     static if(storageType == StorageType.fixed)
         // Convert ordinary 1D array to static MD array with dense storage
