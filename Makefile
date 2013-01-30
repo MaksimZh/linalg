@@ -1,7 +1,7 @@
 DMD=~/programming/dlang/dmd/src/dmd
 #DMD=dmd
 
-test: test.d stride.d mdarray.d aux.d iteration.d base.d array.d
+test: test.d stride.d mdarray.d aux.d iteration.d base.d array.d matrix.d
 	$(DMD) -debug -unittest $^
 
 backup:
