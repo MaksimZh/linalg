@@ -390,10 +390,12 @@ mixin template basicOperations(FinalType,
     }
 }
 
-/** Slice of a compact multidimensional array.
-    Unlike arrays slices do not perform memory management.
+/** Array view.
+    Currently used only to slice compact multidimensional array.
+    Unlike arrays views do not perform memory management.
 */
-struct Slice(T, uint rank_, StorageOrder storageOrder_ = StorageOrder.rowMajor)
+struct ArrayView(T, uint rank_,
+                 StorageOrder storageOrder_ = StorageOrder.rowMajor)
 {
     enum size_t[] dimPattern = [repeatTuple!(rank_, dynamicSize)];
     enum StorageOrder storageOrder = storageOrder_;
@@ -498,7 +500,7 @@ struct Array(T, params...)
     /* Slicing and indexing */
     auto constructSlice(uint sliceRank)(Array* source, SliceBounds[] bounds)
     {
-        return Slice!(T, sliceRank, storageOrder)(source, bounds);
+        return ArrayView!(T, sliceRank, storageOrder)(source, bounds);
     }
 
     mixin sliceProxy!(Array, Array.constructSlice);
@@ -508,7 +510,7 @@ struct Array(T, params...)
 unittest // Type properties and dimensions
 {
     {
-        alias Slice!(int, 3) A;
+        alias ArrayView!(int, 3) A;
         static assert(is(A.ElementType == int));
         static assert(A.storageType == StorageType.dynamic);
         static assert(A.storageOrder == StorageOrder.rowMajor);
