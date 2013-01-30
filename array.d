@@ -6,7 +6,7 @@
     Copyright:  Copyright (c) 2013, Maksim S. Zholudev.
     License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
 */
-module array;
+module linalg.array;
 
 import std.algorithm;
 
@@ -18,11 +18,11 @@ version(unittest)
     import std.range;
 }
 
-import base;
-import aux;
-import mdarray;
-import stride;
-import iteration;
+import linalg.base;
+import linalg.aux;
+import linalg.mdarray;
+import linalg.stride;
+import linalg.iteration;
 
 /** Array view.
     Currently used only to slice compact multidimensional array.

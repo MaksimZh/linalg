@@ -6,7 +6,7 @@
     Copyright:  Copyright (c) 2013, Maksim S. Zholudev.
     License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
 */
-module base;
+module linalg.base;
 
 import std.algorithm;
 
@@ -18,10 +18,10 @@ version(unittest)
     import std.range;
 }
 
-import aux;
-import mdarray;
-import stride;
-import iteration;
+import linalg.aux;
+import linalg.mdarray;
+import linalg.stride;
+import linalg.iteration;
 
 /** Value to denote not fixed dimension of the array */
 enum size_t dynamicSize = 0;
@@ -348,7 +348,7 @@ mixin template basicOperations(FinalType,
         static if(storageType == StorageType.resizeable)
             if(_dim != source._dim)
                 setAllDimensions(source._dim);
-        iteration.copy(source.byElement(), this.byElement());
+        linalg.iteration.copy(source.byElement(), this.byElement());
         return this;
     }
 
@@ -370,7 +370,7 @@ mixin template basicOperations(FinalType,
         FinalType result;
         static if(result.storageType == StorageType.resizeable)
             result.setAllDimensions(_dim);
-        iteration.applyUnary!op(this.byElement(), result.byElement());
+        linalg.iteration.applyUnary!op(this.byElement(), result.byElement());
         return result;
     }
 
@@ -383,9 +383,9 @@ mixin template basicOperations(FinalType,
         FinalType result;
         static if(result.storageType == StorageType.resizeable)
             result.setAllDimensions(_dim);
-        iteration.applyBinary!op(this.byElement(),
-                                 rhs.byElement(),
-                                 result.byElement());
+        linalg.iteration.applyBinary!op(this.byElement(),
+                                        rhs.byElement(),
+                                        result.byElement());
         return result;
     }
 }

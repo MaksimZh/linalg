@@ -6,7 +6,7 @@
     Copyright:  Copyright (c) 2013, Maksim S. Zholudev.
     License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
 */
-module mdarray;
+module linalg.mdarray;
 
 // Type of multidimensional jagged array
 template MultArrayType(T, size_t N)

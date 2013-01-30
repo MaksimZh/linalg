@@ -6,7 +6,7 @@
     Copyright:  Copyright (c) 2013, Maksim S. Zholudev.
     License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
 */
-module stride;
+module linalg.stride;
 
 debug import std.stdio;
 
@@ -16,7 +16,7 @@ version(unittest)
     import std.range;
 }
 
-import mdarray;
+import linalg.mdarray;
 
 // Calculates strides in data array for dense storage
 size_t[] calcDenseStrides(in size_t[] dim) pure
