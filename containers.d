@@ -335,6 +335,21 @@ mixin template basicOperations(StorageType storageType,
     {
         return ByElement!(ElementType)(_dim, _stride, _data);
     }
+
+    ref auto opAssign(SourceType)(SourceType source)
+        if(isStorage!SourceType)
+            in
+            {
+                assert(isCompatibleDimensions(source._dim));
+            }
+    body
+    {
+        static if(storageType == StorageType.resizeable)
+            if(_dim != source._dim)
+                setAllDimensions(source._dim);
+        iteration.copy(source.byElement(), this.byElement());
+        return this;
+    }
 }
 
 /** Slice of a compact multidimensional array.
@@ -657,4 +672,41 @@ unittest // Iterators for slice
             result ~= v;
         assert(result == test);
     }
+}
+
+unittest // Assignment
+{
+    alias Array!(int, 2, 3, 4) A;
+    A a, b;
+    a = A(array(iota(0, 24)));
+    auto test = [[[0, 1, 2, 3],
+                  [4, 5, 6, 7],
+                  [8, 9, 10, 11]],
+                 [[12, 13, 14, 15],
+                  [16, 17, 18, 19],
+                  [20, 21, 22, 23]]];
+    assert(cast(int[][][])(b = a) == test);
+    assert(cast(int[][][])b == test);
+    alias Array!(int, 0, 3, 0) A1;
+    A1 a1, b1;
+    a1 = A1(array(iota(0, 24)), [2, 3, 4]);
+    assert(cast(int[][][])(b1 = a1) == test);
+    assert(cast(int[][][])b1 == test);
+}
+
+unittest // Assignment for slices
+{
+    auto a = Array!(int, 2, 3, 4)(array(iota(0, 24)));
+    auto b = Array!(int, 2, 2, 2)(array(iota(24, 32)));
+    auto c = a[][1..3][1..3];
+    auto test = [[[0, 1, 2, 3],
+                  [4, 24, 25, 7],
+                  [8, 26, 27, 11]],
+                 [[12, 13, 14, 15],
+                  [16, 28, 29, 19],
+                  [20, 30, 31, 23]]];
+    assert(cast(int[][][]) (c = b) == cast(int[][][]) b);
+    assert(cast(int[][][]) a == test);
+    a[1][1][1] = 100;
+    assert(a[1][1][1] == 100);
 }
