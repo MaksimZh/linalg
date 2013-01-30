@@ -350,6 +350,17 @@ mixin template basicOperations(StorageType storageType,
         iteration.copy(source.byElement(), this.byElement());
         return this;
     }
+
+    bool opEquals(SourceType)(SourceType source)
+        if(isStorage!SourceType)
+            in
+            {
+                assert(source._dim == _dim);
+            }
+    body
+    {
+        return equal(source.byElement(), this.byElement());
+    }
 }
 
 /** Slice of a compact multidimensional array.
@@ -709,4 +720,15 @@ unittest // Assignment for slices
     assert(cast(int[][][]) a == test);
     a[1][1][1] = 100;
     assert(a[1][1][1] == 100);
+}
+
+unittest // Comparison
+{
+    auto a = Array!(int, 2, 3, 4)(array(iota(24)));
+    auto b = Array!(int, dynamicSize, dynamicSize, dynamicSize)(array(iota(24)),
+                                                                [2, 3, 4]);
+    assert(a == b);
+    assert(b == a);
+    assert(a[][1..3][2] == b[][1..3][2]);
+    assert(a[][1..3][2] != b[][1..3][3]);
 }
