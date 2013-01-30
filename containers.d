@@ -323,7 +323,8 @@ mixin template sliceProxy(SourceType, alias constructSlice)
 }
 
 /* Operations that are common for both arrays and matrices */
-mixin template basicOperations(StorageType storageType,
+mixin template basicOperations(FinalType,
+                               StorageType storageType,
                                StorageOrder storageOrder)
 {
     MultArrayType!(ElementType, rank) opCast()
@@ -361,6 +362,32 @@ mixin template basicOperations(StorageType storageType,
     {
         return equal(source.byElement(), this.byElement());
     }
+
+    FinalType opUnary(string op)()
+        if(((op == "-") || (op == "+"))
+           && (is(typeof(mixin(op ~ "this.byElement().front")))))
+    {
+        FinalType result;
+        static if(result.storageType == StorageType.resizeable)
+            result.setAllDimensions(_dim);
+        iteration.applyUnary!op(this.byElement(), result.byElement());
+        return result;
+    }
+
+    FinalType opBinary(string op, Trhs)(Trhs rhs)
+        if(((op == "-") || (op == "+") || (op == "*") || (op == "/"))
+           && isStorage!Trhs
+           && (is(typeof(mixin("this.byElement().front"
+                               ~ op ~ "rhs.byElement().front")))))
+    {
+        FinalType result;
+        static if(result.storageType == StorageType.resizeable)
+            result.setAllDimensions(_dim);
+        iteration.applyBinary!op(this.byElement(),
+                                 rhs.byElement(),
+                                 result.byElement());
+        return result;
+    }
 }
 
 /** Slice of a compact multidimensional array.
@@ -370,6 +397,7 @@ struct Slice(T, uint rank_, StorageOrder storageOrder_ = StorageOrder.rowMajor)
 {
     enum size_t[] dimPattern = [repeatTuple!(rank_, dynamicSize)];
     enum StorageOrder storageOrder = storageOrder_;
+    alias Array!(T, repeatTuple!(rank_, dynamicSize), storageOrder_) ArrayType;
 
     mixin storage!(T, dimPattern, false, storageOrder);
 
@@ -409,7 +437,7 @@ struct Slice(T, uint rank_, StorageOrder storageOrder_ = StorageOrder.rowMajor)
         _data = source._data[bndLo..bndUp];
     }
 
-    mixin basicOperations!(StorageType.dynamic, storageOrder);
+    mixin basicOperations!(ArrayType, StorageType.dynamic, storageOrder);
 }
 
 /** Multidimensional compact array
@@ -474,7 +502,7 @@ struct Array(T, params...)
     }
 
     mixin sliceProxy!(Array, Array.constructSlice);
-    mixin basicOperations!(storageType, storageOrder);
+    mixin basicOperations!(Array, storageType, storageOrder);
 }
 
 unittest // Type properties and dimensions
@@ -731,4 +759,39 @@ unittest // Comparison
     assert(b == a);
     assert(a[][1..3][2] == b[][1..3][2]);
     assert(a[][1..3][2] != b[][1..3][3]);
+}
+
+unittest // Unary operations
+{
+    auto a = Array!(int, 2, 3, 4)(array(iota(24)));
+    assert(cast(int[][][]) (+a)
+           == [[[0, 1, 2, 3],
+                [4, 5, 6, 7],
+                [8, 9, 10, 11]],
+               [[12, 13, 14, 15],
+                [16, 17, 18, 19],
+                [20, 21, 22, 23]]]);
+    assert(cast(int[][][]) (-a)
+           == [[[-0, -1, -2, -3],
+                [-4, -5, -6, -7],
+                [-8, -9, -10, -11]],
+               [[-12, -13, -14, -15],
+                [-16, -17, -18, -19],
+                [-20, -21, -22, -23]]]);
+    assert(cast(int[][][]) (-a[][1..3][1..3])
+           == [[[-5, -6],
+                [-9, -10]],
+               [[-17, -18],
+                [-21, -22]]]);
+}
+
+unittest // Binary operations
+{
+    alias Array!(int, 2, 3, 4) A;
+    auto a1 = A(array(iota(24)));
+    auto a2 = A(array(iota(24, 48)));
+    assert(a1 + a2 == A(array(iota(24, 24 + 48, 2))));
+    assert(cast(int[][]) (a1[1][1..3][1..3] + a2[0][1..3][1..3])
+           == [[17 + 29, 18 + 30],
+               [21 + 33, 22 + 34]]);
 }
