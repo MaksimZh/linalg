@@ -10,6 +10,8 @@ module containers;
 
 import std.algorithm;
 
+debug import std.stdio;
+
 version(unittest)
 {
     import std.array;
@@ -19,6 +21,7 @@ version(unittest)
 import aux;
 import mdarray;
 import stride;
+import iteration;
 
 /** Value to denote not fixed dimension of the array */
 enum size_t dynamicSize = 0;
@@ -327,6 +330,11 @@ mixin template basicOperations(StorageType storageType,
     {
         return sliceToArray!(ElementType, rank)(_dim, _stride, _data);
     }
+
+    ByElement!(ElementType) byElement()
+    {
+        return ByElement!(ElementType)(_dim, _stride, _data);
+    }
 }
 
 /** Slice of a compact multidimensional array.
@@ -603,4 +611,50 @@ unittest // Slicing, transposed
     assert(cast(int[][]) a[1][1..3][1..3]
            == [[9, 15],
                [11, 17]]);
+}
+
+unittest // Iterators
+{
+    // Normal
+    {
+        auto a = Array!(int, 2, 3, 4)(array(iota(24)));
+        int[] test = array(iota(24));
+        int[] result = [];
+        foreach(v; a.byElement)
+            result ~= v;
+        assert(result == test);
+    }
+
+    // Transposed
+    {
+        auto a = Array!(int, 2, 3, 4,
+                        StorageOrder.columnMajor)(array(iota(0, 24)));
+        int[] test = [0, 6, 12, 18,
+                      2, 8, 14, 20,
+                      4, 10, 16, 22,
+
+                      1, 7, 13, 19,
+                      3, 9, 15, 21,
+                      5, 11, 17, 23];
+        int[] result = [];
+        foreach(v; a.byElement)
+            result ~= v;
+        assert(result == test);
+    }
+}
+
+unittest // Iterators for slice
+{
+    {
+        auto a = Array!(int, 2, 3, 4)(array(iota(24)));
+        int[] test = [5, 6,
+                      9, 10,
+
+                      17, 18,
+                      21, 22];
+        int[] result = [];
+        foreach(v; a[][1..3][1..3].byElement)
+            result ~= v;
+        assert(result == test);
+    }
 }
