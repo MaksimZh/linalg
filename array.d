@@ -24,6 +24,28 @@ import linalg.mdarray;
 import linalg.stride;
 import linalg.iteration;
 
+/* Operations specific for arrays */
+mixin template arrayOperations(FinalType,
+                               StorageType storageType,
+                               StorageOrder storageOrder)
+{
+    //XXX: DMD issue 9235: + and - should be in linalg.base.basicOperations
+    FinalType opBinary(string op, Trhs)(Trhs rhs)
+        if(((op == "-") || (op == "+") || (op == "*") || (op == "/"))
+           && isStorage!Trhs
+           && (is(typeof(mixin("this.byElement().front"
+                               ~ op ~ "rhs.byElement().front")))))
+    {
+        FinalType result;
+        static if(result.storageType == StorageType.resizeable)
+            result.setAllDimensions(_dim);
+        linalg.iteration.applyBinary!op(this.byElement(),
+                                        rhs.byElement(),
+                                        result.byElement());
+        return result;
+    }
+}
+
 /** Array view.
     Currently used only to slice compact multidimensional array.
     Unlike arrays views do not perform memory management.
@@ -74,6 +96,7 @@ struct ArrayView(T, uint rank_,
     }
 
     mixin basicOperations!(ArrayType, StorageType.dynamic, storageOrder);
+    mixin arrayOperations!(ArrayType, StorageType.dynamic, storageOrder);
 }
 
 /** Multidimensional compact array
@@ -138,7 +161,9 @@ struct Array(T, params...)
     }
 
     mixin sliceProxy!(Array, Array.constructSlice);
+
     mixin basicOperations!(Array, storageType, storageOrder);
+    mixin arrayOperations!(Array, storageType, storageOrder);
 }
 
 unittest // Type properties and dimensions
@@ -430,4 +455,7 @@ unittest // Binary operations
     assert(cast(int[][]) (a1[1][1..3][1..3] + a2[0][1..3][1..3])
            == [[17 + 29, 18 + 30],
                [21 + 33, 22 + 34]]);
+     assert(cast(int[][]) (a1[1][1..3][1..3] * a2[0][1..3][1..3])
+           == [[17 * 29, 18 * 30],
+               [21 * 33, 22 * 34]]);
 }

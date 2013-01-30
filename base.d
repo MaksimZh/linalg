@@ -374,8 +374,10 @@ mixin template basicOperations(FinalType,
         return result;
     }
 
+    version(none) //XXX: DMD issue 9235
+    {
     FinalType opBinary(string op, Trhs)(Trhs rhs)
-        if(((op == "-") || (op == "+") || (op == "*") || (op == "/"))
+        if(((op == "-") || (op == "+"))
            && isStorage!Trhs
            && (is(typeof(mixin("this.byElement().front"
                                ~ op ~ "rhs.byElement().front")))))
@@ -387,5 +389,6 @@ mixin template basicOperations(FinalType,
                                         rhs.byElement(),
                                         result.byElement());
         return result;
+    }
     }
 }
