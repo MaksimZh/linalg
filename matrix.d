@@ -152,35 +152,35 @@ mixin template matrixSliceProxy(SourceType, alias constructSlice)
 
 /** Matrix view
 */
-struct MatrixView(T, bool multMajor, bool multMinor,
-                  StorageOrder storageOrder_ = StorageOrder.rowMajor)
+struct MatrixView(T, bool multRow, bool multCol,
+                  StorageOrder storageOrder_ = StorageOrder.rowRow)
 {
     enum StorageOrder storageOrder = storageOrder_;
-    enum size_t[] dimPattern = [multMajor ? dynamicSize : 1,
-                                multMinor ? dynamicSize : 1];
+    enum size_t[] dimPattern = [multRow ? dynamicSize : 1,
+                                multCol ? dynamicSize : 1];
     alias Matrix!(T, dimPattern[0], dimPattern[1], storageOrder_) MatrixType;
 
     mixin storage!(T, dimPattern, true, storageOrder);
 
     package this(SourceType)(ref SourceType source,
-                             SliceBounds boundsMajor, SliceBounds boundsMinor)
+                             SliceBounds boundsRow, SliceBounds boundsCol)
         if(isStorage!SourceType)
     {
         /* Lower boundary in the container */
         size_t bndLo =
-            source._stride[0] * boundsMajor.lo
-            + source._stride[1] * boundsMinor.lo;
+            source._stride[0] * boundsRow.lo
+            + source._stride[1] * boundsCol.lo;
         /* Upper boundary in the container */
         size_t bndUp =
             source._stride[0]
-            * (multMajor ? boundsMajor.up - 1 : boundsMajor.up)
+            * (multRow ? boundsRow.up - 1 : boundsRow.up)
             +
             source._stride[1]
-            * (multMinor ? boundsMinor.up - 1 : boundsMinor.up)
+            * (multCol ? boundsCol.up - 1 : boundsCol.up)
             + 1;
 
-        _dim = [boundsMajor.up - boundsMajor.lo + (multMajor ? 0 : 1),
-                boundsMinor.up - boundsMinor.lo + (multMinor ? 0 : 1)];
+        _dim = [boundsRow.up - boundsRow.lo + (multRow ? 0 : 1),
+                boundsCol.up - boundsCol.lo + (multCol ? 0 : 1)];
         _stride = source._stride;
         _data = source._data[bndLo..bndUp];
     }
@@ -228,11 +228,11 @@ struct Matrix(T, size_t nrows, size_t ncols,
         }
 
     /* Slicing and indexing */
-    auto constructSlice(bool isRegMajor, bool isRegMinor)(
-        Matrix* source, SliceBounds boundsMajor, SliceBounds boundsMinor)
+    auto constructSlice(bool isRegRow, bool isRegCol)(
+        Matrix* source, SliceBounds boundsRow, SliceBounds boundsCol)
     {
-        return MatrixView!(T, isRegMajor, isRegMinor, storageOrder)(
-            *source, boundsMajor, boundsMinor);
+        return MatrixView!(T, isRegRow, isRegCol, storageOrder)(
+            *source, boundsRow, boundsCol);
     }
 
     mixin matrixSliceProxy!(Matrix, Matrix.constructSlice);
