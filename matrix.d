@@ -176,10 +176,11 @@ struct MatrixView(T, bool multMajor, bool multMinor,
             * (multMajor ? boundsMajor.up - 1 : boundsMajor.up)
             +
             source._stride[1]
-            * (multMinor ? boundsMinor.up - 1 : boundsMinor.up);
+            * (multMinor ? boundsMinor.up - 1 : boundsMinor.up)
+            + 1;
 
-        _dim = [source._dim[0] + (multMajor ? 0 : 1),
-                source._dim[1] + (multMinor ? 0 : 1)];
+        _dim = [boundsMajor.up - boundsMajor.lo + (multMajor ? 0 : 1),
+                boundsMinor.up - boundsMinor.lo + (multMinor ? 0 : 1)];
         _stride = source._stride;
         _data = source._data[bndLo..bndUp];
     }
@@ -250,4 +251,62 @@ unittest // Type properties and dimensions
         A a = A(array(iota(12.0)), 3, 4);
         assert(a.dimensions == [3, 4]);
     }
+}
+
+unittest // Slicing
+{
+    auto a = Matrix!(int, 3, 4)(array(iota(12)));
+    assert(cast(int[][]) a[][]
+           == [[0, 1, 2, 3],
+               [4, 5, 6, 7],
+               [8, 9, 10, 11]]);
+    assert(cast(int[][]) a[][1]
+           == [[1],
+               [5],
+               [9]]);
+    assert(cast(int[][]) a[][1..3]
+           == [[1, 2],
+               [5, 6],
+               [9, 10]]);
+    assert(cast(int[][]) a[1][]
+           == [[4, 5, 6, 7]]);
+    assert(a[1][1] == 5);
+    assert(cast(int[][]) a[1..3][]
+           == [[4, 5, 6, 7],
+               [8, 9, 10, 11]]);
+    assert(cast(int[][]) a[1..3][1]
+           == [[5],
+               [9]]);
+    assert(cast(int[][]) a[1..3][1..3]
+           == [[5, 6],
+               [9, 10]]);
+}
+
+unittest // Slicing, transposed
+{
+    auto a = Matrix!(int, 3, 4, StorageOrder.columnMajor)(array(iota(12)));
+    assert(cast(int[][]) a[][]
+           == [[0, 3, 6, 9],
+               [1, 4, 7, 10],
+               [2, 5, 8, 11]]);
+    assert(cast(int[][]) a[][1]
+           == [[3],
+               [4],
+               [5]]);
+    assert(cast(int[][]) a[][1..3]
+           == [[3, 6],
+               [4, 7],
+               [5, 8]]);
+    assert(cast(int[][]) a[1][]
+           == [[1, 4, 7, 10]]);
+    assert(a[1][1] == 4);
+    assert(cast(int[][]) a[1..3][]
+           == [[1, 4, 7, 10],
+               [2, 5, 8, 11]]);
+    assert(cast(int[][]) a[1..3][1]
+           == [[4],
+               [5]]);
+    assert(cast(int[][]) a[1..3][1..3]
+           == [[4, 7],
+               [5, 8]]);
 }
