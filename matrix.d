@@ -351,3 +351,30 @@ unittest // Comparison
     assert(a[1..3][2] == b[1..3][2]);
     assert(a[1..3][2] != b[1..3][3]);
 }
+
+unittest // Unary operations
+{
+    auto a = Matrix!(int, 3, 4)(array(iota(12)));
+    assert(cast(int[][]) (+a)
+           == [[0, 1, 2, 3],
+               [4, 5, 6, 7],
+               [8, 9, 10, 11]]);
+    assert(cast(int[][]) (-a)
+           == [[-0, -1, -2, -3],
+               [-4, -5, -6, -7],
+               [-8, -9, -10, -11]]);
+    assert(cast(int[][]) (-a[1..3][1..3])
+           == [[-5, -6],
+               [-9, -10]]);
+}
+
+unittest // Binary operations
+{
+    alias Matrix!(int, 3, 4) A;
+    auto a1 = A(array(iota(12)));
+    auto a2 = A(array(iota(12, 24)));
+    assert(a1 + a2 == A(array(iota(12, 12 + 24, 2))));
+    assert(cast(int[][]) (a1[0..2][1..3] + a2[1..3][1..3])
+           == [[1 + 17, 2 + 18],
+               [5 + 21, 6 + 22]]);
+}
