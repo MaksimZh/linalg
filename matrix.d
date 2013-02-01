@@ -150,6 +150,47 @@ mixin template matrixSliceProxy(SourceType, alias constructSlice)
     }
 }
 
+struct ByRow(T, StorageOrder storageOrder)
+{
+    //TODO: optimize
+    private
+    {
+        const size_t[2] _dim;
+        const size_t[2] _stride;
+        T[] _data;
+
+        T* _ptr;
+        const size_t _len;
+        const T* _ptrFinal;
+    }
+
+    this(in size_t[] dim, in size_t[] stride, T[] data)
+        in
+        {
+            assert(stride.length == dim.length);
+        }
+    body
+    {
+        _dim = dim;
+        _stride = stride;
+        _data = data;
+        _ptr = _data.ptr;
+        _len = (_dim[1] - 1) * _stride[1] + 1;
+        _ptrFinal = _data.ptr + (_dim[0] - 1) * _stride[0];
+    }
+
+    @property bool empty() { return !(_ptr <= _ptrFinal); }
+    @property auto front()
+    {
+        return MatrixView!(T, false, true, storageOrder)(
+            _ptr[0.._len], _dim[1], _stride[1]);
+    }
+    void popFront()
+    {
+        _ptr += _stride[0];
+    }
+}
+
 /** Matrix view
 */
 struct MatrixView(T, bool multRow, bool multCol,
@@ -161,6 +202,22 @@ struct MatrixView(T, bool multRow, bool multCol,
     alias Matrix!(T, dimPattern[0], dimPattern[1], storageOrder_) MatrixType;
 
     mixin storage!(T, dimPattern, true, storageOrder);
+
+    static if(multRow != multCol)
+        package this()(T[] data, size_t dim, size_t stride)
+        {
+            _data = data;
+            static if(multRow)
+            {
+                _dim = [dim, 1];
+                _stride = [stride, 1];
+            }
+            else
+            {
+                _dim = [1, dim];
+                _stride = [1, stride];
+            }
+        }
 
     package this(SourceType)(ref SourceType source,
                              SliceBounds boundsRow, SliceBounds boundsCol)
@@ -186,6 +243,12 @@ struct MatrixView(T, bool multRow, bool multCol,
     }
 
     mixin basicOperations!(MatrixType, storageType, storageOrder);
+
+    auto byRow()
+    {
+        return ByRow!(T, storageOrder)(_dim, _stride, _data);
+    }
+
     mixin matrixOperations!(MatrixType, storageType, storageOrder);
 }
 
@@ -238,6 +301,12 @@ struct Matrix(T, size_t nrows, size_t ncols,
     mixin matrixSliceProxy!(Matrix, Matrix.constructSlice);
 
     mixin basicOperations!(Matrix, storageType, storageOrder);
+
+    auto byRow()
+    {
+        return ByRow!(T, storageOrder)(_dim, _stride, _data);
+    }
+
     mixin matrixOperations!(Matrix, storageType, storageOrder);
 }
 
@@ -309,6 +378,58 @@ unittest // Slicing, transposed
     assert(cast(int[][]) a[1..3][1..3]
            == [[4, 7],
                [5, 8]]);
+}
+
+unittest // Iterators
+{
+    // Normal
+    {
+        auto a = Matrix!(int, 3, 4)(array(iota(12)));
+        int[][] test = [[0, 1, 2, 3],
+                        [4, 5, 6, 7],
+                        [8, 9, 10, 11]];
+        int[][] result = [];
+        foreach(v; a.byRow)
+            result ~= (cast(int[][]) v);
+        assert(result == test);
+    }
+
+    // Transposed
+    {
+        auto a = Matrix!(int, 3, 4, StorageOrder.columnMajor)(array(iota(12)));
+        int[][] test = [[0, 3, 6, 9],
+                        [1, 4, 7, 10],
+                        [2, 5, 8, 11]];
+        int[][] result = [];
+        foreach(v; a.byRow)
+            result ~= (cast(int[][]) v);
+        assert(result == test);
+    }
+}
+
+unittest // Iterators
+{
+    // Normal
+    {
+        auto a = Matrix!(int, 3, 4)(array(iota(12)));
+        int[][] test = [[5, 6],
+                        [9, 10]];
+        int[][] result = [];
+        foreach(v; a[1..3][1..3].byRow)
+            result ~= (cast(int[][]) v);
+        assert(result == test);
+    }
+
+    // Transposed
+    {
+        auto a = Matrix!(int, 3, 4, StorageOrder.columnMajor)(array(iota(12)));
+        int[][] test = [[4, 7],
+                        [5, 8]];
+        int[][] result = [];
+        foreach(v; a[1..3][1..3].byRow)
+            result ~= (cast(int[][]) v);
+        assert(result == test);
+    }
 }
 
 unittest // Assignment
