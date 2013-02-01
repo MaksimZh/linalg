@@ -310,3 +310,44 @@ unittest // Slicing, transposed
            == [[4, 7],
                [5, 8]]);
 }
+
+unittest // Assignment
+{
+    alias Matrix!(int, 3, 4) A;
+    A a, b;
+    a = A(array(iota(12)));
+    auto test = [[0, 1, 2, 3],
+                 [4, 5, 6, 7],
+                 [8, 9, 10, 11]];
+    assert(cast(int[][])(b = a) == test);
+    assert(cast(int[][])b == test);
+    alias Matrix!(int, dynamicSize, dynamicSize) A1;
+    A1 a1, b1;
+    a1 = A1(array(iota(12)), 3, 4);
+    assert(cast(int[][])(b1 = a1) == test);
+    assert(cast(int[][])b1 == test);
+}
+
+unittest // Assignment for slices
+{
+    auto a = Matrix!(int, 3, 4)(array(iota(12)));
+    auto b = Matrix!(int, 2, 2)(array(iota(12, 16)));
+    auto c = a[1..3][1..3];
+    auto test = [[0, 1, 2, 3],
+                 [4, 12, 13, 7],
+                 [8, 14, 15, 11]];
+    assert(cast(int[][]) (c = b) == cast(int[][]) b);
+    assert(cast(int[][]) a == test);
+    a[1][1] = 100;
+    assert(a[1][1] == 100);
+}
+
+unittest // Comparison
+{
+    auto a = Matrix!(int, 3, 4)(array(iota(12)));
+    auto b = Matrix!(int, dynamicSize, dynamicSize)(array(iota(12)), 3, 4);
+    assert(a == b);
+    assert(b == a);
+    assert(a[1..3][2] == b[1..3][2]);
+    assert(a[1..3][2] != b[1..3][3]);
+}
