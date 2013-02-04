@@ -327,11 +327,6 @@ mixin template basicOperations(FinalType,
                                StorageType storageType,
                                StorageOrder storageOrder)
 {
-    MultArrayType!(ElementType, rank) opCast()
-    {
-        return sliceToArray!(ElementType, rank)(_dim, _stride, _data);
-    }
-
     ByElement!(ElementType) byElement()
     {
         return ByElement!(ElementType)(_dim, _stride, _data);

@@ -29,6 +29,12 @@ mixin template arrayOperations(FinalType,
                                StorageType storageType,
                                StorageOrder storageOrder)
 {
+    //XXX: DMD issue 9235: this method should be in linalg.base.basicOperations
+    MultArrayType!(ElementType, rank) opCast()
+    {
+        return sliceToArray!(ElementType, rank)(_dim, _stride, _data);
+    }
+    
     //XXX: DMD issue 9235: + and - should be in linalg.base.basicOperations
     FinalType opBinary(string op, Trhs)(Trhs rhs)
         if(((op == "-") || (op == "+") || (op == "*") || (op == "/"))

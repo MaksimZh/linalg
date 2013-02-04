@@ -29,6 +29,20 @@ mixin template matrixOperations(FinalType,
                                 StorageType storageType,
                                 StorageOrder storageOrder)
 {
+    //XXX: DMD issue 9235: this method should be in linalg.base.basicOperations
+    auto opCast(Tdest)()
+        if(is(Tdest == MultArrayType!(ElementType, rank)))
+    {
+        return sliceToArray!(ElementType, rank)(_dim, _stride, _data);
+    }
+
+    static if((dimPattern[0] == 1) || (dimPattern[1] == 1))
+        auto opCast(Tdest)()
+            if(is(Tdest == ElementType[]))
+        {
+            return array(byElement);
+        }
+
     //XXX: DMD issue 9235: + and - should be in linalg.base.basicOperations
     FinalType opBinary(string op, Trhs)(Trhs rhs)
         if(((op == "-") || (op == "+"))
@@ -436,25 +450,37 @@ unittest // Iterators
     // Normal
     {
         auto a = Matrix!(int, 3, 4)(array(iota(12)));
-        int[][] test = [[0, 1, 2, 3],
-                        [4, 5, 6, 7],
-                        [8, 9, 10, 11]];
         int[][] result = [];
         foreach(v; a.byRow)
-            result ~= (cast(int[][]) v);
-        assert(result == test);
+            result ~= [cast(int[]) v];
+        assert(result == [[0, 1, 2, 3],
+                          [4, 5, 6, 7],
+                          [8, 9, 10, 11]]);
+        result = [];
+        foreach(v; a.byColumn)
+            result ~= [cast(int[]) v];
+        assert(result == [[0, 4, 8],
+                          [1, 5, 9],
+                          [2, 6, 10],
+                          [3, 7, 11]]);
     }
 
     // Transposed
     {
         auto a = Matrix!(int, 3, 4, StorageOrder.columnMajor)(array(iota(12)));
-        int[][] test = [[0, 3, 6, 9],
-                        [1, 4, 7, 10],
-                        [2, 5, 8, 11]];
         int[][] result = [];
         foreach(v; a.byRow)
-            result ~= (cast(int[][]) v);
-        assert(result == test);
+            result ~= [cast(int[]) v];
+        assert(result == [[0, 3, 6, 9],
+                          [1, 4, 7, 10],
+                          [2, 5, 8, 11]]);
+        result = [];
+        foreach(v; a.byColumn)
+            result ~= [cast(int[]) v];
+        assert(result == [[0, 1, 2],
+                          [3, 4, 5],
+                          [6, 7, 8],
+                          [9, 10, 11]]);
     }
 }
 
@@ -463,23 +489,31 @@ unittest // Iterators
     // Normal
     {
         auto a = Matrix!(int, 3, 4)(array(iota(12)));
-        int[][] test = [[5, 6],
-                        [9, 10]];
         int[][] result = [];
         foreach(v; a[1..3][1..3].byRow)
-            result ~= (cast(int[][]) v);
-        assert(result == test);
+            result ~= [cast(int[]) v];
+        assert(result == [[5, 6],
+                          [9, 10]]);
+        result = [];
+        foreach(v; a[1..3][1..3].byColumn)
+            result ~= [cast(int[]) v];
+        assert(result == [[5, 9],
+                          [6, 10]]);
     }
 
     // Transposed
     {
         auto a = Matrix!(int, 3, 4, StorageOrder.columnMajor)(array(iota(12)));
-        int[][] test = [[4, 7],
-                        [5, 8]];
         int[][] result = [];
         foreach(v; a[1..3][1..3].byRow)
-            result ~= (cast(int[][]) v);
-        assert(result == test);
+            result ~= [cast(int[]) v];
+        assert(result == [[4, 7],
+                          [5, 8]]);
+        result = [];
+        foreach(v; a[1..3][1..3].byColumn)
+            result ~= [cast(int[]) v];
+        assert(result == [[4, 5],
+                          [7, 8]]);
     }
 }
 
