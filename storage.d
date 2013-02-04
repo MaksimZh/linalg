@@ -6,9 +6,10 @@
     Copyright:  Copyright (c) 2013, Maksim S. Zholudev.
     License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
 */
-module linalg.base;
+module linalg.storage;
 
 import std.algorithm;
+import std.traits;
 
 debug import std.stdio;
 
@@ -18,10 +19,11 @@ version(unittest)
     import std.range;
 }
 
-import linalg.aux;
-import linalg.mdarray;
+//import linalg.aux;
+//import linalg.mdarray;
 import linalg.stride;
 import linalg.iteration;
+
 
 /** Value to denote not fixed dimension of the array */
 enum size_t dynamicSize = 0;
@@ -33,31 +35,31 @@ enum StorageOrder
     columnMajor /// [0][0][0], ..., [N][0][0], [0][1][0], ...
 }
 
-/** Type of the storage */
-enum StorageType
-{
-    fixed, /// static array
-    dynamic, /// dynamic array
-    resizeable /// dynamic array with memory management
-}
-
 /* Storage and dimension management for arrays and matrices */
-mixin template storage(T, alias dimPattern,
-                       bool allowResize,
-                       StorageOrder storageOrder)
+struct Storage(T, alias dimPattern,
+               bool allowResize,
+               StorageOrder storageOrder_)
 {
-    static assert(is(typeof(dimPattern[0]) : size_t));
+    public // Check and process parameters
+    {
+        static assert(is(typeof(dimPattern[0]) : size_t),
+                      "Dimension pattern should be of type size_t[]");
 
-    alias T ElementType; // Type of the array elements
-    public enum uint rank = dimPattern.length; // Number of dimensions
+        alias T ElementType; // Type of the array elements
+        public enum uint rank = dimPattern.length; // Number of dimensions
+        alias storageOrder_ storageOrder;
 
-    enum StorageType storageType =
-        canFind(dimPattern, dynamicSize)
-        ? (allowResize ? StorageType.resizeable : StorageType.dynamic)
-        : StorageType.fixed;
+        /* Whether this is a static array with fixed dimensions and strides */
+        enum bool isStatic = !canFind(dimPattern, dynamicSize);
+        /* Whether memory management is allowed */
+        enum bool isResizeable = allowResize;
+
+        static assert(!(isStatic && isResizeable),
+                      "Static array can not be resizeable");
+    }
 
     /* dimensions, strides and data */
-    package static if(storageType == StorageType.fixed)
+    package static if(isStatic)
     {
         enum size_t[] _dim = dimPattern;
         enum size_t[] _stride =
@@ -66,8 +68,16 @@ mixin template storage(T, alias dimPattern,
     }
     else
     {
-        size_t[rank] _dim = dimPattern;
-        size_t[rank] _stride;
+        static if(isResizeable)
+        {
+            size_t[rank] _dim = dimPattern;
+            size_t[rank] _stride;
+        }
+        else
+        {
+            const size_t[rank] _dim = dimPattern;
+            const size_t[rank] _stride;
+        }
         ElementType[] _data;
     }
 
@@ -75,10 +85,10 @@ mixin template storage(T, alias dimPattern,
     static if(dimPattern[0] != dynamicSize)
         public enum size_t length = dimPattern[0];
     else
-        public size_t length() { return _dim[0]; }
+        public @property size_t length() { return _dim[0]; }
 
     /* Full dimensions array */
-    static if(storageType == StorageType.fixed)
+    static if(isStatic)
         public enum size_t[rank] dimensions = _dim;
     else
         public @property size_t[rank] dimensions() pure const { return _dim; }
@@ -86,7 +96,7 @@ mixin template storage(T, alias dimPattern,
     /* Test dimensions for compatibility */
     bool isCompatibleDimensions(in size_t[] dim) pure
     {
-        static if(storageType == StorageType.resizeable)
+        static if(isResizeable)
         {
             if(dim.length != rank)
                 return false;
@@ -102,11 +112,11 @@ mixin template storage(T, alias dimPattern,
     }
 
     /* Change dimensions */
-    static if(storageType == StorageType.resizeable)
+    static if(isResizeable)
     {
         /* Recalculate strides and reallocate container for current dimensions
          */
-        package void _resize() pure
+        private void _resize() pure
         {
             _stride = calcDenseStrides(
                 _dim, storageOrder == StorageOrder.columnMajor);
@@ -148,25 +158,102 @@ mixin template storage(T, alias dimPattern,
             _resize();
         }
     }
-}
 
-/** Detect whether A has storage mixin inside */
-template isStorage(A)
-{
-    enum bool isStorage = is(typeof(()
+    /* Constructor taking built-in array as parameter */
+    static if(isStatic)
+    {
+        this(in T[] source)
+            in
+            {
+                assert(source.length == reduce!("a * b")(_dim));
+            }
+        body
         {
-            A a;
-            static assert(is(typeof(A.rank) == uint));
-            static assert(is(typeof(a._dim)));
-            static assert(is(typeof(a._dim[0]) == size_t));
-            static assert(is(typeof(a._stride)));
-            static assert(is(typeof(a._stride[0]) == size_t));
-            static assert(is(typeof(a._data)));
-            //XXX: DMD issue 9424
-            //static assert(is(typeof(a._data[0]) == A.ElementType));
-        }));
+            _data = source;
+        }
+    }
+    else
+    {
+        this(T[] source, in size_t[] dim)
+            in
+            {
+                assert(dim.length == rank);
+                assert(source.length == reduce!("a * b")(dim));
+                foreach(i, d; dimPattern)
+                    if(d != dynamicSize)
+                        assert(d == dim[i]);
+            }
+        body
+        {
+            _data = source;
+            _dim = dim;
+            _stride = calcDenseStrides(
+                _dim, storageOrder == StorageOrder.columnMajor);
+        }
+    }
+
+    /* Iterator */
+    ByElement!(ElementType) byElement()
+    {
+        return ByElement!(ElementType)(_dim, _stride, _data);
+    }
 }
 
+unittest // Type properties and dimensions
+{
+    {
+        alias Storage!(int, [dynamicSize, dynamicSize, dynamicSize],
+                       true, StorageOrder.rowMajor) S;
+        static assert(is(S.ElementType == int));
+        static assert(!(S.isStatic));
+        static assert(S.isResizeable);
+        static assert(S.storageOrder == StorageOrder.rowMajor);
+        S s = S(array(iota(24)), [2, 3, 4]);
+        assert(s.length == 2);
+        assert(s.dimensions == [2, 3, 4]);
+    }
+    {
+        alias Storage!(double, [2, 3, 4],
+                       false, StorageOrder.columnMajor) S;
+        static assert(is(S.ElementType == double));
+        static assert(S.isStatic);
+        static assert(S.storageOrder == StorageOrder.columnMajor);
+        S s = S(array(iota(24.)));
+        assert(s.length == 2);
+        assert(s.dimensions == [2, 3, 4]);
+    }
+}
+
+unittest // Iterators
+{
+    // Normal
+    {
+        auto a = Storage!(int, [2, 3, 4], false, StorageOrder.rowMajor)(
+            array(iota(24)));
+        int[] result = [];
+        foreach(v; a.byElement)
+            result ~= v;
+        assert(result == array(iota(24)));
+    }
+
+    // Transposed
+    {
+        auto a = Storage!(int, [2, 3, 4], false, StorageOrder.columnMajor)(
+            array(iota(24)));
+        int[] result = [];
+        foreach(v; a.byElement)
+            result ~= v;
+        assert(result == [0, 6, 12, 18,
+                          2, 8, 14, 20,
+                          4, 10, 16, 22,
+
+                          1, 7, 13, 19,
+                          3, 9, 15, 21,
+                          5, 11, 17, 23]);
+    }
+}
+
+version(none){
 /* Structure to store slice boundaries compactly */
 package struct SliceBounds
 {
@@ -327,11 +414,6 @@ mixin template basicOperations(FinalType,
                                StorageType storageType,
                                StorageOrder storageOrder)
 {
-    ByElement!(ElementType) byElement()
-    {
-        return ByElement!(ElementType)(_dim, _stride, _data);
-    }
-
     ref auto opAssign(SourceType)(SourceType source)
         if(isStorage!SourceType)
             in
@@ -386,4 +468,5 @@ mixin template basicOperations(FinalType,
         return result;
     }
     }
+}
 }
