@@ -29,6 +29,12 @@ mixin template arrayOperations(FinalType,
                                StorageType storageType,
                                StorageOrder storageOrder)
 {
+    //XXX: DMD issue 9235: this method should be in linalg.base.basicOperations
+    MultArrayType!(ElementType, rank) opCast()
+    {
+        return sliceToArray!(ElementType, rank)(_dim, _stride, _data);
+    }
+
     //XXX: DMD issue 9235: + and - should be in linalg.base.basicOperations
     FinalType opBinary(string op, Trhs)(Trhs rhs)
         if(((op == "-") || (op == "+") || (op == "*") || (op == "/"))
@@ -58,6 +64,13 @@ struct ArrayView(T, uint rank_,
     alias Array!(T, repeatTuple!(rank_, dynamicSize), storageOrder_) ArrayType;
 
     mixin storage!(T, dimPattern, false, storageOrder);
+
+    this()(T[] data, size_t[rank] dim, size_t[rank] stride)
+    {
+        _data = data;
+        _dim = dim;
+        _stride = stride;
+    }
 
     /* Make slice of an array or slice */
     package this(SourceType)(ref SourceType source, SliceBounds[] bounds)
