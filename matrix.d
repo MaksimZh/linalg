@@ -9,6 +9,7 @@
 module linalg.matrix;
 
 import std.algorithm;
+import std.traits;
 
 debug import std.stdio;
 
@@ -285,6 +286,14 @@ struct MatrixView(T, bool multRow, bool multCol,
         auto opCast(Tresult)() { return cast(Tresult)(storage); }
     }
 
+    package this(SourceType)(ref SourceType source,
+                             SliceBounds boundsRow,
+                             SliceBounds boundsCol)
+        if(isInstanceOf!(linalg.storage.Storage, typeof(source.storage)))
+    {
+        storage = StorageType(source.storage, [boundsRow, boundsCol]);
+    }
+
     version(none)
     {
     static if(multRow != multCol)
@@ -381,47 +390,118 @@ struct Matrix(T, size_t nrows, size_t ncols,
         }
     }
 
-    version(none)
+    public // Slicing and indexing
     {
-    static if(storageType == StorageType.fixed)
-        // Convert ordinary 1D array to static MD array with dense storage
-        this(T[] source)
-            in
-            {
-                assert(source.length == reduce!("a * b")(_dim));
-            }
-        body
+        auto constructSlice(bool isRegRow, bool isRegCol)(
+            SliceBounds boundsRow, SliceBounds boundsCol)
         {
-            _data = source;
-        }
-    else
-        /* Convert ordinary 1D array to dense multidimensional array
-           with given dimensions
-         */
-        this(T[] source, size_t nrows, size_t ncols)
-            in
-            {
-                assert(isCompatibleDimensions([nrows, ncols]));
-            }
-        body
-        {
-            _data = source;
-            _dim = [nrows, ncols];
-            _stride = calcDenseStrides(
-                _dim, storageOrder == StorageOrder.columnMajor);
+            return MatrixView!(T, isRegRow, isRegCol, storageOrder)(
+                this, boundsRow, boundsCol);
         }
 
-    /* Slicing and indexing */
-    auto constructSlice(bool isRegRow, bool isRegCol)(
-        Matrix* source, SliceBounds boundsRow, SliceBounds boundsCol)
-    {
-        return MatrixView!(T, isRegRow, isRegCol, storageOrder)(
-            *source, boundsRow, boundsCol);
+        /* Auxiliary structure for slicing and indexing */
+        struct SliceProxy(bool isRegular)
+        {
+            SliceBounds bounds;
+
+            Matrix* source; // Pointer to the container being sliced
+
+            package this(Matrix* source_, SliceBounds bounds_)
+            {
+                source = source_;
+                bounds = bounds_;
+            }
+
+            /* Evaluate slicing result.
+               Calling this method means that bracket set is incomplete.
+               Just adds empty pair: []
+            */
+            auto eval()
+            {
+                return this[];
+            }
+
+            /* Slicing and indexing */
+            static if(isRegular)
+            {
+                /* Slice of regular (multirow) slice can be a matrix
+                   and can't be access to element by index
+                */
+
+                auto opSlice()
+                {
+                    /* Slice is a matrix (rank = 2) */
+                    return source.constructSlice!(true, true)(
+                        bounds, SliceBounds(0, source.dimensions[1]));
+                }
+
+                auto opSlice(size_t lo, size_t up)
+                {
+                    /* Slice is a matrix (rank = 2) */
+                    return source.constructSlice!(true, true)(
+                        bounds, SliceBounds(lo, up));
+                }
+
+                auto opIndex(size_t i)
+                {
+                    /* Slice is a vector (rank = 1) */
+                    return source.constructSlice!(true, false)(
+                        bounds, SliceBounds(i, i+1));
+                }
+            }
+            else
+            {
+                /* Slice of one row (multirow) can be a vector
+                   or access to element by index
+                */
+
+                auto opSlice()
+                {
+                    /* Slice is a vector (rank = 1) */
+                    return source.constructSlice!(false, true)(
+                        bounds, SliceBounds(0, source.dimensions[1]));
+                }
+
+                auto opSlice(size_t lo, size_t up)
+                {
+                    /* Slice is a vector (rank = 1) */
+                    return source.constructSlice!(false, true)(
+                        bounds, SliceBounds(lo, up));
+                }
+
+                ref auto opIndex(size_t i)
+                {
+                    /* Access to an element by index */
+                    return source.storage.accessByIndex(
+                        [SliceBounds(bounds.lo), SliceBounds(i)]); //XXX
+                }
+            }
+
+            auto opCast(Tresult)()
+            {
+                return cast(Tresult)(eval());
+            }
+        }
+
+        /* Slicing and indexing */
+        SliceProxy!(true) opSlice()
+        {
+            return typeof(return)(&this, SliceBounds(0, length));
+        }
+
+        SliceProxy!(true) opSlice(size_t lo, size_t up)
+        {
+            return typeof(return)(&this, SliceBounds(lo, up));
+        }
+
+        SliceProxy!(false) opIndex(size_t i)
+        {
+            return typeof(return)(&this, SliceBounds(i, i+1));
+        }
     }
 
-    mixin matrixSliceProxy!(Matrix, Matrix.constructSlice);
-
-    mixin basicOperations!(Matrix, storageType, storageOrder);
+    version(none)
+    {
 
     auto byRow()
     {
@@ -448,8 +528,6 @@ unittest // Type properties and dimensions
     }
 }
 
-version(none)
-{
 unittest // Slicing
 {
     auto a = Matrix!(int, 3, 4)(array(iota(12)));
@@ -508,6 +586,8 @@ unittest // Slicing, transposed
                [5, 8]]);
 }
 
+version(none)
+{
 unittest // Iterators
 {
     // Normal
