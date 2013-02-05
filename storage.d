@@ -35,27 +35,27 @@ enum StorageOrder
     columnMajor /// [0][0][0], ..., [N][0][0], [0][1][0], ...
 }
 
-/* Storage and dimension management for arrays and matrices */
-struct Storage(T, alias dimPattern,
-               bool allowResize,
-               StorageOrder storageOrder_)
+/** Storage and dimension management for arrays and matrices
+ *  Params:
+ *      T = type of the array elements
+ *      dimPattern = tuple of dimensions
+ *      isView = view flag (views do not perform memory management)
+ *      storageOrder = storage order (row- or column-major)
+ */
+struct Storage(T, params...)
 {
     public // Check and process parameters
     {
-        static assert(is(typeof(dimPattern[0]) : size_t),
-                      "Dimension pattern should be of type size_t[]");
+        enum size_t[] dimPattern = [params[0..($-2)]];
 
         alias T ElementType; // Type of the array elements
         public enum uint rank = dimPattern.length; // Number of dimensions
-        alias storageOrder_ storageOrder;
+        enum StorageOrder storageOrder = params[$-1];
 
         /* Whether this is a static array with fixed dimensions and strides */
         enum bool isStatic = !canFind(dimPattern, dynamicSize);
         /* Whether memory management is allowed */
-        enum bool isResizeable = allowResize;
-
-        static assert(!(isStatic && isResizeable),
-                      "Static array can not be resizeable");
+        enum bool isResizeable = !isStatic && !params[$-2];
     }
 
     /* dimensions, strides and data */
@@ -207,8 +207,8 @@ struct Storage(T, alias dimPattern,
 unittest // Type properties, dimensions and data
 {
     {
-        alias Storage!(int, [dynamicSize, dynamicSize, dynamicSize],
-                       true, StorageOrder.rowMajor) S;
+        alias Storage!(int, dynamicSize, dynamicSize, dynamicSize,
+                       false, StorageOrder.rowMajor) S;
         static assert(is(S.ElementType == int));
         static assert(!(S.isStatic));
         static assert(S.isResizeable);
@@ -225,7 +225,7 @@ unittest // Type properties, dimensions and data
                     [20, 21, 22, 23]]]);
     }
     {
-        alias Storage!(double, [2, 3, 4],
+        alias Storage!(double, 2, 3, 4,
                        false, StorageOrder.columnMajor) S;
         static assert(is(S.ElementType == double));
         static assert(S.isStatic);
@@ -247,7 +247,7 @@ unittest // Iterators
 {
     // Normal
     {
-        auto a = Storage!(int, [2, 3, 4], false, StorageOrder.rowMajor)(
+        auto a = Storage!(int, 2, 3, 4, false, StorageOrder.rowMajor)(
             array(iota(24)));
         int[] result = [];
         foreach(v; a.byElement)
@@ -257,7 +257,7 @@ unittest // Iterators
 
     // Transposed
     {
-        auto a = Storage!(int, [2, 3, 4], false, StorageOrder.columnMajor)(
+        auto a = Storage!(int, 2, 3, 4, false, StorageOrder.columnMajor)(
             array(iota(24)));
         int[] result = [];
         foreach(v; a.byElement)
