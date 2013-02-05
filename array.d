@@ -9,6 +9,7 @@
 module linalg.array;
 
 import std.algorithm;
+import std.traits;
 
 debug import std.stdio;
 
@@ -80,50 +81,18 @@ struct ArrayView(T, uint rank_,
             return storage.length; }
         @property size_t[rank] dimensions() pure const {
             return storage.dimensions; }
+        auto opCast(Tresult)() { return cast(Tresult)(storage); }
     }
 
-    this(T[] data, size_t[rank] dim, size_t[rank] stride)
+    this()(T[] data, size_t[rank] dim, size_t[rank] stride)
     {
         storage = StorageType(data, dim, stride);
     }
 
-    version(none)
+    package this(SourceType)(ref SourceType source, in SliceBounds[] bounds)
+        if(isInstanceOf!(linalg.storage.Storage, typeof(source.storage)))
     {
-    /* Make slice of an array or slice */
-    package this(SourceType)(ref SourceType source, SliceBounds[] bounds)
-        if(isStorage!SourceType)
-            in
-            {
-                assert(bounds.length == source.rank);
-                assert(count!("a.isRegularSlice")(bounds) == rank);
-            }
-    body
-    {
-        size_t bndLo = 0; // Lower boundary in the container
-        size_t bndUp = 0; // Upper boundary in the container
-
-        /* Dimensions and strides should be copied for all regular slices
-           and omitted for indices.
-           Boundaries should not cover additional elements.
-        */
-        uint idest = 0;
-        foreach(i, b; bounds)
-        {
-            bndLo += source._stride[i] * b.lo;
-            if(b.isRegularSlice)
-            {
-                bndUp += source._stride[i] * (b.up - 1);
-                _dim[idest] = b.up - b.lo;
-                _stride[idest] = source._stride[i];
-                ++idest;
-            }
-            else
-                bndUp += source._stride[i] * b.up;
-        }
-        ++bndUp;
-
-        _data = source._data[bndLo..bndUp];
-    }
+        storage = StorageType(source.storage, bounds);
     }
 }
 
@@ -155,10 +124,11 @@ struct Array(T, params...)
             return storage.length; }
         @property size_t[rank] dimensions() pure const {
             return storage.dimensions; }
+        auto opCast(Tresult)() { return cast(Tresult)(storage); }
     }
 
     /* Constructor taking built-in array as parameter */
-    static if(isStatic) //XXX: why have to put "this."?
+    static if(isStatic)
     {
         this(in T[] source)
         {
@@ -170,6 +140,143 @@ struct Array(T, params...)
         this(T[] source, in size_t[] dim)
         {
             storage = StorageType(source, dim);
+        }
+    }
+
+    public // Slicing and indexing
+    {
+        /* Calculate slice parameters and create ArrayView basing on them */
+        auto constructSlice(size_t sliceRank)(SliceBounds[] bounds)
+        {
+            return ArrayView!(ElementType, sliceRank, storageOrder)(
+                this, bounds);
+        }
+
+        /* Auxiliary structure for slicing and indexing */
+        struct SliceProxy(size_t sliceRank, size_t sliceDepth)
+        {
+            /*FIXME: dynamic array is not an optimal solution*/
+            SliceBounds[] bounds;
+
+            Array* source; // Pointer to the container being sliced
+
+            package this(Array* source_, SliceBounds[] bounds_)
+            {
+                source = source_;
+                bounds = bounds_;
+            }
+
+            /* Evaluate slicing result */
+            static if(sliceRank > 0)
+            {
+                auto eval()
+                {
+                    static if(sliceDepth < rank)
+                    {
+                        /* Add empty [] if there is not enough bracket pairs */
+                        static if(sliceDepth == rank - 1)
+                            return this[];
+                        else
+                            return this[].eval();
+                    }
+                    else
+                    {
+                        /* Normal slice */
+                        return source.constructSlice!(sliceRank)(bounds);
+                    }
+                }
+            }
+            else
+            {
+                /* If simple index return element by reference */
+                ref auto eval()
+                {
+                    return source.storage.accessByIndex(bounds);
+                }
+            }
+
+            /* Slicing and indexing */
+            static if(sliceDepth < dimPattern.length - 1)
+            {
+                /* Return slice proxy for incomplete bracket construction
+                 */
+                SliceProxy!(sliceRank, sliceDepth + 1) opSlice()
+                {
+                    return typeof(return)(
+                        source,
+                        bounds ~ SliceBounds(0, source.dimensions[sliceDepth]));
+                }
+
+                SliceProxy!(sliceRank, sliceDepth + 1) opSlice(size_t lo,
+                                                               size_t up)
+                {
+                    return typeof(return)(source, bounds ~ SliceBounds(lo, up));
+                }
+
+                SliceProxy!(sliceRank - 1, sliceDepth + 1) opIndex(size_t i)
+                {
+                    return typeof(return)(source, bounds ~ SliceBounds(i));
+                }
+            }
+            else static if(sliceDepth == (dimPattern.length - 1))
+                 {
+                     /* If only one more slicing can be done
+                        then return slice not proxy
+                     */
+                     auto opSlice()
+                     {
+                         return SliceProxy!(sliceRank, sliceDepth + 1)(
+                             source,
+                             bounds
+                             ~ SliceBounds(0, source.dimensions[sliceDepth])
+                             ).eval();
+                     }
+
+                     auto opSlice(size_t lo, size_t up)
+                     {
+                         return SliceProxy!(sliceRank, sliceDepth + 1)(
+                             source, bounds ~ SliceBounds(lo, up)).eval();
+                     }
+
+                     static if(sliceRank > 1)
+                     {
+                         auto opIndex(size_t i)
+                         {
+                             return SliceProxy!(sliceRank - 1, sliceDepth + 1)(
+                                 source, bounds ~ SliceBounds(i)).eval();
+                         }
+                     }
+                     else
+                     {
+                         /* If simple index return element by reference */
+                         ref auto opIndex(size_t i)
+                         {
+                             return SliceProxy!(sliceRank - 1, sliceDepth + 1)(
+                                 source, bounds ~ SliceBounds(i)).eval();
+                         }
+                     }
+                 }
+
+            auto opCast(Tresult)()
+            {
+                return cast(Tresult)(eval());
+            }
+        }
+
+        /* Slicing and indexing */
+        SliceProxy!(rank, 1) opSlice()
+        {
+            return typeof(return)(&this, [SliceBounds(0, length)]);
+        }
+
+        SliceProxy!(rank, 1) opSlice(size_t lo, size_t up)
+        {
+            return typeof(return)(&this, [SliceBounds(lo, up)]);
+        }
+
+        SliceProxy!(rank - 1, 1) opIndex(size_t i)
+        {
+            return typeof(return)(&this, [SliceBounds(i)]);
         }
     }
 }
@@ -205,8 +312,6 @@ unittest // Type properties and dimensions
     }
 }
 
-version(none)
-{
 unittest // Slicing
 {
     auto a = Array!(int, 2, 3, 4)(array(iota(0, 24)));
@@ -339,7 +444,6 @@ unittest // Slicing, transposed
     assert(cast(int[][]) a[1][1..3][1..3]
            == [[9, 15],
                [11, 17]]);
-}
 }
 
 version(none)
