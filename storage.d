@@ -75,7 +75,7 @@ struct Storage(T, params...)
         }
         else
         {
-            const size_t[rank] _dim = dimPattern;
+            const size_t[rank] _dim;
             const size_t[rank] _stride;
         }
         ElementType[] _data;
@@ -85,7 +85,7 @@ struct Storage(T, params...)
     static if(dimPattern[0] != dynamicSize)
         public enum size_t length = dimPattern[0];
     else
-        public @property size_t length() { return _dim[0]; }
+        public @property size_t length() pure const { return _dim[0]; }
 
     /* Full dimensions array */
     static if(isStatic)
@@ -189,6 +189,16 @@ struct Storage(T, params...)
             _dim = dim;
             _stride = calcDenseStrides(
                 _dim, storageOrder == StorageOrder.columnMajor);
+        }
+
+        static if(!isResizeable)
+        {
+            this(T[] data, size_t[rank] dim, size_t[rank] stride)
+            {
+                _data = data;
+                _dim = dim;
+                _stride = stride;
+            }
         }
     }
 

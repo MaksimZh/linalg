@@ -71,7 +71,9 @@ size_t calcDenseContainerSize(in size_t[] dim) pure
 }
 
 // Convert slice to built-in multidimensional array
-auto sliceToArray(T, uint rank)(size_t[] dim, size_t[] stride, T[] container)
+auto sliceToArray(T, uint rank)(in size_t[] dim,
+                                in size_t[] stride,
+                                in T[] container)
     in
     {
         assert(dim.length == rank);

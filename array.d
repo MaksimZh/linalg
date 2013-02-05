@@ -18,12 +18,14 @@ version(unittest)
     import std.range;
 }
 
-import linalg.base;
+import linalg.storage;
 import linalg.aux;
 import linalg.mdarray;
 import linalg.stride;
 import linalg.iteration;
 
+version(none)
+{
 /* Operations specific for arrays */
 mixin template arrayOperations(FinalType,
                                StorageType storageType,
@@ -51,6 +53,7 @@ mixin template arrayOperations(FinalType,
         return result;
     }
 }
+}
 
 /** Array view.
     Currently used only to slice compact multidimensional array.
@@ -59,19 +62,33 @@ mixin template arrayOperations(FinalType,
 struct ArrayView(T, uint rank_,
                  StorageOrder storageOrder_ = StorageOrder.rowMajor)
 {
-    enum size_t[] dimPattern = [repeatTuple!(rank_, dynamicSize)];
-    enum StorageOrder storageOrder = storageOrder_;
+    alias Storage!(T, repeatTuple!(rank_, dynamicSize), true, storageOrder_)
+        StorageType;
     alias Array!(T, repeatTuple!(rank_, dynamicSize), storageOrder_) ArrayType;
 
-    mixin storage!(T, dimPattern, false, storageOrder);
-
-    this()(T[] data, size_t[rank] dim, size_t[rank] stride)
+    StorageType storage;
+    public //XXX: "alias storage this"
     {
-        _data = data;
-        _dim = dim;
-        _stride = stride;
+        version(none) alias storage this; //XXX: too buggy feature
+        alias storage.dimPattern dimPattern;
+        alias storage.ElementType ElementType;
+        alias storage.rank rank;
+        alias storage.storageOrder storageOrder;
+        alias storage.isStatic isStatic;
+        alias storage.isResizeable isResizeable;
+        @property size_t length() pure const {
+            return storage.length; }
+        @property size_t[rank] dimensions() pure const {
+            return storage.dimensions; }
     }
 
+    this(T[] data, size_t[rank] dim, size_t[rank] stride)
+    {
+        storage = StorageType(data, dim, stride);
+    }
+
+    version(none)
+    {
     /* Make slice of an array or slice */
     package this(SourceType)(ref SourceType source, SliceBounds[] bounds)
         if(isStorage!SourceType)
@@ -107,76 +124,54 @@ struct ArrayView(T, uint rank_,
 
         _data = source._data[bndLo..bndUp];
     }
-
-    mixin basicOperations!(ArrayType, StorageType.dynamic, storageOrder);
-    mixin arrayOperations!(ArrayType, StorageType.dynamic, storageOrder);
+    }
 }
 
-/** Multidimensional compact array
-*/
+/** Multidimensional compact array */
 struct Array(T, params...)
 {
-    /* Check the transposition flag (false by default). */
-    static if(isValueOfTypeStrict!(StorageOrder, params[$-1]))
+    public // Check and process parameters
     {
-        enum StorageOrder storageOrder = params[$-1];
-        alias params[0..$-1] dimTuple;
+        /* Check the transposition flag (false by default). */
+        static if(isValueOfTypeStrict!(StorageOrder, params[$-1]))
+            alias Storage!(T, params[0..($-1)], false, params[$-1])
+                StorageType;
+        else
+            alias Storage!(T, params, false, StorageOrder.rowMajor)
+                StorageType;
+    }
+
+    StorageType storage; // Storage of the array data
+    public //XXX: "alias storage this"
+    {
+        version(none) alias storage this; //XXX: too buggy feature
+        alias storage.dimPattern dimPattern;
+        alias storage.ElementType ElementType;
+        alias storage.rank rank;
+        alias storage.storageOrder storageOrder;
+        alias storage.isStatic isStatic;
+        alias storage.isResizeable isResizeable;
+        @property size_t length() pure const {
+            return storage.length; }
+        @property size_t[rank] dimensions() pure const {
+            return storage.dimensions; }
+    }
+
+    /* Constructor taking built-in array as parameter */
+    static if(isStatic) //XXX: why have to put "this."?
+    {
+        this(in T[] source)
+        {
+            storage = StorageType(source);
+        }
     }
     else
     {
-        enum StorageOrder storageOrder = StorageOrder.rowMajor;
-        alias params dimTuple;
-    }
-
-    /* Check and store array dimensions */
-    static assert(isValueOfType!(size_t, dimTuple));
-    static assert(all!("a >= 0")([dimTuple]));
-    enum size_t[] dimPattern = [dimTuple];
-
-    mixin storage!(T, dimPattern, true, storageOrder);
-
-    static if(storageType == StorageType.fixed)
-        // Convert ordinary 1D array to static MD array with dense storage
-        this(T[] source)
-            in
-            {
-                assert(source.length == reduce!("a * b")(_dim));
-            }
-        body
+        this(T[] source, in size_t[] dim)
         {
-            _data = source;
+            storage = StorageType(source, dim);
         }
-    else
-        /* Convert ordinary 1D array to dense multidimensional array
-           with given dimensions
-         */
-        this(T[] source, size_t[] dim)
-            in
-            {
-                assert(dim.length == rank);
-                assert(source.length == reduce!("a * b")(dim));
-                foreach(i, d; dimPattern)
-                    if(d != dynamicSize)
-                        assert(d == dim[i]);
-            }
-        body
-        {
-            _data = source;
-            _dim = dim;
-            _stride = calcDenseStrides(
-                _dim, storageOrder == StorageOrder.columnMajor);
-        }
-
-    /* Slicing and indexing */
-    auto constructSlice(uint sliceRank)(Array* source, SliceBounds[] bounds)
-    {
-        return ArrayView!(T, sliceRank, storageOrder)(*source, bounds);
     }
-
-    mixin sliceProxy!(Array, Array.constructSlice);
-
-    mixin basicOperations!(Array, storageType, storageOrder);
-    mixin arrayOperations!(Array, storageType, storageOrder);
 }
 
 unittest // Type properties and dimensions
@@ -184,13 +179,15 @@ unittest // Type properties and dimensions
     {
         alias ArrayView!(int, 3) A;
         static assert(is(A.ElementType == int));
-        static assert(A.storageType == StorageType.dynamic);
+        static assert(!(A.isStatic));
+        static assert(!(A.isResizeable));
         static assert(A.storageOrder == StorageOrder.rowMajor);
     }
     {
         alias Array!(int, dynamicSize, dynamicSize, dynamicSize) A;
         static assert(is(A.ElementType == int));
-        static assert(A.storageType == StorageType.resizeable);
+        static assert(!(A.isStatic));
+        static assert(A.isResizeable);
         static assert(A.storageOrder == StorageOrder.rowMajor);
         A a = A(array(iota(24)), [2, 3, 4]);
         assert(a.length == 2);
@@ -199,7 +196,8 @@ unittest // Type properties and dimensions
     {
         alias Array!(int, 2, 3, 4) A;
         static assert(is(A.ElementType == int));
-        static assert(A.storageType == StorageType.fixed);
+        static assert(A.isStatic);
+        static assert(!(A.isResizeable));
         static assert(A.storageOrder == StorageOrder.rowMajor);
         A a = A(array(iota(24)));
         assert(a.length == 2);
@@ -207,6 +205,8 @@ unittest // Type properties and dimensions
     }
 }
 
+version(none)
+{
 unittest // Slicing
 {
     auto a = Array!(int, 2, 3, 4)(array(iota(0, 24)));
@@ -340,7 +340,10 @@ unittest // Slicing, transposed
            == [[9, 15],
                [11, 17]]);
 }
+}
 
+version(none)
+{
 unittest // Iterators
 {
     // Normal
@@ -471,4 +474,5 @@ unittest // Binary operations
      assert(cast(int[][]) (a1[1][1..3][1..3] * a2[0][1..3][1..3])
            == [[17 * 29, 18 * 30],
                [21 * 33, 22 * 34]]);
+}
 }
