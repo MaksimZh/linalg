@@ -19,8 +19,8 @@ version(unittest)
     import std.range;
 }
 
-//import linalg.aux;
-//import linalg.mdarray;
+import linalg.aux;
+import linalg.mdarray;
 import linalg.stride;
 import linalg.iteration;
 
@@ -192,6 +192,11 @@ struct Storage(T, alias dimPattern,
         }
     }
 
+    MultArrayType!(ElementType, rank) opCast()
+    {
+        return sliceToArray!(ElementType, rank)(_dim, _stride, _data);
+    }
+
     /* Iterator */
     ByElement!(ElementType) byElement()
     {
@@ -199,7 +204,7 @@ struct Storage(T, alias dimPattern,
     }
 }
 
-unittest // Type properties and dimensions
+unittest // Type properties, dimensions and data
 {
     {
         alias Storage!(int, [dynamicSize, dynamicSize, dynamicSize],
@@ -211,6 +216,13 @@ unittest // Type properties and dimensions
         S s = S(array(iota(24)), [2, 3, 4]);
         assert(s.length == 2);
         assert(s.dimensions == [2, 3, 4]);
+        assert(cast(int[][][]) s
+               == [[[0, 1, 2, 3],
+                    [4, 5, 6, 7],
+                    [8, 9, 10, 11]],
+                   [[12, 13, 14, 15],
+                    [16, 17, 18, 19],
+                    [20, 21, 22, 23]]]);
     }
     {
         alias Storage!(double, [2, 3, 4],
@@ -221,6 +233,13 @@ unittest // Type properties and dimensions
         S s = S(array(iota(24.)));
         assert(s.length == 2);
         assert(s.dimensions == [2, 3, 4]);
+        assert(cast(double[][][]) s
+               == [[[0, 6, 12, 18],
+                    [2, 8, 14, 20],
+                    [4, 10, 16, 22]],
+                   [[1, 7, 13, 19],
+                    [3, 9, 15, 21],
+                    [5, 11, 17, 23]]]);
     }
 }
 
