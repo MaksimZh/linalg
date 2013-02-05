@@ -18,12 +18,14 @@ version(unittest)
     import std.range;
 }
 
-import linalg.base;
+import linalg.storage;
 import linalg.aux;
 import linalg.mdarray;
 import linalg.stride;
 import linalg.iteration;
 
+version(none)
+{
 /* Operations specific for arrays */
 mixin template matrixOperations(FinalType,
                                 StorageType storageType,
@@ -163,7 +165,10 @@ mixin template matrixSliceProxy(SourceType, alias constructSlice)
         return typeof(return)(&this, SliceBounds(i));
     }
 }
+}
 
+version(none)
+{
 struct ByRow(T, StorageOrder storageOrder)
 {
     //TODO: optimize
@@ -245,19 +250,43 @@ struct ByColumn(T, StorageOrder storageOrder)
         _ptr += _stride[1];
     }
 }
+}
 
 /** Matrix view
 */
 struct MatrixView(T, bool multRow, bool multCol,
                   StorageOrder storageOrder_ = StorageOrder.rowRow)
 {
-    enum StorageOrder storageOrder = storageOrder_;
-    enum size_t[] dimPattern = [multRow ? dynamicSize : 1,
-                                multCol ? dynamicSize : 1];
-    alias Matrix!(T, dimPattern[0], dimPattern[1], storageOrder_) MatrixType;
+    alias Storage!(T,
+                   multRow ? dynamicSize : 1,
+                   multCol ? dynamicSize : 1,
+                   true, storageOrder_)
+        StorageType;
+    alias Matrix!(T,
+                  multRow ? dynamicSize : 1,
+                  multCol ? dynamicSize : 1,
+                  storageOrder_)
+        MatrixType;
 
-    mixin storage!(T, dimPattern, true, storageOrder);
+    StorageType storage;
+    public //XXX: "alias storage this"
+    {
+        version(none) alias storage this; //XXX: too buggy feature
+        alias storage.dimPattern dimPattern;
+        alias storage.ElementType ElementType;
+        alias storage.rank rank;
+        alias storage.storageOrder storageOrder;
+        alias storage.isStatic isStatic;
+        alias storage.isResizeable isResizeable;
+        @property size_t length() pure const {
+            return storage.length; }
+        @property size_t[rank] dimensions() pure const {
+            return storage.dimensions; }
+        auto opCast(Tresult)() { return cast(Tresult)(storage); }
+    }
 
+    version(none)
+    {
     static if(multRow != multCol)
         package this()(T[] data, size_t dim, size_t stride)
         {
@@ -308,8 +337,7 @@ struct MatrixView(T, bool multRow, bool multCol,
     {
         return ByColumn!(T, storageOrder)(_dim, _stride, _data);
     }
-
-    mixin matrixOperations!(MatrixType, storageType, storageOrder);
+    }
 }
 
 /** Matrix
@@ -317,11 +345,44 @@ struct MatrixView(T, bool multRow, bool multCol,
 struct Matrix(T, size_t nrows, size_t ncols,
               StorageOrder storageOrder_ = StorageOrder.rowMajor)
 {
-    enum StorageOrder storageOrder = storageOrder_;
-    enum size_t[] dimPattern = [nrows, ncols];
+    alias Storage!(T, nrows, ncols, false, storageOrder_)
+        StorageType;
 
-    mixin storage!(T, dimPattern, true, storageOrder);
+    StorageType storage;
+    public //XXX: "alias storage this"
+    {
+        version(none) alias storage this; //XXX: too buggy feature
+        alias storage.dimPattern dimPattern;
+        alias storage.ElementType ElementType;
+        alias storage.rank rank;
+        alias storage.storageOrder storageOrder;
+        alias storage.isStatic isStatic;
+        alias storage.isResizeable isResizeable;
+        @property size_t length() pure const {
+            return storage.length; }
+        @property size_t[rank] dimensions() pure const {
+            return storage.dimensions; }
+        auto opCast(Tresult)() { return cast(Tresult)(storage); }
+    }
 
+    /* Constructor taking built-in array as parameter */
+    static if(isStatic)
+    {
+        this(in T[] source)
+        {
+            storage = StorageType(source);
+        }
+    }
+    else
+    {
+        this(T[] source, size_t nrows, size_t ncols)
+        {
+            storage = StorageType(source, [nrows, ncols]);
+        }
+    }
+
+    version(none)
+    {
     static if(storageType == StorageType.fixed)
         // Convert ordinary 1D array to static MD array with dense storage
         this(T[] source)
@@ -371,8 +432,7 @@ struct Matrix(T, size_t nrows, size_t ncols,
     {
         return ByColumn!(T, storageOrder)(_dim, _stride, _data);
     }
-
-    mixin matrixOperations!(Matrix, storageType, storageOrder);
+    }
 }
 
 unittest // Type properties and dimensions
@@ -380,13 +440,16 @@ unittest // Type properties and dimensions
     {
         alias Matrix!(double, dynamicSize, dynamicSize) A;
         static assert(is(A.ElementType == double));
-        static assert(A.storageType == StorageType.resizeable);
+        static assert(!(A.isStatic));
+        static assert(A.isResizeable);
         static assert(A.storageOrder == StorageOrder.rowMajor);
         A a = A(array(iota(12.0)), 3, 4);
         assert(a.dimensions == [3, 4]);
     }
 }
 
+version(none)
+{
 unittest // Slicing
 {
     auto a = Matrix!(int, 3, 4)(array(iota(12)));
@@ -583,4 +646,5 @@ unittest // Binary operations
     assert(cast(int[][]) (a1[0..2][1..3] + a2[1..3][1..3])
            == [[1 + 17, 2 + 18],
                [5 + 21, 6 + 22]]);
+}
 }
