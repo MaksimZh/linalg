@@ -23,7 +23,6 @@ import linalg.storage;
 import linalg.aux;
 import linalg.mdarray;
 import linalg.stride;
-import linalg.iteration;
 
 /** Array view.
     Currently used only to slice compact multidimensional array.
@@ -60,7 +59,7 @@ struct ArrayView(T, uint rank_,
 
     /* Constructor creating slice */
     package this(SourceType)(ref SourceType source, in SliceBounds[] bounds)
-        if(isInstanceOf!(linalg.storage.Storage, typeof(source.storage)))
+        if(isStorage!(typeof(source.storage)))
     {
         storage = StorageType(source.storage, bounds);
     }

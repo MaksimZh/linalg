@@ -22,8 +22,7 @@ version(unittest)
 import linalg.aux;
 import linalg.mdarray;
 import linalg.stride;
-import linalg.iteration;
-
+import linalg.iterators;
 
 /** Value to denote not fixed dimension of the array */
 enum size_t dynamicSize = 0;
@@ -231,7 +230,7 @@ struct Storage(T, params...)
     static if(!isStatic && !isResizeable)
     {
         package this(SourceType)(ref SourceType source, in SliceBounds[] bounds)
-            if(isInstanceOf!(linalg.storage.Storage, SourceType))
+            if(isStorage!SourceType)
                 in
                 {
                     assert(bounds.length == source.rank);
@@ -291,6 +290,11 @@ struct Storage(T, params...)
             index += _stride[i] * b.lo;
         return _data[index];
     }
+}
+
+template isStorage(T)
+{
+    enum bool isStorage = isInstanceOf!(Storage, T);
 }
 
 unittest // Type properties, dimensions and data

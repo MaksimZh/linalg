@@ -23,7 +23,6 @@ import linalg.storage;
 import linalg.aux;
 import linalg.mdarray;
 import linalg.stride;
-import linalg.iteration;
 
 version(none)
 {
@@ -147,7 +146,7 @@ struct MatrixView(T, bool multRow, bool multCol,
     package this(SourceType)(ref SourceType source,
                              SliceBounds boundsRow,
                              SliceBounds boundsCol)
-        if(isInstanceOf!(linalg.storage.Storage, typeof(source.storage)))
+        if(isStorage!(typeof(source.storage)))
     {
         storage = StorageType(source.storage, [boundsRow, boundsCol]);
     }
