@@ -66,6 +66,41 @@ struct MatrixView(T, bool multRow, bool multCol,
     {
         storage = StorageType(source.storage, [boundsRow, boundsCol]);
     }
+
+    public // Operations
+    {
+        bool opEquals(Tsource)(Tsource source)
+            if(isStorage!(typeof(source.storage)))
+        {
+            return linalg.operations.compare(source.storage, storage);
+        }
+
+        auto opAssign(Tsource)(Tsource source)
+            if(isStorage!(typeof(source.storage)))
+        {
+            linalg.operations.copy(source.storage, storage);
+            return this;
+        }
+
+        auto opUnary(string op)()
+            if(op == "+" || op == "-")
+        {
+            MatrixType result;
+            linalg.operations.applyUnary!op(storage, result.storage);
+            return result;
+        }
+
+        auto opBinary(string op, Trhs)(Trhs rhs)
+            if(isStorage!(typeof(rhs.storage)) &&
+               (op == "+" || op == "-"))
+        {
+            MatrixType result;
+            linalg.operations.applyBinary!op(storage,
+                                             rhs.storage,
+                                             result.storage);
+            return result;
+        }
+    }
 }
 
 /** Matrix
@@ -222,7 +257,6 @@ struct Matrix(T, size_t nrows, size_t ncols,
 
     version(none)
     {
-
     auto byRow()
     {
         return ByRow!(T, storageOrder)(_dim, _stride, _data);
@@ -232,6 +266,41 @@ struct Matrix(T, size_t nrows, size_t ncols,
     {
         return ByColumn!(T, storageOrder)(_dim, _stride, _data);
     }
+    }
+
+    public // Operations
+    {
+        bool opEquals(Tsource)(Tsource source)
+            if(isStorage!(typeof(source.storage)))
+        {
+            return linalg.operations.compare(source.storage, storage);
+        }
+
+        auto opAssign(Tsource)(Tsource source)
+            if(isStorage!(typeof(source.storage)))
+        {
+            linalg.operations.copy(source.storage, storage);
+            return this;
+        }
+
+        auto opUnary(string op)()
+            if(op == "+" || op == "-")
+        {
+            Matrix result;
+            linalg.operations.applyUnary!op(storage, result.storage);
+            return result;
+        }
+
+        auto opBinary(string op, Trhs)(Trhs rhs)
+            if(isStorage!(typeof(rhs.storage)) &&
+               (op == "+" || op == "-"))
+        {
+            Matrix result;
+            linalg.operations.applyBinary!op(storage,
+                                             rhs.storage,
+                                             result.storage);
+            return result;
+        }
     }
 }
 
@@ -379,6 +448,7 @@ unittest // Iterators
                           [7, 8]]);
     }
 }
+}
 
 unittest // Assignment
 {
@@ -446,5 +516,4 @@ unittest // Binary operations
     assert(cast(int[][]) (a1[0..2][1..3] + a2[1..3][1..3])
            == [[1 + 17, 2 + 18],
                [5 + 21, 6 + 22]]);
-}
 }
