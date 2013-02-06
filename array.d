@@ -23,7 +23,7 @@ import linalg.storage;
 import linalg.aux;
 import linalg.mdarray;
 import linalg.stride;
-import linalg.iteration;
+import linalg.operations;
 
 /** Array view.
     Currently used only to slice compact multidimensional array.
@@ -51,6 +51,7 @@ struct ArrayView(T, uint rank_,
         @property size_t[rank] dimensions() pure const {
             return storage.dimensions; }
         auto opCast(Tresult)() { return cast(Tresult)(storage); }
+        auto byElement() { return storage.byElement(); }
     }
 
     this()(T[] data, size_t[rank] dim, size_t[rank] stride)
@@ -60,9 +61,44 @@ struct ArrayView(T, uint rank_,
 
     /* Constructor creating slice */
     package this(SourceType)(ref SourceType source, in SliceBounds[] bounds)
-        if(isInstanceOf!(linalg.storage.Storage, typeof(source.storage)))
+        if(isStorage!(typeof(source.storage)))
     {
         storage = StorageType(source.storage, bounds);
+    }
+
+    public // Operations
+    {
+        bool opEquals(Tsource)(Tsource source)
+            if(isStorage!(typeof(source.storage)))
+        {
+            return linalg.operations.compare(source.storage, storage);
+        }
+
+        auto opAssign(Tsource)(Tsource source)
+            if(isStorage!(typeof(source.storage)))
+        {
+            linalg.operations.copy(source.storage, storage);
+            return this;
+        }
+
+        auto opUnary(string op)()
+            if(op == "+" || op == "-")
+        {
+            ArrayType result;
+            linalg.operations.applyUnary!op(storage, result.storage);
+            return result;
+        }
+
+        auto opBinary(string op, Trhs)(Trhs rhs)
+            if(isStorage!(typeof(rhs.storage)) &&
+               (op == "+" || op == "-" || op == "*" || op == "/"))
+        {
+            ArrayType result;
+            linalg.operations.applyBinary!op(storage,
+                                             rhs.storage,
+                                             result.storage);
+            return result;
+        }
     }
 }
 
@@ -95,6 +131,7 @@ struct Array(T, params...)
         @property size_t[rank] dimensions() pure const {
             return storage.dimensions; }
         auto opCast(Tresult)() { return cast(Tresult)(storage); }
+        auto byElement() { return storage.byElement(); }
     }
 
     /* Constructor taking built-in array as parameter */
@@ -247,6 +284,41 @@ struct Array(T, params...)
         SliceProxy!(rank - 1, 1) opIndex(size_t i)
         {
             return typeof(return)(&this, [SliceBounds(i)]);
+        }
+    }
+
+    public // Operations
+    {
+        bool opEquals(Tsource)(Tsource source)
+            if(isStorage!(typeof(source.storage)))
+        {
+            return linalg.operations.compare(source.storage, storage);
+        }
+
+        auto opAssign(Tsource)(Tsource source)
+            if(isStorage!(typeof(source.storage)))
+        {
+            linalg.operations.copy(source.storage, storage);
+            return this;
+        }
+
+        auto opUnary(string op)()
+            if(op == "+" || op == "-")
+        {
+            Array result;
+            linalg.operations.applyUnary!op(storage, result.storage);
+            return result;
+        }
+
+        auto opBinary(string op, Trhs)(Trhs rhs)
+            if(isStorage!(typeof(rhs.storage)) &&
+               (op == "+" || op == "-" || op == "*" || op == "/"))
+        {
+            Array result;
+            linalg.operations.applyBinary!op(storage,
+                                             rhs.storage,
+                                             result.storage);
+            return result;
         }
     }
 }
@@ -416,8 +488,6 @@ unittest // Slicing, transposed
                [11, 17]]);
 }
 
-version(none)
-{
 unittest // Iterators
 {
     // Normal
@@ -545,8 +615,7 @@ unittest // Binary operations
     assert(cast(int[][]) (a1[1][1..3][1..3] + a2[0][1..3][1..3])
            == [[17 + 29, 18 + 30],
                [21 + 33, 22 + 34]]);
-     assert(cast(int[][]) (a1[1][1..3][1..3] * a2[0][1..3][1..3])
+    assert(cast(int[][]) (a1[1][1..3][1..3] * a2[0][1..3][1..3])
            == [[17 * 29, 18 * 30],
                [21 * 33, 22 * 34]]);
-}
 }

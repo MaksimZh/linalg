@@ -23,92 +23,8 @@ import linalg.storage;
 import linalg.aux;
 import linalg.mdarray;
 import linalg.stride;
-import linalg.iteration;
-
-version(none)
-{
-struct ByRow(T, StorageOrder storageOrder)
-{
-    //TODO: optimize
-    private
-    {
-        const size_t[2] _dim;
-        const size_t[2] _stride;
-        T[] _data;
-
-        T* _ptr;
-        const size_t _len;
-        const T* _ptrFinal;
-    }
-
-    this(in size_t[] dim, in size_t[] stride, T[] data)
-        in
-        {
-            assert(stride.length == dim.length);
-        }
-    body
-    {
-        _dim = dim;
-        _stride = stride;
-        _data = data;
-        _ptr = _data.ptr;
-        _len = (_dim[1] - 1) * _stride[1] + 1;
-        _ptrFinal = _data.ptr + (_dim[0] - 1) * _stride[0];
-    }
-
-    @property bool empty() { return !(_ptr <= _ptrFinal); }
-    @property auto front()
-    {
-        return MatrixView!(T, false, true, storageOrder)(
-            _ptr[0.._len], _dim[1], _stride[1]);
-    }
-    void popFront()
-    {
-        _ptr += _stride[0];
-    }
-}
-
-struct ByColumn(T, StorageOrder storageOrder)
-{
-    //TODO: optimize
-    private
-    {
-        const size_t[2] _dim;
-        const size_t[2] _stride;
-        T[] _data;
-
-        T* _ptr;
-        const size_t _len;
-        const T* _ptrFinal;
-    }
-
-    this(in size_t[] dim, in size_t[] stride, T[] data)
-        in
-        {
-            assert(stride.length == dim.length);
-        }
-    body
-    {
-        _dim = dim;
-        _stride = stride;
-        _data = data;
-        _ptr = _data.ptr;
-        _len = (_dim[0] - 1) * _stride[0] + 1;
-        _ptrFinal = _data.ptr + (_dim[1] - 1) * _stride[1];
-    }
-
-    @property bool empty() { return !(_ptr <= _ptrFinal); }
-    @property auto front()
-    {
-        return MatrixView!(T, false, true, storageOrder)(
-            _ptr[0.._len], _dim[0], _stride[0]);
-    }
-    void popFront()
-    {
-        _ptr += _stride[1];
-    }
-}
-}
+import linalg.operations;
+import linalg.iterators;
 
 /** Matrix view
 */
@@ -140,16 +56,115 @@ struct MatrixView(T, bool multRow, bool multCol,
             return storage.length; }
         @property size_t[rank] dimensions() pure const {
             return storage.dimensions; }
-        auto opCast(Tresult)() { return cast(Tresult)(storage); }
+        auto byElement() { return storage.byElement(); }
     }
+
+    enum bool isVector = (multRow != multCol);
 
     /* Constructor creating slice */
     package this(SourceType)(ref SourceType source,
                              SliceBounds boundsRow,
                              SliceBounds boundsCol)
-        if(isInstanceOf!(linalg.storage.Storage, typeof(source.storage)))
+        if(isStorage!(typeof(source.storage)))
     {
         storage = StorageType(source.storage, [boundsRow, boundsCol]);
+    }
+
+    /* Constructor converting 1D array to vector */
+    static if(isVector)
+        package this()(T[] data, size_t dim, size_t stride)
+        {
+            storage._data = data;
+            static if(multRow)
+            {
+                storage._dim = [dim, 1];
+                storage._stride = [stride, 1];
+            }
+            else
+            {
+                storage._dim = [1, dim];
+                storage._stride = [1, stride];
+            }
+        }
+
+    public // Iterators
+    {
+        auto byRow()
+        {
+            return ByMatrixRow!(T, MatrixView!(T, false, true, storageOrder))(
+                storage._dim, storage._stride, storage._data);
+        }
+
+        auto byCol()
+        {
+            return ByMatrixCol!(T, MatrixView!(T, true, false, storageOrder))(
+                storage._dim, storage._stride, storage._data);
+        }
+    }
+
+    public // Conversion to other types
+    {
+        static if(isVector)
+        {
+            auto opCast(Tresult)()
+                if(!is(Tresult == T[]))
+            {
+                return cast(Tresult)(storage);
+            }
+
+            auto opCast(Tresult)()
+                if(is(Tresult == T[]))
+            {
+                static if(multRow)
+                    return sliceToArray!(ElementType, 1)(
+                        [storage._dim[0]], [storage._stride[0]], storage._data);
+                else
+                    return sliceToArray!(ElementType, 1)(
+                        [storage._dim[1]], [storage._stride[1]], storage._data);
+            }
+        }
+        else
+        {
+            auto opCast(Tresult)()
+            {
+                return cast(Tresult)(storage);
+            }
+        }
+    }
+
+    public // Operations
+    {
+        bool opEquals(Tsource)(Tsource source)
+            if(isStorage!(typeof(source.storage)))
+        {
+            return linalg.operations.compare(source.storage, storage);
+        }
+
+        auto opAssign(Tsource)(Tsource source)
+            if(isStorage!(typeof(source.storage)))
+        {
+            linalg.operations.copy(source.storage, storage);
+            return this;
+        }
+
+        auto opUnary(string op)()
+            if(op == "+" || op == "-")
+        {
+            MatrixType result;
+            linalg.operations.applyUnary!op(storage, result.storage);
+            return result;
+        }
+
+        auto opBinary(string op, Trhs)(Trhs rhs)
+            if(isStorage!(typeof(rhs.storage)) &&
+               (op == "+" || op == "-"))
+        {
+            MatrixType result;
+            linalg.operations.applyBinary!op(storage,
+                                             rhs.storage,
+                                             result.storage);
+            return result;
+        }
     }
 }
 
@@ -175,8 +190,12 @@ struct Matrix(T, size_t nrows, size_t ncols,
             return storage.length; }
         @property size_t[rank] dimensions() pure const {
             return storage.dimensions; }
-        auto opCast(Tresult)() { return cast(Tresult)(storage); }
+        auto byElement() { return storage.byElement(); }
     }
+
+    enum bool isVector = (nrows == 1 || ncols == 1);
+    enum bool multRow = (nrows != 1);
+    enum bool multCol = (ncols != 1);
 
     /* Constructor taking built-in array as parameter */
     static if(isStatic)
@@ -304,18 +323,84 @@ struct Matrix(T, size_t nrows, size_t ncols,
         }
     }
 
-    version(none)
+    public // Iterators
     {
+        auto byRow()
+        {
+            return ByMatrixRow!(T, MatrixView!(T, false, true, storageOrder))(
+                storage._dim, storage._stride, storage._data);
+        }
 
-    auto byRow()
-    {
-        return ByRow!(T, storageOrder)(_dim, _stride, _data);
+        auto byCol()
+        {
+            return ByMatrixCol!(T, MatrixView!(T, true, false, storageOrder))(
+                storage._dim, storage._stride, storage._data);
+        }
     }
 
-    auto byColumn()
+        public // Conversion to other types
     {
-        return ByColumn!(T, storageOrder)(_dim, _stride, _data);
+        static if(isVector)
+        {
+            auto opCast(Tresult)()
+                if(!is(Tresult == T[]))
+            {
+                return cast(Tresult)(storage);
+            }
+
+            auto opCast(Tresult)()
+                if(is(Tresult == T[]))
+            {
+                static if(multRow)
+                    return sliceToArray!(ElementType, 1)(
+                        [storage._dim[0]], [storage._stride[0]], storage._data);
+                else
+                    return sliceToArray!(ElementType, 1)(
+                        [storage._dim[1]], [storage._stride[1]], storage._data);
+            }
+        }
+        else
+        {
+            auto opCast(Tresult)()
+            {
+                return cast(Tresult)(storage);
+            }
+        }
     }
+
+    public // Operations
+    {
+        bool opEquals(Tsource)(Tsource source)
+            if(isStorage!(typeof(source.storage)))
+        {
+            return linalg.operations.compare(source.storage, storage);
+        }
+
+        auto opAssign(Tsource)(Tsource source)
+            if(isStorage!(typeof(source.storage)))
+        {
+            linalg.operations.copy(source.storage, storage);
+            return this;
+        }
+
+        auto opUnary(string op)()
+            if(op == "+" || op == "-")
+        {
+            Matrix result;
+            linalg.operations.applyUnary!op(storage, result.storage);
+            return result;
+        }
+
+        auto opBinary(string op, Trhs)(Trhs rhs)
+            if(isStorage!(typeof(rhs.storage)) &&
+               (op == "+" || op == "-"))
+        {
+            Matrix result;
+            linalg.operations.applyBinary!op(storage,
+                                             rhs.storage,
+                                             result.storage);
+            return result;
+        }
     }
 }
 
@@ -390,8 +475,6 @@ unittest // Slicing, transposed
                [5, 8]]);
 }
 
-version(none)
-{
 unittest // Iterators
 {
     // Normal
@@ -404,7 +487,7 @@ unittest // Iterators
                           [4, 5, 6, 7],
                           [8, 9, 10, 11]]);
         result = [];
-        foreach(v; a.byColumn)
+        foreach(v; a.byCol)
             result ~= [cast(int[]) v];
         assert(result == [[0, 4, 8],
                           [1, 5, 9],
@@ -422,7 +505,7 @@ unittest // Iterators
                           [1, 4, 7, 10],
                           [2, 5, 8, 11]]);
         result = [];
-        foreach(v; a.byColumn)
+        foreach(v; a.byCol)
             result ~= [cast(int[]) v];
         assert(result == [[0, 1, 2],
                           [3, 4, 5],
@@ -442,7 +525,7 @@ unittest // Iterators
         assert(result == [[5, 6],
                           [9, 10]]);
         result = [];
-        foreach(v; a[1..3][1..3].byColumn)
+        foreach(v; a[1..3][1..3].byCol)
             result ~= [cast(int[]) v];
         assert(result == [[5, 9],
                           [6, 10]]);
@@ -457,7 +540,7 @@ unittest // Iterators
         assert(result == [[4, 7],
                           [5, 8]]);
         result = [];
-        foreach(v; a[1..3][1..3].byColumn)
+        foreach(v; a[1..3][1..3].byCol)
             result ~= [cast(int[]) v];
         assert(result == [[4, 5],
                           [7, 8]]);
@@ -530,5 +613,4 @@ unittest // Binary operations
     assert(cast(int[][]) (a1[0..2][1..3] + a2[1..3][1..3])
            == [[1 + 17, 2 + 18],
                [5 + 21, 6 + 22]]);
-}
 }
