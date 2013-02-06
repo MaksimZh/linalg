@@ -8,64 +8,60 @@
 */
 module linalg.operations;
 
-import std.range;
+import linalg.storage;
 
 debug import std.stdio;
 
-void copy(Tsource, Tdest)(Tsource source, Tdest dest)
-    if(isInputRange!Tsource && isInputRange!Tdest)
+bool compare(Tsource, Tdest)(Tsource source, Tdest dest)
+    if(isStorage!Tsource && isStorage!Tdest)
 {
-    foreach(ref d; dest)
+    auto isource = source.byElement;
+    auto idest = dest.byElement;
+    foreach(ref d; idest)
     {
-        d = source.front;
-        source.popFront();
+        if(d != isource.front)
+            return false;
+        isource.popFront();
     }
+    return true;
 }
 
-unittest
+void copy(Tsource, Tdest)(Tsource source, Tdest dest)
+    if(isStorage!Tsource && isStorage!Tdest)
 {
-    int[] a = [1, 2, 3];
-    int[] b = [0, 0, 0];
-    copy(a, b);
-    assert(b == [1, 2, 3]);
+    auto isource = source.byElement;
+    auto idest = dest.byElement;
+    foreach(ref d; idest)
+    {
+        d = isource.front;
+        isource.popFront();
+    }
 }
 
 void applyUnary(string op, Tsource, Tdest)(Tsource source, Tdest dest)
-    if(isInputRange!Tsource && isInputRange!Tdest)
+    if(isStorage!Tsource && isStorage!Tdest)
 {
-    foreach(ref d; dest)
+    auto isource = source.byElement;
+    auto idest = dest.byElement;
+    foreach(ref d; idest)
     {
-        d = mixin(op ~ "source.front");
-        source.popFront();
+        d = mixin(op ~ "isource.front");
+        isource.popFront();
     }
-}
-
-unittest
-{
-    int[] a = [1, 2, 3];
-    int[] b = [0, 0, 0];
-    applyUnary!("-")(a, b);
-    assert(b == [-1, -2, -3]);
 }
 
 void applyBinary(string op, Tsource1, Tsource2, Tdest)(Tsource1 source1,
                                                        Tsource2 source2,
                                                        Tdest dest)
-    if(isInputRange!Tsource1 && isInputRange!Tsource2 && isInputRange!Tdest)
+    if(isStorage!Tsource1 && isStorage!Tsource2 && isStorage!Tdest)
 {
+    auto isource1 = source1.byElement;
+    auto isource2 = source2.byElement;
+    auto idest = dest.byElement;
     foreach(ref d; dest)
     {
-        d = mixin("source1.front" ~ op ~ "source2.front");
-        source1.popFront();
-        source2.popFront();
+        d = mixin("isource1.front" ~ op ~ "isource2.front");
+        isource1.popFront();
+        isource2.popFront();
     }
-}
-
-unittest
-{
-    int[] a1 = [1, 2, 3];
-    int[] a2 = [4, 5, 6];
-    int[] b = [0, 0, 0];
-    applyBinary!("+")(a1, a2, b);
-    assert(b == [5, 7, 9]);
 }
