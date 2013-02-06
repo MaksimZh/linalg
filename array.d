@@ -79,6 +79,25 @@ struct ArrayView(T, uint rank_,
             linalg.operations.copy(source.storage, storage);
             return this;
         }
+
+        auto opUnary(string op)()
+            if(op == "+" || op == "-")
+        {
+            ArrayType result;
+            linalg.operations.applyUnary!op(storage, result.storage);
+            return result;
+        }
+
+        auto opBinary(string op, Trhs)(Trhs rhs)
+            if(isStorage!(typeof(rhs.storage)) &&
+               (op == "+" || op == "-" || op == "*" || op == "/"))
+        {
+            ArrayType result;
+            linalg.operations.applyBinary!op(storage,
+                                             rhs.storage,
+                                             result.storage);
+            return result;
+        }
     }
 }
 
@@ -280,6 +299,25 @@ struct Array(T, params...)
         {
             linalg.operations.copy(source.storage, storage);
             return this;
+        }
+
+        auto opUnary(string op)()
+            if(op == "+" || op == "-")
+        {
+            Array result;
+            linalg.operations.applyUnary!op(storage, result.storage);
+            return result;
+        }
+
+        auto opBinary(string op, Trhs)(Trhs rhs)
+            if(isStorage!(typeof(rhs.storage)) &&
+               (op == "+" || op == "-" || op == "*" || op == "/"))
+        {
+            Array result;
+            linalg.operations.applyBinary!op(storage,
+                                             rhs.storage,
+                                             result.storage);
+            return result;
         }
     }
 }
@@ -543,8 +581,6 @@ unittest // Comparison
     assert(a[][1..3][2] != b[][1..3][3]);
 }
 
-version(none)
-{
 unittest // Unary operations
 {
     auto a = Array!(int, 2, 3, 4)(array(iota(24)));
@@ -578,8 +614,7 @@ unittest // Binary operations
     assert(cast(int[][]) (a1[1][1..3][1..3] + a2[0][1..3][1..3])
            == [[17 + 29, 18 + 30],
                [21 + 33, 22 + 34]]);
-     assert(cast(int[][]) (a1[1][1..3][1..3] * a2[0][1..3][1..3])
+    assert(cast(int[][]) (a1[1][1..3][1..3] * a2[0][1..3][1..3])
            == [[17 * 29, 18 * 30],
                [21 * 33, 22 * 34]]);
-}
 }

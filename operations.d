@@ -45,7 +45,7 @@ body
     }
 }
 
-void applyUnary(string op, Tsource, Tdest)(Tsource source, Tdest dest)
+void applyUnary(string op, Tsource, Tdest)(ref Tsource source, ref Tdest dest)
     if(isStorage!Tsource && isStorage!Tdest)
         in
         {
@@ -64,9 +64,9 @@ body
     }
 }
 
-void applyBinary(string op, Tsource1, Tsource2, Tdest)(Tsource1 source1,
-                                                       Tsource2 source2,
-                                                       Tdest dest)
+void applyBinary(string op, Tsource1, Tsource2, Tdest)(ref Tsource1 source1,
+                                                       ref Tsource2 source2,
+                                                       ref Tdest dest)
     if(isStorage!Tsource1 && isStorage!Tsource2 && isStorage!Tdest)
         in
         {
@@ -80,7 +80,7 @@ body
     auto isource1 = source1.byElement;
     auto isource2 = source2.byElement;
     auto idest = dest.byElement;
-    foreach(ref d; dest)
+    foreach(ref d; idest)
     {
         d = mixin("isource1.front" ~ op ~ "isource2.front");
         isource1.popFront();
