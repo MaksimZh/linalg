@@ -23,6 +23,8 @@ import linalg.storage;
 import linalg.aux;
 import linalg.mdarray;
 import linalg.stride;
+import linalg.operations;
+import linalg.iterators;
 
 /** Matrix view
 */
@@ -54,7 +56,6 @@ struct MatrixView(T, bool multRow, bool multCol,
             return storage.length; }
         @property size_t[rank] dimensions() pure const {
             return storage.dimensions; }
-        auto opCast(Tresult)() { return cast(Tresult)(storage); }
         auto byElement() { return storage.byElement(); }
     }
 
@@ -65,6 +66,68 @@ struct MatrixView(T, bool multRow, bool multCol,
         if(isStorage!(typeof(source.storage)))
     {
         storage = StorageType(source.storage, [boundsRow, boundsCol]);
+    }
+
+    /* Constructor converting 1D array to vector */
+    static if(multRow != multCol)
+        package this()(T[] data, size_t dim, size_t stride)
+        {
+            storage._data = data;
+            static if(multRow)
+            {
+                storage._dim = [dim, 1];
+                storage._stride = [stride, 1];
+            }
+            else
+            {
+                storage._dim = [1, dim];
+                storage._stride = [1, stride];
+            }
+        }
+
+    public // Iterators
+    {
+        auto byRow()
+        {
+            return ByMatrixRow!(T, MatrixView!(T, false, true, storageOrder))(
+                storage._dim, storage._stride, storage._data);
+        }
+
+        auto byCol()
+        {
+            return ByMatrixCol!(T, MatrixView!(T, true, false, storageOrder))(
+                storage._dim, storage._stride, storage._data);
+        }
+    }
+
+    public // Conversion to other types
+    {
+        static if(multRow != multCol)
+        {
+            auto opCast(Tresult)()
+                if(!is(Tresult == T[]))
+            {
+                return cast(Tresult)(storage);
+            }
+
+            auto opCast(Tresult)()
+                if(is(Tresult == T[]))
+            {
+                static if(multRow)
+                    return sliceToArray!(ElementType, 1)(
+                        [storage._dim[0]], [storage._stride[0]], storage._data);
+                else
+                    return sliceToArray!(ElementType, 1)(
+                        [storage._dim[1]], [storage._stride[1]], storage._data);
+            }
+        }
+        else
+        {
+            auto opCast(Tresult)()
+            {
+                return cast(Tresult)(storage);
+            }
+        }
     }
 
     public // Operations
@@ -255,17 +318,19 @@ struct Matrix(T, size_t nrows, size_t ncols,
         }
     }
 
-    version(none)
+    public // Iterators
     {
-    auto byRow()
-    {
-        return ByRow!(T, storageOrder)(_dim, _stride, _data);
-    }
+        auto byRow()
+        {
+            return ByMatrixRow!(T, MatrixView!(T, false, true, storageOrder))(
+                storage._dim, storage._stride, storage._data);
+        }
 
-    auto byColumn()
-    {
-        return ByColumn!(T, storageOrder)(_dim, _stride, _data);
-    }
+        auto byCol()
+        {
+            return ByMatrixCol!(T, MatrixView!(T, true, false, storageOrder))(
+                storage._dim, storage._stride, storage._data);
+        }
     }
 
     public // Operations
@@ -375,8 +440,6 @@ unittest // Slicing, transposed
                [5, 8]]);
 }
 
-version(none)
-{
 unittest // Iterators
 {
     // Normal
@@ -389,7 +452,7 @@ unittest // Iterators
                           [4, 5, 6, 7],
                           [8, 9, 10, 11]]);
         result = [];
-        foreach(v; a.byColumn)
+        foreach(v; a.byCol)
             result ~= [cast(int[]) v];
         assert(result == [[0, 4, 8],
                           [1, 5, 9],
@@ -407,7 +470,7 @@ unittest // Iterators
                           [1, 4, 7, 10],
                           [2, 5, 8, 11]]);
         result = [];
-        foreach(v; a.byColumn)
+        foreach(v; a.byCol)
             result ~= [cast(int[]) v];
         assert(result == [[0, 1, 2],
                           [3, 4, 5],
@@ -427,7 +490,7 @@ unittest // Iterators
         assert(result == [[5, 6],
                           [9, 10]]);
         result = [];
-        foreach(v; a[1..3][1..3].byColumn)
+        foreach(v; a[1..3][1..3].byCol)
             result ~= [cast(int[]) v];
         assert(result == [[5, 9],
                           [6, 10]]);
@@ -442,12 +505,11 @@ unittest // Iterators
         assert(result == [[4, 7],
                           [5, 8]]);
         result = [];
-        foreach(v; a[1..3][1..3].byColumn)
+        foreach(v; a[1..3][1..3].byCol)
             result ~= [cast(int[]) v];
         assert(result == [[4, 5],
                           [7, 8]]);
     }
-}
 }
 
 unittest // Assignment

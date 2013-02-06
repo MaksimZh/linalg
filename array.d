@@ -23,6 +23,7 @@ import linalg.storage;
 import linalg.aux;
 import linalg.mdarray;
 import linalg.stride;
+import linalg.operations;
 
 /** Array view.
     Currently used only to slice compact multidimensional array.

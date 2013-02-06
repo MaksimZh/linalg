@@ -12,21 +12,21 @@ module linalg.iterators;
 debug import std.stdio;
 
 /* Generic iterator */
-struct ByElement(T)
+struct ByElement(ElementType)
 {
     private
     {
         const size_t[] _dim;
         const size_t[] _stride;
-        T[] _data;
+        ElementType[] _data;
 
         uint _rank;
-        T* _ptr;
+        ElementType* _ptr;
         size_t[] _index;
         bool _empty;
     }
 
-    this(in size_t[] dim, in size_t[] stride, T[] data)
+    this(in size_t[] dim, in size_t[] stride, ElementType[] data)
         in
         {
             assert(stride.length == dim.length);
@@ -43,7 +43,7 @@ struct ByElement(T)
     }
 
     @property bool empty() { return _empty; }
-    @property ref T front() { return *_ptr; }
+    @property ref ElementType front() { return *_ptr; }
     void popFront()
     {
         int i = _rank - 1;
@@ -74,10 +74,10 @@ struct ByMatrixRow(ElementType, SliceType)
 
         ElementType* _ptr;
         const size_t _len;
-        const T* _ptrFinal;
+        const ElementType* _ptrFinal;
     }
 
-    this(in size_t[] dim, in size_t[] stride, T[] data)
+    this(in size_t[] dim, in size_t[] stride, ElementType[] data)
         in
         {
             assert(stride.length == dim.length);
@@ -114,10 +114,10 @@ struct ByMatrixCol(ElementType, SliceType)
 
         ElementType* _ptr;
         const size_t _len;
-        const T* _ptrFinal;
+        const ElementType* _ptrFinal;
     }
 
-    this(in size_t[] dim, in size_t[] stride, T[] data)
+    this(in size_t[] dim, in size_t[] stride, ElementType[] data)
         in
         {
             assert(stride.length == dim.length);
