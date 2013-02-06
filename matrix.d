@@ -59,6 +59,8 @@ struct MatrixView(T, bool multRow, bool multCol,
         auto byElement() { return storage.byElement(); }
     }
 
+    enum bool isVector = (multRow != multCol);
+
     /* Constructor creating slice */
     package this(SourceType)(ref SourceType source,
                              SliceBounds boundsRow,
@@ -69,7 +71,7 @@ struct MatrixView(T, bool multRow, bool multCol,
     }
 
     /* Constructor converting 1D array to vector */
-    static if(multRow != multCol)
+    static if(isVector)
         package this()(T[] data, size_t dim, size_t stride)
         {
             storage._data = data;
@@ -102,7 +104,7 @@ struct MatrixView(T, bool multRow, bool multCol,
 
     public // Conversion to other types
     {
-        static if(multRow != multCol)
+        static if(isVector)
         {
             auto opCast(Tresult)()
                 if(!is(Tresult == T[]))
@@ -188,9 +190,12 @@ struct Matrix(T, size_t nrows, size_t ncols,
             return storage.length; }
         @property size_t[rank] dimensions() pure const {
             return storage.dimensions; }
-        auto opCast(Tresult)() { return cast(Tresult)(storage); }
         auto byElement() { return storage.byElement(); }
     }
+
+    enum bool isVector = (nrows == 1 || ncols == 1);
+    enum bool multRow = (nrows != 1);
+    enum bool multCol = (ncols != 1);
 
     /* Constructor taking built-in array as parameter */
     static if(isStatic)
@@ -330,6 +335,36 @@ struct Matrix(T, size_t nrows, size_t ncols,
         {
             return ByMatrixCol!(T, MatrixView!(T, true, false, storageOrder))(
                 storage._dim, storage._stride, storage._data);
+        }
+    }
+
+        public // Conversion to other types
+    {
+        static if(isVector)
+        {
+            auto opCast(Tresult)()
+                if(!is(Tresult == T[]))
+            {
+                return cast(Tresult)(storage);
+            }
+
+            auto opCast(Tresult)()
+                if(is(Tresult == T[]))
+            {
+                static if(multRow)
+                    return sliceToArray!(ElementType, 1)(
+                        [storage._dim[0]], [storage._stride[0]], storage._data);
+                else
+                    return sliceToArray!(ElementType, 1)(
+                        [storage._dim[1]], [storage._stride[1]], storage._data);
+            }
+        }
+        else
+        {
+            auto opCast(Tresult)()
+            {
+                return cast(Tresult)(storage);
+            }
         }
     }
 
