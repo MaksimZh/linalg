@@ -9,6 +9,7 @@
 module linalg.array;
 
 import std.algorithm;
+import std.traits;
 
 debug import std.stdio;
 
@@ -18,39 +19,11 @@ version(unittest)
     import std.range;
 }
 
-import linalg.base;
+import linalg.storage;
 import linalg.aux;
 import linalg.mdarray;
 import linalg.stride;
-import linalg.iteration;
-
-/* Operations specific for arrays */
-mixin template arrayOperations(FinalType,
-                               StorageType storageType,
-                               StorageOrder storageOrder)
-{
-    //XXX: DMD issue 9235: this method should be in linalg.base.basicOperations
-    MultArrayType!(ElementType, rank) opCast()
-    {
-        return sliceToArray!(ElementType, rank)(_dim, _stride, _data);
-    }
-
-    //XXX: DMD issue 9235: + and - should be in linalg.base.basicOperations
-    FinalType opBinary(string op, Trhs)(Trhs rhs)
-        if(((op == "-") || (op == "+") || (op == "*") || (op == "/"))
-           && isStorage!Trhs
-           && (is(typeof(mixin("this.byElement().front"
-                               ~ op ~ "rhs.byElement().front")))))
-    {
-        FinalType result;
-        static if(result.storageType == StorageType.resizeable)
-            result.setAllDimensions(_dim);
-        linalg.iteration.applyBinary!op(this.byElement(),
-                                        rhs.byElement(),
-                                        result.byElement());
-        return result;
-    }
-}
+import linalg.operations;
 
 /** Array view.
     Currently used only to slice compact multidimensional array.
@@ -59,124 +32,295 @@ mixin template arrayOperations(FinalType,
 struct ArrayView(T, uint rank_,
                  StorageOrder storageOrder_ = StorageOrder.rowMajor)
 {
-    enum size_t[] dimPattern = [repeatTuple!(rank_, dynamicSize)];
-    enum StorageOrder storageOrder = storageOrder_;
+    alias Storage!(T, repeatTuple!(rank_, dynamicSize), true, storageOrder_)
+        StorageType;
     alias Array!(T, repeatTuple!(rank_, dynamicSize), storageOrder_) ArrayType;
 
-    mixin storage!(T, dimPattern, false, storageOrder);
+    StorageType storage;
+    public //XXX: "alias storage this"
+    {
+        version(none) alias storage this; //XXX: too buggy feature
+        alias storage.dimPattern dimPattern;
+        alias storage.ElementType ElementType;
+        alias storage.rank rank;
+        alias storage.storageOrder storageOrder;
+        alias storage.isStatic isStatic;
+        alias storage.isResizeable isResizeable;
+        @property size_t length() pure const {
+            return storage.length; }
+        @property size_t[rank] dimensions() pure const {
+            return storage.dimensions; }
+        auto opCast(Tresult)() { return cast(Tresult)(storage); }
+        auto byElement() { return storage.byElement(); }
+    }
 
     this()(T[] data, size_t[rank] dim, size_t[rank] stride)
     {
-        _data = data;
-        _dim = dim;
-        _stride = stride;
+        storage = StorageType(data, dim, stride);
     }
 
-    /* Make slice of an array or slice */
-    package this(SourceType)(ref SourceType source, SliceBounds[] bounds)
-        if(isStorage!SourceType)
-            in
-            {
-                assert(bounds.length == source.rank);
-                assert(count!("a.isRegularSlice")(bounds) == rank);
-            }
-    body
+    /* Constructor creating slice */
+    package this(SourceType)(ref SourceType source, in SliceBounds[] bounds)
+        if(isStorage!(typeof(source.storage)))
     {
-        size_t bndLo = 0; // Lower boundary in the container
-        size_t bndUp = 0; // Upper boundary in the container
-
-        /* Dimensions and strides should be copied for all regular slices
-           and omitted for indices.
-           Boundaries should not cover additional elements.
-        */
-        uint idest = 0;
-        foreach(i, b; bounds)
-        {
-            bndLo += source._stride[i] * b.lo;
-            if(b.isRegularSlice)
-            {
-                bndUp += source._stride[i] * (b.up - 1);
-                _dim[idest] = b.up - b.lo;
-                _stride[idest] = source._stride[i];
-                ++idest;
-            }
-            else
-                bndUp += source._stride[i] * b.up;
-        }
-        ++bndUp;
-
-        _data = source._data[bndLo..bndUp];
+        storage = StorageType(source.storage, bounds);
     }
 
-    mixin basicOperations!(ArrayType, StorageType.dynamic, storageOrder);
-    mixin arrayOperations!(ArrayType, StorageType.dynamic, storageOrder);
+    public // Operations
+    {
+        bool opEquals(Tsource)(Tsource source)
+            if(isStorage!(typeof(source.storage)))
+        {
+            return linalg.operations.compare(source.storage, storage);
+        }
+
+        auto opAssign(Tsource)(Tsource source)
+            if(isStorage!(typeof(source.storage)))
+        {
+            linalg.operations.copy(source.storage, storage);
+            return this;
+        }
+
+        auto opUnary(string op)()
+            if(op == "+" || op == "-")
+        {
+            ArrayType result;
+            linalg.operations.applyUnary!op(storage, result.storage);
+            return result;
+        }
+
+        auto opBinary(string op, Trhs)(Trhs rhs)
+            if(isStorage!(typeof(rhs.storage)) &&
+               (op == "+" || op == "-" || op == "*" || op == "/"))
+        {
+            ArrayType result;
+            linalg.operations.applyBinary!op(storage,
+                                             rhs.storage,
+                                             result.storage);
+            return result;
+        }
+    }
 }
 
-/** Multidimensional compact array
-*/
+/** Multidimensional compact array */
 struct Array(T, params...)
 {
-    /* Check the transposition flag (false by default). */
-    static if(isValueOfTypeStrict!(StorageOrder, params[$-1]))
+    public // Check and process parameters
     {
-        enum StorageOrder storageOrder = params[$-1];
-        alias params[0..$-1] dimTuple;
+        /* Check the transposition flag (false by default). */
+        static if(isValueOfTypeStrict!(StorageOrder, params[$-1]))
+            alias Storage!(T, params[0..($-1)], false, params[$-1])
+                StorageType;
+        else
+            alias Storage!(T, params, false, StorageOrder.rowMajor)
+                StorageType;
+    }
+
+    StorageType storage; // Storage of the array data
+    public //XXX: "alias storage this"
+    {
+        version(none) alias storage this; //XXX: too buggy feature
+        alias storage.dimPattern dimPattern;
+        alias storage.ElementType ElementType;
+        alias storage.rank rank;
+        alias storage.storageOrder storageOrder;
+        alias storage.isStatic isStatic;
+        alias storage.isResizeable isResizeable;
+        @property size_t length() pure const {
+            return storage.length; }
+        @property size_t[rank] dimensions() pure const {
+            return storage.dimensions; }
+        auto opCast(Tresult)() { return cast(Tresult)(storage); }
+        auto byElement() { return storage.byElement(); }
+    }
+
+    /* Constructor taking built-in array as parameter */
+    static if(isStatic)
+    {
+        this(in T[] source)
+        {
+            storage = StorageType(source);
+        }
     }
     else
     {
-        enum StorageOrder storageOrder = StorageOrder.rowMajor;
-        alias params dimTuple;
+        this(T[] source, in size_t[] dim)
+        {
+            storage = StorageType(source, dim);
+        }
     }
 
-    /* Check and store array dimensions */
-    static assert(isValueOfType!(size_t, dimTuple));
-    static assert(all!("a >= 0")([dimTuple]));
-    enum size_t[] dimPattern = [dimTuple];
-
-    mixin storage!(T, dimPattern, true, storageOrder);
-
-    static if(storageType == StorageType.fixed)
-        // Convert ordinary 1D array to static MD array with dense storage
-        this(T[] source)
-            in
-            {
-                assert(source.length == reduce!("a * b")(_dim));
-            }
-        body
-        {
-            _data = source;
-        }
-    else
-        /* Convert ordinary 1D array to dense multidimensional array
-           with given dimensions
-         */
-        this(T[] source, size_t[] dim)
-            in
-            {
-                assert(dim.length == rank);
-                assert(source.length == reduce!("a * b")(dim));
-                foreach(i, d; dimPattern)
-                    if(d != dynamicSize)
-                        assert(d == dim[i]);
-            }
-        body
-        {
-            _data = source;
-            _dim = dim;
-            _stride = calcDenseStrides(
-                _dim, storageOrder == StorageOrder.columnMajor);
-        }
-
-    /* Slicing and indexing */
-    auto constructSlice(uint sliceRank)(Array* source, SliceBounds[] bounds)
+    public // Slicing and indexing
     {
-        return ArrayView!(T, sliceRank, storageOrder)(*source, bounds);
+        /* Calculate slice parameters and create ArrayView basing on them */
+        auto constructSlice(size_t sliceRank)(SliceBounds[] bounds)
+        {
+            return ArrayView!(ElementType, sliceRank, storageOrder)(
+                this, bounds);
+        }
+
+        /* Auxiliary structure for slicing and indexing */
+        struct SliceProxy(size_t sliceRank, size_t sliceDepth)
+        {
+            /*FIXME: dynamic array is not an optimal solution*/
+            SliceBounds[] bounds;
+
+            Array* source; // Pointer to the container being sliced
+
+            package this(Array* source_, SliceBounds[] bounds_)
+            {
+                source = source_;
+                bounds = bounds_;
+            }
+
+            /* Evaluate slicing result */
+            static if(sliceRank > 0)
+            {
+                auto eval()
+                {
+                    static if(sliceDepth < rank)
+                    {
+                        /* Add empty [] if there is not enough bracket pairs */
+                        static if(sliceDepth == rank - 1)
+                            return this[];
+                        else
+                            return this[].eval();
+                    }
+                    else
+                    {
+                        /* Normal slice */
+                        return source.constructSlice!(sliceRank)(bounds);
+                    }
+                }
+            }
+            else
+            {
+                /* If simple index return element by reference */
+                ref auto eval()
+                {
+                    return source.storage.accessByIndex(bounds);
+                }
+            }
+
+            /* Slicing and indexing */
+            static if(sliceDepth < dimPattern.length - 1)
+            {
+                /* Return slice proxy for incomplete bracket construction
+                 */
+                SliceProxy!(sliceRank, sliceDepth + 1) opSlice()
+                {
+                    return typeof(return)(
+                        source,
+                        bounds ~ SliceBounds(0, source.dimensions[sliceDepth]));
+                }
+
+                SliceProxy!(sliceRank, sliceDepth + 1) opSlice(size_t lo,
+                                                               size_t up)
+                {
+                    return typeof(return)(source, bounds ~ SliceBounds(lo, up));
+                }
+
+                SliceProxy!(sliceRank - 1, sliceDepth + 1) opIndex(size_t i)
+                {
+                    return typeof(return)(source, bounds ~ SliceBounds(i));
+                }
+            }
+            else static if(sliceDepth == (dimPattern.length - 1))
+                 {
+                     /* If only one more slicing can be done
+                        then return slice not proxy
+                     */
+                     auto opSlice()
+                     {
+                         return SliceProxy!(sliceRank, sliceDepth + 1)(
+                             source,
+                             bounds
+                             ~ SliceBounds(0, source.dimensions[sliceDepth])
+                             ).eval();
+                     }
+
+                     auto opSlice(size_t lo, size_t up)
+                     {
+                         return SliceProxy!(sliceRank, sliceDepth + 1)(
+                             source, bounds ~ SliceBounds(lo, up)).eval();
+                     }
+
+                     static if(sliceRank > 1)
+                     {
+                         auto opIndex(size_t i)
+                         {
+                             return SliceProxy!(sliceRank - 1, sliceDepth + 1)(
+                                 source, bounds ~ SliceBounds(i)).eval();
+                         }
+                     }
+                     else
+                     {
+                         /* If simple index return element by reference */
+                         ref auto opIndex(size_t i)
+                         {
+                             return SliceProxy!(sliceRank - 1, sliceDepth + 1)(
+                                 source, bounds ~ SliceBounds(i)).eval();
+                         }
+                     }
+                 }
+
+            auto opCast(Tresult)()
+            {
+                return cast(Tresult)(eval());
+            }
+        }
+
+        /* Slicing and indexing */
+        SliceProxy!(rank, 1) opSlice()
+        {
+            return typeof(return)(&this, [SliceBounds(0, length)]);
+        }
+
+        SliceProxy!(rank, 1) opSlice(size_t lo, size_t up)
+        {
+            return typeof(return)(&this, [SliceBounds(lo, up)]);
+        }
+
+        SliceProxy!(rank - 1, 1) opIndex(size_t i)
+        {
+            return typeof(return)(&this, [SliceBounds(i)]);
+        }
     }
 
-    mixin sliceProxy!(Array, Array.constructSlice);
+    public // Operations
+    {
+        bool opEquals(Tsource)(Tsource source)
+            if(isStorage!(typeof(source.storage)))
+        {
+            return linalg.operations.compare(source.storage, storage);
+        }
 
-    mixin basicOperations!(Array, storageType, storageOrder);
-    mixin arrayOperations!(Array, storageType, storageOrder);
+        auto opAssign(Tsource)(Tsource source)
+            if(isStorage!(typeof(source.storage)))
+        {
+            linalg.operations.copy(source.storage, storage);
+            return this;
+        }
+
+        auto opUnary(string op)()
+            if(op == "+" || op == "-")
+        {
+            Array result;
+            linalg.operations.applyUnary!op(storage, result.storage);
+            return result;
+        }
+
+        auto opBinary(string op, Trhs)(Trhs rhs)
+            if(isStorage!(typeof(rhs.storage)) &&
+               (op == "+" || op == "-" || op == "*" || op == "/"))
+        {
+            Array result;
+            linalg.operations.applyBinary!op(storage,
+                                             rhs.storage,
+                                             result.storage);
+            return result;
+        }
+    }
 }
 
 unittest // Type properties and dimensions
@@ -184,13 +328,15 @@ unittest // Type properties and dimensions
     {
         alias ArrayView!(int, 3) A;
         static assert(is(A.ElementType == int));
-        static assert(A.storageType == StorageType.dynamic);
+        static assert(!(A.isStatic));
+        static assert(!(A.isResizeable));
         static assert(A.storageOrder == StorageOrder.rowMajor);
     }
     {
         alias Array!(int, dynamicSize, dynamicSize, dynamicSize) A;
         static assert(is(A.ElementType == int));
-        static assert(A.storageType == StorageType.resizeable);
+        static assert(!(A.isStatic));
+        static assert(A.isResizeable);
         static assert(A.storageOrder == StorageOrder.rowMajor);
         A a = A(array(iota(24)), [2, 3, 4]);
         assert(a.length == 2);
@@ -199,7 +345,8 @@ unittest // Type properties and dimensions
     {
         alias Array!(int, 2, 3, 4) A;
         static assert(is(A.ElementType == int));
-        static assert(A.storageType == StorageType.fixed);
+        static assert(A.isStatic);
+        static assert(!(A.isResizeable));
         static assert(A.storageOrder == StorageOrder.rowMajor);
         A a = A(array(iota(24)));
         assert(a.length == 2);
@@ -468,7 +615,7 @@ unittest // Binary operations
     assert(cast(int[][]) (a1[1][1..3][1..3] + a2[0][1..3][1..3])
            == [[17 + 29, 18 + 30],
                [21 + 33, 22 + 34]]);
-     assert(cast(int[][]) (a1[1][1..3][1..3] * a2[0][1..3][1..3])
+    assert(cast(int[][]) (a1[1][1..3][1..3] * a2[0][1..3][1..3])
            == [[17 * 29, 18 * 30],
                [21 * 33, 22 * 34]]);
 }
