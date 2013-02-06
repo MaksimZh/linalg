@@ -25,37 +25,6 @@ import linalg.mdarray;
 import linalg.stride;
 import linalg.iteration;
 
-version(none)
-{
-/* Operations specific for arrays */
-mixin template arrayOperations(FinalType,
-                               StorageType storageType,
-                               StorageOrder storageOrder)
-{
-    //XXX: DMD issue 9235: this method should be in linalg.base.basicOperations
-    MultArrayType!(ElementType, rank) opCast()
-    {
-        return sliceToArray!(ElementType, rank)(_dim, _stride, _data);
-    }
-
-    //XXX: DMD issue 9235: + and - should be in linalg.base.basicOperations
-    FinalType opBinary(string op, Trhs)(Trhs rhs)
-        if(((op == "-") || (op == "+") || (op == "*") || (op == "/"))
-           && isStorage!Trhs
-           && (is(typeof(mixin("this.byElement().front"
-                               ~ op ~ "rhs.byElement().front")))))
-    {
-        FinalType result;
-        static if(result.storageType == StorageType.resizeable)
-            result.setAllDimensions(_dim);
-        linalg.iteration.applyBinary!op(this.byElement(),
-                                        rhs.byElement(),
-                                        result.byElement());
-        return result;
-    }
-}
-}
-
 /** Array view.
     Currently used only to slice compact multidimensional array.
     Unlike arrays views do not perform memory management.
@@ -89,6 +58,7 @@ struct ArrayView(T, uint rank_,
         storage = StorageType(data, dim, stride);
     }
 
+    /* Constructor creating slice */
     package this(SourceType)(ref SourceType source, in SliceBounds[] bounds)
         if(isInstanceOf!(linalg.storage.Storage, typeof(source.storage)))
     {
