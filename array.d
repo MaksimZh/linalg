@@ -64,6 +64,16 @@ struct ArrayView(T, uint rank_,
     {
         storage = StorageType(source.storage, bounds);
     }
+
+    public // Operations
+    {
+        auto opAssign(Tsource)(Tsource source)
+            if(isStorage!(typeof(source.storage)))
+        {
+            linalg.operations.copy(source.storage, storage);
+            return this;
+        }
+    }
 }
 
 /** Multidimensional compact array */
@@ -248,6 +258,16 @@ struct Array(T, params...)
         SliceProxy!(rank - 1, 1) opIndex(size_t i)
         {
             return typeof(return)(&this, [SliceBounds(i)]);
+        }
+    }
+
+    public // Operations
+    {
+        auto opAssign(Tsource)(Tsource source)
+            if(isStorage!(typeof(source.storage)))
+        {
+            linalg.operations.copy(source.storage, storage);
+            return this;
         }
     }
 }
@@ -463,8 +483,6 @@ unittest // Iterators for slice
     }
 }
 
-version(none)
-{
 unittest // Assignment
 {
     alias Array!(int, 2, 3, 4) A;
@@ -502,6 +520,8 @@ unittest // Assignment for slices
     assert(a[1][1][1] == 100);
 }
 
+version(none)
+{
 unittest // Comparison
 {
     auto a = Array!(int, 2, 3, 4)(array(iota(24)));

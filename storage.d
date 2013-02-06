@@ -181,6 +181,18 @@ struct Storage(T, params...)
             }
             _resize();
         }
+
+        /* Adjust all dimensions to make them the same as in source storage */
+        void fit(Tsource)(in Tsource source) pure
+            in
+            {
+                assert(isCompatibleDimensions(source._dim));
+            }
+        body
+        {
+            if(_dim != source._dim)
+                setAllDimensions(source._dim);
+        }
     }
 
     /* Constructor taking built-in array as parameter */

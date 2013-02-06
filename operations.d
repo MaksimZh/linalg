@@ -26,9 +26,16 @@ bool compare(Tsource, Tdest)(Tsource source, Tdest dest)
     return true;
 }
 
-void copy(Tsource, Tdest)(Tsource source, Tdest dest)
+void copy(Tsource, Tdest)(ref Tsource source, ref Tdest dest)
     if(isStorage!Tsource && isStorage!Tdest)
+        in
+        {
+            assert(dest.isCompatibleDimensions(source.dimensions));
+        }
+body
 {
+    static if(dest.isResizeable)
+        dest.fit(source);
     auto isource = source.byElement;
     auto idest = dest.byElement;
     foreach(ref d; idest)
@@ -40,7 +47,14 @@ void copy(Tsource, Tdest)(Tsource source, Tdest dest)
 
 void applyUnary(string op, Tsource, Tdest)(Tsource source, Tdest dest)
     if(isStorage!Tsource && isStorage!Tdest)
+        in
+        {
+            assert(dest.isCompatibleDimensions(source.dimensions));
+        }
+body
 {
+    static if(dest.isResizeable)
+        dest.fit(source);
     auto isource = source.byElement;
     auto idest = dest.byElement;
     foreach(ref d; idest)
@@ -54,7 +68,15 @@ void applyBinary(string op, Tsource1, Tsource2, Tdest)(Tsource1 source1,
                                                        Tsource2 source2,
                                                        Tdest dest)
     if(isStorage!Tsource1 && isStorage!Tsource2 && isStorage!Tdest)
+        in
+        {
+            assert(source1.dimensions == source2.dimensions);
+            assert(dest.isCompatibleDimensions(source1.dimensions));
+        }
+body
 {
+    static if(dest.isResizeable)
+        dest.fit(source1);
     auto isource1 = source1.byElement;
     auto isource2 = source2.byElement;
     auto idest = dest.byElement;
