@@ -6,6 +6,7 @@
     Copyright:  Copyright (c) 2013, Maksim S. Zholudev.
     License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
 */
+/*TODO: optimize iterators */
 module linalg.iterators;
 
 debug import std.stdio;
@@ -13,7 +14,6 @@ debug import std.stdio;
 /* Generic iterator */
 struct ByElement(T)
 {
-    //TODO: optimize
     private
     {
         const size_t[] _dim;
@@ -60,5 +60,85 @@ struct ByElement(T)
         }
         else
             _empty = true;
+    }
+}
+
+/* By-row iterator for 2D arrays */
+struct ByMatrixRow(ElementType, SliceType)
+{
+    private
+    {
+        const size_t[2] _dim;
+        const size_t[2] _stride;
+        ElementType[] _data;
+
+        ElementType* _ptr;
+        const size_t _len;
+        const T* _ptrFinal;
+    }
+
+    this(in size_t[] dim, in size_t[] stride, T[] data)
+        in
+        {
+            assert(stride.length == dim.length);
+        }
+    body
+    {
+        _dim = dim;
+        _stride = stride;
+        _data = data;
+        _ptr = _data.ptr;
+        _len = (_dim[1] - 1) * _stride[1] + 1;
+        _ptrFinal = _data.ptr + (_dim[0] - 1) * _stride[0];
+    }
+
+    @property bool empty() { return !(_ptr <= _ptrFinal); }
+    @property auto front()
+    {
+        return SliceType(_ptr[0.._len], _dim[1], _stride[1]);
+    }
+    void popFront()
+    {
+        _ptr += _stride[0];
+    }
+}
+
+/* By-column iterator for 2D arrays */
+struct ByMatrixCol(ElementType, SliceType)
+{
+    private
+    {
+        const size_t[2] _dim;
+        const size_t[2] _stride;
+        ElementType[] _data;
+
+        ElementType* _ptr;
+        const size_t _len;
+        const T* _ptrFinal;
+    }
+
+    this(in size_t[] dim, in size_t[] stride, T[] data)
+        in
+        {
+            assert(stride.length == dim.length);
+        }
+    body
+    {
+        _dim = dim;
+        _stride = stride;
+        _data = data;
+        _ptr = _data.ptr;
+        _len = (_dim[0] - 1) * _stride[0] + 1;
+        _ptrFinal = _data.ptr + (_dim[1] - 1) * _stride[1];
+    }
+
+    @property bool empty() { return !(_ptr <= _ptrFinal); }
+    @property auto front()
+    {
+        return SliceType(_ptr[0.._len], _dim[0], _stride[0]);
+    }
+    void popFront()
+    {
+        _ptr += _stride[1];
     }
 }
