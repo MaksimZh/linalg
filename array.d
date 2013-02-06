@@ -50,6 +50,7 @@ struct ArrayView(T, uint rank_,
         @property size_t[rank] dimensions() pure const {
             return storage.dimensions; }
         auto opCast(Tresult)() { return cast(Tresult)(storage); }
+        auto byElement() { return storage.byElement(); }
     }
 
     this()(T[] data, size_t[rank] dim, size_t[rank] stride)
@@ -94,6 +95,7 @@ struct Array(T, params...)
         @property size_t[rank] dimensions() pure const {
             return storage.dimensions; }
         auto opCast(Tresult)() { return cast(Tresult)(storage); }
+        auto byElement() { return storage.byElement(); }
     }
 
     /* Constructor taking built-in array as parameter */
@@ -415,8 +417,6 @@ unittest // Slicing, transposed
                [11, 17]]);
 }
 
-version(none)
-{
 unittest // Iterators
 {
     // Normal
@@ -463,6 +463,8 @@ unittest // Iterators for slice
     }
 }
 
+version(none)
+{
 unittest // Assignment
 {
     alias Array!(int, 2, 3, 4) A;

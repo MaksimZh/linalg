@@ -55,6 +55,7 @@ struct MatrixView(T, bool multRow, bool multCol,
         @property size_t[rank] dimensions() pure const {
             return storage.dimensions; }
         auto opCast(Tresult)() { return cast(Tresult)(storage); }
+        auto byElement() { return storage.byElement(); }
     }
 
     /* Constructor creating slice */
@@ -90,6 +91,7 @@ struct Matrix(T, size_t nrows, size_t ncols,
         @property size_t[rank] dimensions() pure const {
             return storage.dimensions; }
         auto opCast(Tresult)() { return cast(Tresult)(storage); }
+        auto byElement() { return storage.byElement(); }
     }
 
     /* Constructor taking built-in array as parameter */
