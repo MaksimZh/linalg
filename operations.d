@@ -12,7 +12,7 @@ import linalg.storage;
 
 debug import std.stdio;
 
-bool compare(Tsource, Tdest)(Tsource source, Tdest dest)
+bool compare(Tsource, Tdest)(ref Tsource source, ref Tdest dest)
     if(isStorage!Tsource && isStorage!Tdest)
 {
     auto isource = source.byElement;

@@ -67,6 +67,12 @@ struct ArrayView(T, uint rank_,
 
     public // Operations
     {
+        bool opEquals(Tsource)(Tsource source)
+            if(isStorage!(typeof(source.storage)))
+        {
+            return linalg.operations.compare(source.storage, storage);
+        }
+
         auto opAssign(Tsource)(Tsource source)
             if(isStorage!(typeof(source.storage)))
         {
@@ -263,6 +269,12 @@ struct Array(T, params...)
 
     public // Operations
     {
+        bool opEquals(Tsource)(Tsource source)
+            if(isStorage!(typeof(source.storage)))
+        {
+            return linalg.operations.compare(source.storage, storage);
+        }
+
         auto opAssign(Tsource)(Tsource source)
             if(isStorage!(typeof(source.storage)))
         {
@@ -520,8 +532,6 @@ unittest // Assignment for slices
     assert(a[1][1][1] == 100);
 }
 
-version(none)
-{
 unittest // Comparison
 {
     auto a = Array!(int, 2, 3, 4)(array(iota(24)));
@@ -533,6 +543,8 @@ unittest // Comparison
     assert(a[][1..3][2] != b[][1..3][3]);
 }
 
+version(none)
+{
 unittest // Unary operations
 {
     auto a = Array!(int, 2, 3, 4)(array(iota(24)));
