@@ -87,3 +87,37 @@ body
         isource2.popFront();
     }
 }
+
+void matrixMult(Tsource1, Tsource2, Tdest)(ref Tsource1 source1,
+                                           ref Tsource2 source2,
+                                           ref Tdest dest)
+    if(isStorage!Tsource1 && isStorage!Tsource2 && isStorage!Tdest)
+        in
+        {
+            assert(source1.dimensions[1] == source2.dimensions[0]);
+            assert(dest.isCompatibleDimensions([source1.dimensions[0], source2.dimensions[1]]));
+        }
+body
+{
+    //FIXME: probably this is the ugliest implementation of matrix multiplication ever
+    static if(dest.isResizeable)
+        dest.setAllDimensions([source1.dimensions[0], source2.dimensions[1]]);
+    auto idest = dest.byElement;
+    foreach(row; source1.byRow)
+        foreach(col; source2.byCol)
+        {
+            auto irow = row.byElement;
+            auto icol = col.byElement;
+            /* Can not just write front = 0 in generic code. */
+            idest.front = irow.front * icol.front;
+            irow.popFront();
+            icol.popFront();
+            while(!(irow.empty))
+            {
+                idest.front += irow.front * icol.front;
+                irow.popFront();
+                icol.popFront();
+            }
+            idest.popFront();
+        }
+}
