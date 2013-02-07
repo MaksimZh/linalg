@@ -87,6 +87,9 @@ struct MatrixView(T, bool multRow, bool multCol,
             }
         }
 
+    @property size_t nrows() { return storage._dim[0]; }
+    @property size_t ncols() { return storage._dim[1]; }
+
     public // Iterators
     {
         auto byRow()
@@ -170,10 +173,10 @@ struct MatrixView(T, bool multRow, bool multCol,
 
 /** Matrix
 */
-struct Matrix(T, size_t nrows, size_t ncols,
+struct Matrix(T, size_t nrows_, size_t ncols_,
               StorageOrder storageOrder_ = StorageOrder.rowMajor)
 {
-    alias Storage!(T, nrows, ncols, false, storageOrder_)
+    alias Storage!(T, nrows_, ncols_, false, storageOrder_)
         StorageType;
 
     StorageType storage;
@@ -193,9 +196,9 @@ struct Matrix(T, size_t nrows, size_t ncols,
         auto byElement() { return storage.byElement(); }
     }
 
-    enum bool isVector = (nrows == 1 || ncols == 1);
-    enum bool multRow = (nrows != 1);
-    enum bool multCol = (ncols != 1);
+    enum bool isVector = (nrows_ == 1 || ncols_ == 1);
+    enum bool multRow = (nrows_ != 1);
+    enum bool multCol = (ncols_ != 1);
 
     /* Constructor taking built-in array as parameter */
     static if(isStatic)
@@ -212,6 +215,9 @@ struct Matrix(T, size_t nrows, size_t ncols,
             storage = StorageType(source, [nrows, ncols]);
         }
     }
+
+    @property size_t nrows() { return storage._dim[0]; }
+    @property size_t ncols() { return storage._dim[1]; }
 
     public // Slicing and indexing
     {
@@ -338,7 +344,7 @@ struct Matrix(T, size_t nrows, size_t ncols,
         }
     }
 
-        public // Conversion to other types
+    public // Conversion to other types
     {
         static if(isVector)
         {
@@ -392,8 +398,8 @@ struct Matrix(T, size_t nrows, size_t ncols,
         }
 
         auto opBinary(string op, Trhs)(Trhs rhs)
-            if(isStorage!(typeof(rhs.storage)) &&
-               (op == "+" || op == "-"))
+            if(isStorage!(typeof(rhs.storage))
+               && (op == "+" || op == "-"))
         {
             Matrix result;
             linalg.operations.applyBinary!op(storage,
@@ -414,6 +420,8 @@ unittest // Type properties and dimensions
         static assert(A.storageOrder == StorageOrder.rowMajor);
         A a = A(array(iota(12.0)), 3, 4);
         assert(a.dimensions == [3, 4]);
+        assert(a.nrows == 3);
+        assert(a.ncols == 4);
     }
 }
 
