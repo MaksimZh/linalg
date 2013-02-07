@@ -59,6 +59,9 @@ struct MatrixView(T, bool multRow, bool multCol,
         auto byElement() { return storage.byElement(); }
     }
 
+    enum size_t nrowsP = StorageType.dimPattern[0];
+    enum size_t ncolsP = StorageType.dimPattern[1];
+
     enum bool isVector = (multRow != multCol);
 
     /* Constructor creating slice */
@@ -196,9 +199,12 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         auto byElement() { return storage.byElement(); }
     }
 
-    enum bool isVector = (nrows_ == 1 || ncols_ == 1);
-    enum bool multRow = (nrows_ != 1);
-    enum bool multCol = (ncols_ != 1);
+    enum size_t nrowsP = StorageType.dimPattern[0];
+    enum size_t ncolsP = StorageType.dimPattern[1];
+
+    enum bool isVector = (nrowsP == 1 || ncolsP == 1);
+    enum bool multRow = (nrowsP != 1);
+    enum bool multCol = (ncolsP != 1);
 
     /* Constructor taking built-in array as parameter */
     static if(isStatic)
@@ -407,7 +413,38 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                                              result.storage);
             return result;
         }
+
+        auto opBinary(string op, Trhs)(Trhs rhs)
+            if(isMatrixOrView!(Trhs)
+               && (op == "*"))
+        {
+            MatrixProductType!(Matrix, Trhs) result;
+            linalg.operations.matrixMult(storage,
+                                         rhs.storage,
+                                         result.storage);
+            return result;
+        }
     }
+}
+
+template isMatrixOrView(T)
+{
+    enum bool isMatrixOrView = isInstanceOf!(Matrix, T)
+        || isInstanceOf!(MatrixView, T);
+}
+
+template ProductType(Tlhs, Trhs)
+{
+    alias typeof(*(new Tlhs) * *(new Trhs)) ProductType;
+}
+
+template MatrixProductType(Tlhs, Trhs)
+{
+    alias
+        Matrix!(ProductType!(Tlhs.ElementType, Trhs.ElementType),
+                Tlhs.nrowsP, Trhs.ncolsP,
+                Tlhs.storageOrder)
+        MatrixProductType;
 }
 
 unittest // Type properties and dimensions
@@ -621,4 +658,14 @@ unittest // Binary operations
     assert(cast(int[][]) (a1[0..2][1..3] + a2[1..3][1..3])
            == [[1 + 17, 2 + 18],
                [5 + 21, 6 + 22]]);
+}
+
+unittest // Matrix multiplication
+{
+    auto a1 = Matrix!(int, 3, 2)(array(iota(6)));
+    auto a2 = Matrix!(int, 2, 4)(array(iota(8)));
+    assert(cast(int[][]) (a1 * a2)
+           == [[4,  5,  6,  7],
+               [12, 17, 22, 27],
+               [20, 29, 38, 47]]);
 }

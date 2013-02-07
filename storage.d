@@ -238,6 +238,15 @@ struct Storage(T, params...)
         }
     }
 
+    /* Constructor converting 1D array to storage */
+    static if(rank == 1)
+        package this()(T[] data, size_t dim, size_t stride)
+        {
+            _data = data;
+            _dim = [dim];
+            _stride = [stride];
+        }
+
     /* Constructor building a slice of another storage */
     static if(!isStatic && !isResizeable)
     {
@@ -283,11 +292,29 @@ struct Storage(T, params...)
         return sliceToArray!(ElementType, rank)(_dim, _stride, _data);
     }
 
-    /* Iterator */
-    ByElement!(ElementType) byElement()
+    public // Iterators
     {
-        return ByElement!(ElementType)(_dim, _stride, _data);
+        ByElement!(ElementType) byElement()
+        {
+            return ByElement!(ElementType)(_dim, _stride, _data);
+        }
+
+        static if(rank == 2)
+        {
+            auto byRow()
+            {
+                return ByMatrixRow!(T, Storage!(T, dynamicSize, true, storageOrder))(
+                    _dim, _stride, _data);
+            }
+
+            auto byCol()
+            {
+                return ByMatrixCol!(T, Storage!(T, dynamicSize, true, storageOrder))(
+                    _dim, _stride, _data);
+            }
+        }
     }
+
 
     /* Access element by set of indices */
     ref ElementType accessByIndex(SliceBounds[] bounds)
