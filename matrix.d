@@ -171,6 +171,17 @@ struct MatrixView(T, bool multRow, bool multCol,
                                              result.storage);
             return result;
         }
+
+        auto opBinary(string op, Trhs)(Trhs rhs)
+            if(isMatrixOrView!(Trhs)
+               && (op == "*"))
+        {
+            MatrixProductType!(MatrixView, Trhs) result;
+            linalg.operations.matrixMult(storage,
+                                         rhs.storage,
+                                         result.storage);
+            return result;
+        }
     }
 }
 
@@ -668,4 +679,7 @@ unittest // Matrix multiplication
            == [[4,  5,  6,  7],
                [12, 17, 22, 27],
                [20, 29, 38, 47]]);
+    assert(cast(int[][]) (a1[0..2][] * a2[][0..2])
+           == [[4,  5],
+               [12, 17]]);
 }
