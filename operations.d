@@ -88,6 +88,28 @@ body
     }
 }
 
+void matrixTranspose(Tsource, Tdest)(ref Tsource source,
+                                     ref Tdest dest)
+    if(isStorage!Tsource && isStorage!Tdest)
+        in
+        {
+            assert(dest.isCompatibleDimensions(source.dimensions));
+        }
+body
+{
+    static if(dest.isResizeable)
+        dest.fit(source);
+    auto isource = source.byElement;
+    auto idest = dest.byElementTransposed;
+    foreach(ref d; idest)
+    {
+        d = isource.front;
+        isource.popFront();
+    }
+
+}
+
+
 void matrixMult(Tsource1, Tsource2, Tdest)(ref Tsource1 source1,
                                            ref Tsource2 source2,
                                            ref Tdest dest)
@@ -95,11 +117,13 @@ void matrixMult(Tsource1, Tsource2, Tdest)(ref Tsource1 source1,
         in
         {
             assert(source1.dimensions[1] == source2.dimensions[0]);
-            assert(dest.isCompatibleDimensions([source1.dimensions[0], source2.dimensions[1]]));
+            assert(dest.isCompatibleDimensions([source1.dimensions[0],
+                                                source2.dimensions[1]]));
         }
 body
 {
-    //FIXME: probably this is the ugliest implementation of matrix multiplication ever
+    /* FIXME: probably this is the ugliest implementation
+       of matrix multiplication ever */
     static if(dest.isResizeable)
         dest.setAllDimensions([source1.dimensions[0], source2.dimensions[1]]);
     auto idest = dest.byElement;

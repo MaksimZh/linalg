@@ -299,17 +299,24 @@ struct Storage(T, params...)
             return ByElement!(ElementType)(_dim, _stride, _data);
         }
 
+        ByElementTransposed!(ElementType) byElementTransposed()
+        {
+            return ByElementTransposed!(ElementType)(_dim, _stride, _data);
+        }
+
         static if(rank == 2)
         {
             auto byRow()
             {
-                return ByMatrixRow!(T, Storage!(T, dynamicSize, true, storageOrder))(
+                return ByMatrixRow!(T, Storage!(T, dynamicSize, true,
+                                                storageOrder))(
                     _dim, _stride, _data);
             }
 
             auto byCol()
             {
-                return ByMatrixCol!(T, Storage!(T, dynamicSize, true, storageOrder))(
+                return ByMatrixCol!(T, Storage!(T, dynamicSize, true,
+                                                storageOrder))(
                     _dim, _stride, _data);
             }
         }
@@ -402,68 +409,4 @@ unittest // Iterators
                           3, 9, 15, 21,
                           5, 11, 17, 23]);
     }
-}
-
-version(none)
-{
-/* Operations that are common for both arrays and matrices */
-mixin template basicOperations(FinalType,
-                               StorageType storageType,
-                               StorageOrder storageOrder)
-{
-    ref auto opAssign(SourceType)(SourceType source)
-        if(isStorage!SourceType)
-            in
-            {
-                assert(isCompatibleDimensions(source._dim));
-            }
-    body
-    {
-        static if(storageType == StorageType.resizeable)
-            if(_dim != source._dim)
-                setAllDimensions(source._dim);
-        linalg.iteration.copy(source.byElement(), this.byElement());
-        return this;
-    }
-
-    bool opEquals(SourceType)(SourceType source)
-        if(isStorage!SourceType)
-            in
-            {
-                assert(source._dim == _dim);
-            }
-    body
-    {
-        return equal(source.byElement(), this.byElement());
-    }
-
-    FinalType opUnary(string op)()
-        if(((op == "-") || (op == "+"))
-           && (is(typeof(mixin(op ~ "this.byElement().front")))))
-    {
-        FinalType result;
-        static if(result.storageType == StorageType.resizeable)
-            result.setAllDimensions(_dim);
-        linalg.iteration.applyUnary!op(this.byElement(), result.byElement());
-        return result;
-    }
-
-    version(none) //XXX: DMD issue 9235
-    {
-    FinalType opBinary(string op, Trhs)(Trhs rhs)
-        if(((op == "-") || (op == "+"))
-           && isStorage!Trhs
-           && (is(typeof(mixin("this.byElement().front"
-                               ~ op ~ "rhs.byElement().front")))))
-    {
-        FinalType result;
-        static if(result.storageType == StorageType.resizeable)
-            result.setAllDimensions(_dim);
-        linalg.iteration.applyBinary!op(this.byElement(),
-                                        rhs.byElement(),
-                                        result.byElement());
-        return result;
-    }
-    }
-}
 }

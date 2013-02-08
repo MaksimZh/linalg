@@ -182,6 +182,13 @@ struct MatrixView(T, bool multRow, bool multCol,
                                          result.storage);
             return result;
         }
+
+        auto transpose()
+        {
+            MatrixType result;
+            linalg.operations.matrixTranspose(storage, result.storage);
+            return result;
+        }
     }
 }
 
@@ -435,6 +442,13 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                                          result.storage);
             return result;
         }
+
+        auto transpose()
+        {
+            Matrix result;
+            linalg.operations.matrixTranspose(storage, result.storage);
+            return result;
+        }
     }
 }
 
@@ -682,4 +696,13 @@ unittest // Matrix multiplication
     assert(cast(int[][]) (a1[0..2][] * a2[][0..2])
            == [[4,  5],
                [12, 17]]);
+}
+
+unittest // Matrix transposition
+{
+    auto a1 = Matrix!(int, 3, 2)(array(iota(6)));
+    assert(cast(int[][]) (a1.transpose)
+           == [[0, 3],
+               [1, 4],
+               [2, 5]]);
 }
