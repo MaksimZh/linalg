@@ -12,11 +12,11 @@ import linalg.storage;
 
 debug import std.stdio;
 
-bool compare(Tsource, Tdest)(ref Tsource source, ref Tdest dest)
+bool compare(Tsource, Tdest)(in Tsource source, in Tdest dest)
     if(isStorage!Tsource && isStorage!Tdest)
 {
-    auto isource = source.byElement;
-    auto idest = dest.byElement;
+    auto isource = source.byElement!false;
+    auto idest = dest.byElement!false;
     foreach(ref d; idest)
     {
         if(d != isource.front)

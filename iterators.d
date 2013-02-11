@@ -32,20 +32,41 @@ struct ByElement(ElementType, bool mutable = true)
         bool _empty;
     }
 
-    this(in size_t[] dim, in size_t[] stride, ElementType[] data)
-        in
-        {
-            assert(stride.length == dim.length);
-        }
-    body
+    static if(mutable)
     {
-        _dim = dim;
-        _stride = stride;
-        _data = data;
-        _rank = cast(uint) dim.length;
-        _ptr = _data.ptr;
-        _index = new size_t[_rank];
-        _empty = false;
+        this(in size_t[] dim, in size_t[] stride, ElementType[] data)
+            in
+            {
+                assert(stride.length == dim.length);
+            }
+        body
+        {
+            _dim = dim;
+            _stride = stride;
+            _data = data;
+            _rank = cast(uint) dim.length;
+            _ptr = _data.ptr;
+            _index = new size_t[_rank];
+            _empty = false;
+        }
+    }
+    else
+    {
+        this(in size_t[] dim, in size_t[] stride, in ElementType[] data)
+            in
+            {
+                assert(stride.length == dim.length);
+            }
+        body
+        {
+            _dim = dim;
+            _stride = stride;
+            _data = data;
+            _rank = cast(uint) dim.length;
+            _ptr = _data.ptr;
+            _index = new size_t[_rank];
+            _empty = false;
+        }
     }
 
     @property bool empty() { return _empty; }
@@ -53,7 +74,7 @@ struct ByElement(ElementType, bool mutable = true)
         @property ref ElementType front() { return *_ptr; }
     else
         @property ElementType front() { return *_ptr; }
-    void popFront()
+    void popFront() pure
     {
         int i = _rank - 1;
         while((i >= 0) && (_index[i] == _dim[i] - 1))
