@@ -453,7 +453,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     }
 
     /* Diagonalize matrix as symmetric */
-    static if(is(ElementType == Complex!double)) //FIXME
+    static if(__traits(compiles,
+                       linalg.operations.matrixSymmDiag!StorageType))
     {
         void symmDiag(uint ilo, uint iup, ref double[] values)
         {
