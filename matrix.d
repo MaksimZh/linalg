@@ -17,6 +17,7 @@ version(unittest)
 {
     import std.array;
     import std.range;
+    import std.complex;
 }
 
 import linalg.storage;
@@ -452,7 +453,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     }
 
     /* Diagonalize matrix as symmetric */
-    static if(is(typeof(linalg.operations.matrixSymmDiag!(StorageType))))
+    static if(is(ElementType == Complex!double)) //FIXME
     {
         void symmDiag(uint ilo, uint iup, ref double[] values)
         {
@@ -527,7 +528,7 @@ unittest // Slicing
 
 unittest // Slicing, transposed
 {
-    auto a = Matrix!(int, 3, 4, StorageOrder.columnMajor)(array(iota(12)));
+    auto a = Matrix!(int, 3, 4, StorageOrder.colMajor)(array(iota(12)));
     assert(cast(int[][]) a[][]
            == [[0, 3, 6, 9],
                [1, 4, 7, 10],
@@ -576,7 +577,7 @@ unittest // Iterators
 
     // Transposed
     {
-        auto a = Matrix!(int, 3, 4, StorageOrder.columnMajor)(array(iota(12)));
+        auto a = Matrix!(int, 3, 4, StorageOrder.colMajor)(array(iota(12)));
         int[][] result = [];
         foreach(v; a.byRow)
             result ~= [cast(int[]) v];
@@ -612,7 +613,7 @@ unittest // Iterators
 
     // Transposed
     {
-        auto a = Matrix!(int, 3, 4, StorageOrder.columnMajor)(array(iota(12)));
+        auto a = Matrix!(int, 3, 4, StorageOrder.colMajor)(array(iota(12)));
         int[][] result = [];
         foreach(v; a[1..3][1..3].byRow)
             result ~= [cast(int[]) v];
@@ -714,4 +715,15 @@ unittest // Matrix transposition
            == [[0, 3],
                [1, 4],
                [2, 5]]);
+}
+
+unittest // Diagonalization
+{
+    auto a1 = Matrix!(Complex!double, 3, 3)(
+        [Complex!double(1, 0), Complex!double(0, 0), Complex!double(0, 0),
+         Complex!double(0, 0), Complex!double(2, 0), Complex!double(0, 0),
+         Complex!double(0, 0), Complex!double(0, 0), Complex!double(3, 0)]);
+    double[] val;
+    a1.symmDiag(0, 2, val);
+    assert(val == [1, 2, 3]); //FIXME: may fail for low precision
 }

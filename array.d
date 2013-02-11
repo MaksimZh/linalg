@@ -422,7 +422,7 @@ unittest // Slicing
 
 unittest // Slicing, transposed
 {
-    auto a = Array!(int, 2, 3, 4, StorageOrder.columnMajor)(array(iota(0, 24)));
+    auto a = Array!(int, 2, 3, 4, StorageOrder.colMajor)(array(iota(0, 24)));
     assert(cast(int[][][]) a[][][]
            == [[[0, 6, 12, 18],
                 [2, 8, 14, 20],
@@ -503,7 +503,7 @@ unittest // Iterators
     // Transposed
     {
         auto a = Array!(int, 2, 3, 4,
-                        StorageOrder.columnMajor)(array(iota(0, 24)));
+                        StorageOrder.colMajor)(array(iota(0, 24)));
         int[] test = [0, 6, 12, 18,
                       2, 8, 14, 20,
                       4, 10, 16, 22,

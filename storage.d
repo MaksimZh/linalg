@@ -31,7 +31,7 @@ enum size_t dynamicSize = 0;
 enum StorageOrder
 {
     rowMajor,   /// [0][0][0], ..., [0][0][N], [0][1][0], ...
-    columnMajor /// [0][0][0], ..., [N][0][0], [0][1][0], ...
+    colMajor /// [0][0][0], ..., [N][0][0], [0][1][0], ...
 }
 
 /* Structure to store slice boundaries compactly */
@@ -87,7 +87,7 @@ struct Storage(T, params...)
     {
         enum size_t[] _dim = dimPattern;
         enum size_t[] _stride =
-            calcDenseStrides(_dim, storageOrder == StorageOrder.columnMajor);
+            calcDenseStrides(_dim, storageOrder == StorageOrder.colMajor);
         ElementType[calcDenseContainerSize(_dim)] _data;
     }
     else
@@ -143,7 +143,7 @@ struct Storage(T, params...)
         private void _resize() pure
         {
             _stride = calcDenseStrides(
-                _dim, storageOrder == StorageOrder.columnMajor);
+                _dim, storageOrder == StorageOrder.colMajor);
             _data.length = calcDenseContainerSize(_dim);
         }
 
@@ -224,7 +224,7 @@ struct Storage(T, params...)
             _data = source;
             _dim = dim;
             _stride = calcDenseStrides(
-                _dim, storageOrder == StorageOrder.columnMajor);
+                _dim, storageOrder == StorageOrder.colMajor);
         }
 
         static if(!isResizeable)
@@ -380,10 +380,10 @@ unittest // Type properties, dimensions and data
     }
     {
         alias Storage!(double, 2, 3, 4,
-                       false, StorageOrder.columnMajor) S;
+                       false, StorageOrder.colMajor) S;
         static assert(is(S.ElementType == double));
         static assert(S.isStatic);
-        static assert(S.storageOrder == StorageOrder.columnMajor);
+        static assert(S.storageOrder == StorageOrder.colMajor);
         S s = S(array(iota(24.)));
         assert(s.length == 2);
         assert(s.dimensions == [2, 3, 4]);
@@ -411,7 +411,7 @@ unittest // Iterators
 
     // Transposed
     {
-        auto a = Storage!(int, 2, 3, 4, false, StorageOrder.columnMajor)(
+        auto a = Storage!(int, 2, 3, 4, false, StorageOrder.colMajor)(
             array(iota(24)));
         int[] result = [];
         foreach(v; a.byElement)

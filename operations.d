@@ -149,6 +149,7 @@ body
 version(backend_lapack)
 {
     import std.complex;
+    import std.conv;
     import linalg.matrix; //FIXME
 
     private immutable double abstol = 1e-12; //TODO: move elsewhere
@@ -177,16 +178,16 @@ version(backend_lapack)
 
     void matrixSymmDiag(Tsource)(in Tsource source, uint ilo, uint iup,
                                  ref double[] values)
-        if(isStroage!Tsource && is(Tsource.ElementType == Complex!double))
+        if(isStorage!Tsource && is(Tsource.ElementType == Complex!double))
     {
         /*FIXME: This is a temporary implementation */
         Matrix!(Complex!double, dynamicSize, dynamicSize, StorageOrder.colMajor)
             mx;
         copy(source, mx.storage);
-        int N = mx.ncols;
-        int LDA = mx.nrows;
-        int IL = ilo + 1;
-        int IU = iup + 1;
+        int N = to!int(mx.ncols);
+        int LDA = to!int(mx.nrows);
+        int IL = to!int(ilo + 1);
+        int IU = to!int(iup + 1);
         int M;
         auto tmpval = new double[mx.ncols];
         int LDZ = 1;
@@ -202,7 +203,7 @@ version(backend_lapack)
                 &IL, &IU,
                 &abstol,
                 &M,
-                values.ptr, null, &LDZ,
+                tmpval.ptr, null, &LDZ,
                 WORK.ptr, &LWORK, RWORK.ptr, IWORK.ptr,
                 IFAIL.ptr, &info);
         values = tmpval[0..(iup - ilo + 1)];
