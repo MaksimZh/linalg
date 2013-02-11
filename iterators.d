@@ -12,16 +12,22 @@ module linalg.iterators;
 debug import std.stdio;
 
 /* Generic iterator */
-struct ByElement(ElementType)
+struct ByElement(ElementType, bool mutable = true)
 {
     private
     {
         const size_t[] _dim;
         const size_t[] _stride;
-        ElementType[] _data;
+        static if(mutable)
+            ElementType[] _data;
+        else
+            const ElementType[] _data;
 
         uint _rank;
-        ElementType* _ptr;
+        static if(mutable)
+            ElementType* _ptr;
+        else
+            const(ElementType)* _ptr;
         size_t[] _index;
         bool _empty;
     }
@@ -43,7 +49,10 @@ struct ByElement(ElementType)
     }
 
     @property bool empty() { return _empty; }
-    @property ref ElementType front() { return *_ptr; }
+    static if(mutable)
+        @property ref ElementType front() { return *_ptr; }
+    else
+        @property ElementType front() { return *_ptr; }
     void popFront()
     {
         int i = _rank - 1;
