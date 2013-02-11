@@ -26,7 +26,7 @@ bool compare(Tsource, Tdest)(in Tsource source, in Tdest dest)
     return true;
 }
 
-void copy(Tsource, Tdest)(ref Tsource source, ref Tdest dest)
+void copy(Tsource, Tdest)(in Tsource source, ref Tdest dest)
     if(isStorage!Tsource && isStorage!Tdest)
         in
         {
@@ -36,8 +36,8 @@ body
 {
     static if(dest.isResizeable)
         dest.fit(source);
-    auto isource = source.byElement;
-    auto idest = dest.byElement;
+    auto isource = source.byElement!false;
+    auto idest = dest.byElement!true;
     foreach(ref d; idest)
     {
         d = isource.front;
@@ -45,7 +45,7 @@ body
     }
 }
 
-void applyUnary(string op, Tsource, Tdest)(ref Tsource source, ref Tdest dest)
+void applyUnary(string op, Tsource, Tdest)(in Tsource source, ref Tdest dest)
     if(isStorage!Tsource && isStorage!Tdest)
         in
         {
@@ -55,8 +55,8 @@ body
 {
     static if(dest.isResizeable)
         dest.fit(source);
-    auto isource = source.byElement;
-    auto idest = dest.byElement;
+    auto isource = source.byElement!false;
+    auto idest = dest.byElement!true;
     foreach(ref d; idest)
     {
         d = mixin(op ~ "isource.front");
@@ -64,8 +64,8 @@ body
     }
 }
 
-void applyBinary(string op, Tsource1, Tsource2, Tdest)(ref Tsource1 source1,
-                                                       ref Tsource2 source2,
+void applyBinary(string op, Tsource1, Tsource2, Tdest)(in Tsource1 source1,
+                                                       in Tsource2 source2,
                                                        ref Tdest dest)
     if(isStorage!Tsource1 && isStorage!Tsource2 && isStorage!Tdest)
         in
@@ -77,9 +77,9 @@ body
 {
     static if(dest.isResizeable)
         dest.fit(source1);
-    auto isource1 = source1.byElement;
-    auto isource2 = source2.byElement;
-    auto idest = dest.byElement;
+    auto isource1 = source1.byElement!false;
+    auto isource2 = source2.byElement!false;
+    auto idest = dest.byElement!true;
     foreach(ref d; idest)
     {
         d = mixin("isource1.front" ~ op ~ "isource2.front");
@@ -88,7 +88,7 @@ body
     }
 }
 
-void matrixTranspose(Tsource, Tdest)(ref Tsource source,
+void matrixTranspose(Tsource, Tdest)(in Tsource source,
                                      ref Tdest dest)
     if(isStorage!Tsource && isStorage!Tdest)
         in
@@ -99,7 +99,7 @@ body
 {
     static if(dest.isResizeable)
         dest.fit(source);
-    auto isource = source.byElement;
+    auto isource = source.byElement!false;
     auto idest = dest.byElementTransposed;
     foreach(ref d; idest)
     {
