@@ -731,6 +731,6 @@ unittest // Diagonalization
          Complex!double(0, 0), Complex!double(0, 0), Complex!double(3, 0)]);
     double[] val;
     assert(a1.symmEigenval == [1, 2, 3]); //FIXME: may fail for low precision
-    a1.symmDiag(0, 2, val);
-    assert(val == [1, 2, 3]); //FIXME: may fail for low precision
+    a1.symmDiag(1, 2, val);
+    assert(val == [2, 3]); //FIXME: may fail for low precision
 }
