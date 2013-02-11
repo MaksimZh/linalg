@@ -152,6 +152,39 @@ version(backend_lapack)
     import std.conv;
     import linalg.matrix; //FIXME
 
+    private extern(C) void zheev_(in char* JOBZ,
+                                  in char* UPLO,
+                                  in int* N,
+                                  Complex!double* A,
+                                  in int* LDA,
+                                  double* W,
+                                  Complex!double* WORK,
+                                  in int* LWORK,
+                                  double* RWORK,
+                                  int* INFO);
+
+    double[] matrixSymmEigenval(Tsource)(in Tsource source)
+        if(isStorage!Tsource && is(Tsource.ElementType == Complex!double))
+    {
+        /*FIXME: This is a temporary implementation */
+        Matrix!(Complex!double, dynamicSize, dynamicSize, StorageOrder.colMajor)
+            mx;
+        copy(source, mx.storage);
+        int N = to!int(mx.ncols);
+        int LDA = to!int(mx.nrows);
+        auto tmpval = new double[mx.ncols];
+        int LWORK = 2*N;
+        auto WORK = new Complex!double[LWORK];
+        auto RWORK = new double[3*N - 2];
+        int info;
+        zheev_("N", "U",
+               &N, mx.storage._data.ptr, &LDA,
+               tmpval.ptr,
+               WORK.ptr, &LWORK, RWORK.ptr,
+               &info);
+        return tmpval;
+    }
+
     private immutable double abstol = 1e-12; //TODO: move elsewhere
 
     private extern(C) void zheevx_(in char* JOBZ,
