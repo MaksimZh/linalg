@@ -145,3 +145,66 @@ body
             idest.popFront();
         }
 }
+
+version(backend_lapack)
+{
+    import std.complex;
+    import linalg.matrix; //FIXME
+
+    private immutable double abstol = 1e-12; //TODO: move elsewhere
+
+    private extern(C) void zheevx_(in char* JOBZ,
+                                   in char* RANGE,
+                                   in char* UPLO,
+                                   in int* N,
+                                   Complex!double* A,
+                                   in int* LDA,
+                                   in double* VL,
+                                   in double* VU,
+                                   in int* IL,
+                                   in int* IU,
+                                   in double* ABSTOL,
+                                   int* M,
+                                   double* W,
+                                   Complex!double* Z,
+                                   in int* LDZ,
+                                   Complex!double* WORK,
+                                   in int* LWORK,
+                                   double* RWORK,
+                                   int* IWORK,
+                                   int* IFAIL,
+                                   int* INFO);
+
+    void matrixSymmDiag(Tsource)(in Tsource source, uint ilo, uint iup,
+                                 ref double[] values)
+        if(isStroage!Tsource && is(Tsource.ElementType == Complex!double))
+    {
+        /*FIXME: This is a temporary implementation */
+        Matrix!(Complex!double, dynamicSize, dynamicSize, StorageOrder.colMajor)
+            mx;
+        copy(source, mx.storage);
+        int N = mx.ncols;
+        int LDA = mx.nrows;
+        int IL = ilo + 1;
+        int IU = iup + 1;
+        int M;
+        auto tmpval = new double[mx.ncols];
+        int LDZ = 1;
+        int LWORK = 2*N;
+        auto WORK = new Complex!double[LWORK];
+        auto RWORK = new double[7*N];
+        auto IWORK = new int[5*N];
+        auto IFAIL = new int[N];
+        int info;
+        zheevx_("N", "I", "U",
+                &N, mx.storage._data.ptr, &LDA,
+                null, null,
+                &IL, &IU,
+                &abstol,
+                &M,
+                values.ptr, null, &LDZ,
+                WORK.ptr, &LWORK, RWORK.ptr, IWORK.ptr,
+                IFAIL.ptr, &info);
+        values = tmpval[0..(iup - ilo + 1)];
+    }
+}

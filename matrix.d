@@ -450,6 +450,15 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             return result;
         }
     }
+
+    /* Diagonalize matrix as symmetric */
+    static if(is(typeof(linalg.operations.matrixSymmDiag!(StorageType))))
+    {
+        void symmDiag(uint ilo, uint iup, ref double[] values)
+        {
+            linalg.operations.matrixSymmDiag(storage, ilo, iup, values);
+        }
+    }
 }
 
 template isMatrixOrView(T)
