@@ -254,3 +254,68 @@ struct ByMatrixCol(ElementType, SliceType)
         _ptr += _stride[1];
     }
 }
+
+/* By-row iterator for 2D arrays */
+struct ByMatrixBlock(ElementType, SliceType)
+{
+    private
+    {
+        const size_t[2] _subdim;
+        const size_t[2] _dim;
+        const size_t[2] _stride;
+        ElementType[] _data;
+
+        ElementType* _ptr;
+        const size_t _len;
+        size_t _irow;
+        size_t _icol;
+        bool _empty;
+    }
+
+    this(in size_t[] subdim, in size_t[] dim, in size_t[] stride,
+         ElementType[] data)
+        in
+        {
+            assert(stride.length == dim.length);
+        }
+    body
+    {
+        _subdim = subdim;
+        _dim = dim;
+        _stride = stride;
+        _data = data;
+        _ptr = _data.ptr;
+        _len = (_subdim[0] - 1) * _stride[0]
+            + (_subdim[1] - 1) * _stride[1]
+            + 1;
+        _irow = 0;
+        _icol = 0;
+        _empty = false;
+    }
+
+    @property bool empty() { return _empty; }
+    @property auto front()
+    {
+        return SliceType(_ptr[0.._len], _subdim, _stride);
+    }
+    void popFront()
+    {
+        if(_icol == _dim[1] - _subdim[1])
+        {
+            _ptr -= _stride[1] * _icol;
+            _icol = 0;
+            if(_irow == _dim[0] - _subdim[0])
+                _empty = true;
+            else
+            {
+                _ptr += _stride[0] * _subdim[0];
+                _irow += _subdim[0];
+            }
+        }
+        else
+        {
+            _ptr += _stride[1] * _subdim[1];
+            _icol += _subdim[1];
+        }
+    }
+}

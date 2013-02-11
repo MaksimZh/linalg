@@ -74,6 +74,11 @@ struct MatrixView(T, bool multRow, bool multCol,
         storage = StorageType(source.storage, [boundsRow, boundsCol]);
     }
 
+    this()(T[] data, size_t[rank] dim, size_t[rank] stride)
+    {
+        storage = StorageType(data, dim, stride);
+    }
+
     /* Constructor converting 1D array to vector */
     static if(isVector)
         package this()(T[] data, size_t dim, size_t stride)
@@ -367,6 +372,17 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             return ByMatrixCol!(T, MatrixView!(T, true, false, storageOrder))(
                 storage._dim, storage._stride, storage._data);
         }
+
+        auto byBlock(uint nr, uint nc)
+            in
+            {
+                assert((nrows % nr == 0) && (ncols % nc == 0));
+            }
+        body
+        {
+            return ByMatrixBlock!(T, MatrixView!(T, true, true, storageOrder))(
+                [nr, nc], storage._dim, storage._stride, storage._data);
+        }
     }
 
     public // Conversion to other types
@@ -631,6 +647,26 @@ unittest // Iterators
         assert(result == [[4, 5],
                           [7, 8]]);
     }
+}
+
+unittest // Block iterator
+{
+    auto a = Matrix!(int, 6, 4)(array(iota(24)));
+    int[][][] result = [];
+    foreach(v; a.byBlock(3, 2))
+        result ~= [cast(int[][]) v];
+    assert(result == [[[0, 1],
+                       [4, 5],
+                       [8, 9]],
+                      [[2, 3],
+                       [6, 7],
+                       [10, 11]],
+                      [[12, 13],
+                       [16, 17],
+                       [20, 21]],
+                      [[14, 15],
+                       [18, 19],
+                       [22, 23]]]);
 }
 
 unittest // Assignment
