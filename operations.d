@@ -126,12 +126,12 @@ body
        of matrix multiplication ever */
     static if(dest.isResizeable)
         dest.setAllDimensions([source1.dimensions[0], source2.dimensions[1]]);
-    auto idest = dest.byElement;
+    auto idest = dest.byElement!true;
     foreach(row; source1.byRow)
         foreach(col; source2.byCol)
         {
-            auto irow = row.byElement;
-            auto icol = col.byElement;
+            auto irow = row.byElement!false;
+            auto icol = col.byElement!false;
             /* Can not just write front = 0 in generic code. */
             idest.front = irow.front * icol.front;
             irow.popFront();
