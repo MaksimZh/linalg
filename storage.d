@@ -294,15 +294,30 @@ struct Storage(T, params...)
 
     public // Iterators
     {
-        ByElement!(ElementType) byElement()
+        auto byElement(bool mutable = true)()
+            if(mutable)
         {
-            return ByElement!(ElementType)(_dim, _stride, _data);
+            return ByElement!(ElementType, true)(_dim, _stride, _data);
         }
 
-        ByElementTransposed!(ElementType) byElementTransposed()
+        auto byElement(bool mutable = true)() const
+            if(!mutable)
         {
-            return ByElementTransposed!(ElementType)(_dim, _stride, _data);
+            return ByElement!(ElementType, false)(_dim, _stride, _data);
         }
+
+        auto byElementTr(bool mutable = true)()
+            if(mutable)
+        {
+            return ByElementTr!(ElementType, true)(_dim, _stride, _data);
+        }
+
+        auto byElementTr(bool mutable = true)() const
+            if(!mutable)
+        {
+            return ByElementTr!(ElementType, false)(_dim, _stride, _data);
+        }
+
 
         static if(rank == 2)
         {
