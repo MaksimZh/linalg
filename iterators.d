@@ -94,38 +94,68 @@ struct ByElement(ElementType, bool mutable = true)
 }
 
 /* Generic iterator */
-struct ByElementTransposed(ElementType)
+struct ByElementTr(ElementType, bool mutable = true)
 {
     private
     {
         const size_t[] _dim;
         const size_t[] _stride;
-        ElementType[] _data;
+        static if(mutable)
+            ElementType[] _data;
+        else
+            const ElementType[] _data;
 
         uint _rank;
-        ElementType* _ptr;
+        static if(mutable)
+            ElementType* _ptr;
+        else
+            const(ElementType)* _ptr;
         size_t[] _index;
         bool _empty;
     }
 
-    this(in size_t[] dim, in size_t[] stride, ElementType[] data)
-        in
-        {
-            assert(stride.length == dim.length);
-        }
-    body
+    static if(mutable)
     {
-        _dim = dim;
-        _stride = stride;
-        _data = data;
-        _rank = cast(uint) dim.length;
-        _ptr = _data.ptr;
-        _index = new size_t[_rank];
-        _empty = false;
+        this(in size_t[] dim, in size_t[] stride, ElementType[] data)
+            in
+            {
+                assert(stride.length == dim.length);
+            }
+        body
+        {
+            _dim = dim;
+            _stride = stride;
+            _data = data;
+            _rank = cast(uint) dim.length;
+            _ptr = _data.ptr;
+            _index = new size_t[_rank];
+            _empty = false;
+        }
+    }
+    else
+    {
+        this(in size_t[] dim, in size_t[] stride, in ElementType[] data)
+            in
+            {
+                assert(stride.length == dim.length);
+            }
+        body
+        {
+            _dim = dim;
+            _stride = stride;
+            _data = data;
+            _rank = cast(uint) dim.length;
+            _ptr = _data.ptr;
+            _index = new size_t[_rank];
+            _empty = false;
+        }
     }
 
     @property bool empty() { return _empty; }
-    @property ref ElementType front() { return *_ptr; }
+    static if(mutable)
+        @property ref ElementType front() { return *_ptr; }
+    else
+        @property ElementType front() { return *_ptr; }
     void popFront()
     {
         int i = 0;

@@ -306,10 +306,18 @@ struct Storage(T, params...)
             return ByElement!(ElementType, false)(_dim, _stride, _data);
         }
 
-        ByElementTransposed!(ElementType) byElementTransposed()
+        auto byElementTr(bool mutable = true)()
+            if(mutable)
         {
-            return ByElementTransposed!(ElementType)(_dim, _stride, _data);
+            return ByElementTr!(ElementType, true)(_dim, _stride, _data);
         }
+
+        auto byElementTr(bool mutable = true)() const
+            if(!mutable)
+        {
+            return ByElementTr!(ElementType, false)(_dim, _stride, _data);
+        }
+
 
         static if(rank == 2)
         {

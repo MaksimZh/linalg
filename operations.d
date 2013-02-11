@@ -100,7 +100,7 @@ body
     static if(dest.isResizeable)
         dest.fit(source);
     auto isource = source.byElement!false;
-    auto idest = dest.byElementTransposed;
+    auto idest = dest.byElementTr!true;
     foreach(ref d; idest)
     {
         d = isource.front;
