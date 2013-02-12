@@ -469,17 +469,16 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     }
 
     /* Diagonalize matrix as symmetric */
-    static if(__traits(compiles,
-                       linalg.operations.matrixSymmEigenval!StorageType(storage)))
+    static if(is(typeof(linalg.operations.matrixSymmEigenval(storage))))
     {
         auto symmEigenval()
         {
             return linalg.operations.matrixSymmEigenval(storage);
         }
 
-        void symmDiag(uint ilo, uint iup, ref double[] values)
+        auto symmEigenval(uint ilo, uint iup)
         {
-            linalg.operations.matrixSymmDiag(storage, ilo, iup, values);
+            return linalg.operations.matrixSymmEigenval(storage, ilo, iup);
         }
     }
 }
@@ -767,6 +766,5 @@ unittest // Diagonalization
          Complex!double(0, 0), Complex!double(0, 0), Complex!double(3, 0)]);
     double[] val;
     assert(a1.symmEigenval == [1, 2, 3]); //FIXME: may fail for low precision
-    a1.symmDiag(0, 2, val);
-    assert(val == [1, 2, 3]); //FIXME: may fail for low precision
+    assert(a1.symmEigenval(1, 2) == [2, 3]); //FIXME: may fail for low precision
 }

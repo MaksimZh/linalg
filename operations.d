@@ -209,8 +209,7 @@ version(backend_lapack)
                                    int* IFAIL,
                                    int* INFO);
 
-    void matrixSymmDiag(Tsource)(in Tsource source, uint ilo, uint iup,
-                                 ref double[] values)
+    double[] matrixSymmEigenval(Tsource)(in Tsource source, uint ilo, uint iup)
         if(isStorage!Tsource && is(Tsource.ElementType == Complex!double))
     {
         /*FIXME: This is a temporary implementation */
@@ -239,6 +238,6 @@ version(backend_lapack)
                 tmpval.ptr, null, &LDZ,
                 WORK.ptr, &LWORK, RWORK.ptr, IWORK.ptr,
                 IFAIL.ptr, &info);
-        values = tmpval[0..(iup - ilo + 1)];
+        return tmpval[0..(iup - ilo + 1)];
     }
 }
