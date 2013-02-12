@@ -220,6 +220,9 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             return storage.length; }
         @property size_t[rank] dimensions() pure const {
             return storage.dimensions; }
+        static if(isResizeable)
+            void setDimensions(in size_t[] dim...) pure {
+                storage.setDimensions(dim); }
         auto byElement() { return storage.byElement(); }
     }
 
