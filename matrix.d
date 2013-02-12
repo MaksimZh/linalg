@@ -376,7 +376,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 storage._dim, storage._stride, storage._data);
         }
 
-        auto byBlock(uint nr, uint nc)
+        auto byBlock(size_t nr, size_t nc)
             in
             {
                 assert((nrows % nr == 0) && (ncols % nc == 0));
