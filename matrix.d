@@ -168,7 +168,7 @@ struct MatrixView(T, bool multRow, bool multCol,
         }
 
         auto opBinary(string op, Trhs)(Trhs rhs)
-            if(isStorage!(typeof(rhs.storage)) &&
+            if(is(typeof(rhs.storage)) && isStorage!(typeof(rhs.storage)) &&
                (op == "+" || op == "-"))
         {
             MatrixType result;
@@ -186,6 +186,28 @@ struct MatrixView(T, bool multRow, bool multCol,
             linalg.operations.matrixMult(storage,
                                          rhs.storage,
                                          result.storage);
+            return result;
+        }
+
+        auto opBinary(string op, Trhs)(Trhs rhs)
+            if(!isMatrixOrView!(Trhs) && is(ProductType!(ElementType, Trhs))
+               && (op == "*"))
+        {
+            Matrix!(ProductType!(ElementType, Trhs),
+                    nrowsP, ncolsP, storageOrder) result;
+            linalg.operations.matrixMultScalar(storage, rhs,
+                                               result.storage);
+            return result;
+        }
+
+        auto opBinaryRight(string op, Tlhs)(Tlhs lhs)
+            if(!isMatrixOrView!(Tlhs) && is(ProductType!(Tlhs, ElementType))
+               && (op == "*"))
+        {
+            Matrix!(ProductType!(Tlhs, ElementType),
+                    nrowsP, ncolsP, storageOrder) result;
+            linalg.operations.matrixMultScalarR(lhs, storage,
+                                                result.storage);
             return result;
         }
 
@@ -442,7 +464,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         }
 
         auto opBinary(string op, Trhs)(Trhs rhs)
-            if(isStorage!(typeof(rhs.storage))
+            if(is(typeof(rhs.storage)) && isStorage!(typeof(rhs.storage))
                && (op == "+" || op == "-"))
         {
             Matrix result;
@@ -460,6 +482,28 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             linalg.operations.matrixMult(storage,
                                          rhs.storage,
                                          result.storage);
+            return result;
+        }
+
+        auto opBinary(string op, Trhs)(Trhs rhs)
+            if(!isMatrixOrView!(Trhs) && is(ProductType!(ElementType, Trhs))
+               && (op == "*"))
+        {
+            Matrix!(ProductType!(ElementType, Trhs),
+                    nrowsP, ncolsP, storageOrder) result;
+            linalg.operations.matrixMultScalar(storage, rhs,
+                                               result.storage);
+            return result;
+        }
+
+        auto opBinaryRight(string op, Tlhs)(Tlhs lhs)
+            if(!isMatrixOrView!(Tlhs) && is(ProductType!(Tlhs, ElementType))
+               && (op == "*"))
+        {
+            Matrix!(ProductType!(Tlhs, ElementType),
+                    nrowsP, ncolsP, storageOrder) result;
+            linalg.operations.matrixMultScalarR(lhs, storage,
+                                                result.storage);
             return result;
         }
 
@@ -737,6 +781,20 @@ unittest // Binary operations
     assert(cast(int[][]) (a1[0..2][1..3] + a2[1..3][1..3])
            == [[1 + 17, 2 + 18],
                [5 + 21, 6 + 22]]);
+    assert(cast(double[][]) (a1*2.)
+           == [[0, 2, 4, 6],
+               [8, 10, 12, 14],
+               [16, 18, 20, 22]]);
+    assert(cast(double[][]) (2.*a1)
+           == [[0, 2, 4, 6],
+               [8, 10, 12, 14],
+               [16, 18, 20, 22]]);
+    assert(cast(double[][]) (a1[0..2][1..3] * 2.)
+           == [[2, 4],
+               [10, 12]]);
+    assert(cast(double[][]) (2. * a1[0..2][1..3])
+           == [[2, 4],
+               [10, 12]]);
 }
 
 unittest // Matrix multiplication

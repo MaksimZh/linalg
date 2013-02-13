@@ -146,6 +146,48 @@ body
         }
 }
 
+void matrixMultScalar(Tsource, Tscalar, Tdest)(in Tsource source,
+                                               Tscalar scalar,
+                                               ref Tdest dest)
+    if(isStorage!Tsource && isStorage!Tdest)
+        in
+        {
+            assert(dest.isCompatibleDimensions(source.dimensions));
+        }
+body
+{
+    static if(dest.isResizeable)
+        dest.fit(source);
+    auto isource = source.byElement!false;
+    auto idest = dest.byElement!true;
+    foreach(ref d; idest)
+    {
+        d = isource.front * scalar;
+        isource.popFront();
+    }
+}
+
+void matrixMultScalarR(Tsource, Tscalar, Tdest)(Tscalar scalar,
+                                                in Tsource source,
+                                                ref Tdest dest)
+    if(isStorage!Tsource && isStorage!Tdest)
+        in
+        {
+            assert(dest.isCompatibleDimensions(source.dimensions));
+        }
+body
+{
+    static if(dest.isResizeable)
+        dest.fit(source);
+    auto isource = source.byElement!false;
+    auto idest = dest.byElement!true;
+    foreach(ref d; idest)
+    {
+        d = scalar * isource.front;
+        isource.popFront();
+    }
+}
+
 version(backend_lapack)
 {
     import std.complex;
