@@ -538,7 +538,7 @@ template isMatrixOrView(T)
 
 template ProductType(Tlhs, Trhs)
 {
-    alias typeof(*(new Tlhs) * *(new Trhs)) ProductType;
+    alias ReturnType!((Tlhs lhs, Trhs rhs) => lhs * rhs) ProductType;
 }
 
 template MatrixProductType(Tlhs, Trhs)
