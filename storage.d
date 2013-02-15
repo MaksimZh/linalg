@@ -213,11 +213,8 @@ struct Storage(T, params...)
         this()(T[] source, in size_t[] dim)
             in
             {
-                assert(dim.length == rank);
+                assert(isCompatibleDimensions(dim));
                 assert(source.length == reduce!("a * b")(dim));
-                foreach(i, d; dimPattern)
-                    if(d != dynamicSize)
-                        assert(d == dim[i]);
             }
         body
         {
@@ -235,6 +232,20 @@ struct Storage(T, params...)
                 _dim = dim;
                 _stride = stride;
             }
+        }
+    }
+
+    /* Constructor taking dimensions as parameter */
+    static if(isResizeable)
+    {
+       this()(in size_t[] dim)
+            in
+            {
+                assert(isCompatibleDimensions(dim));
+            }
+        body
+        {
+            setAllDimensions(dim);
         }
     }
 

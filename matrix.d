@@ -271,6 +271,15 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         }
     }
 
+    /* Constructor taking dimensions as parameter */
+    static if(!isStatic)
+    {
+        this(size_t nrows, size_t ncols)
+        {
+            storage = StorageType([nrows, ncols]);
+        }
+    }
+
     @property size_t nrows() { return storage._dim[0]; }
     @property size_t ncols() { return storage._dim[1]; }
 
