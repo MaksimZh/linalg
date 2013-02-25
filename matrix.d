@@ -518,8 +518,15 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 
         auto transpose()
         {
-            Matrix result;
+            Matrix!(ElementType, ncolsP, nrowsP, storageOrder) result;
             linalg.operations.matrixTranspose(storage, result.storage);
+            return result;
+        }
+
+        auto conj()
+        {
+            Matrix!(ElementType, ncolsP, nrowsP, storageOrder) result;
+            linalg.operations.matrixHermConj(storage, result.storage);
             return result;
         }
     }
@@ -821,11 +828,23 @@ unittest // Matrix multiplication
 
 unittest // Matrix transposition
 {
-    auto a1 = Matrix!(int, 3, 2)(array(iota(6)));
+    auto a1 = Matrix!(int, 2, 3)(array(iota(6)));
     assert(cast(int[][]) (a1.transpose)
            == [[0, 3],
                [1, 4],
                [2, 5]]);
+}
+
+unittest // Hermitian conjugation
+{
+    alias Complex!double C;
+    auto a = Matrix!(Complex!double, 2, 3)(
+        [C(1, 1), C(1, 2), C(1, 3),
+         C(2, 1), C(2, 2), C(2, 3)]);
+    assert(cast(C[][]) (a.conj)
+           == [[C(1, -1), C(2, -1)],
+               [C(1, -2), C(2, -2)],
+               [C(1, -3), C(2, -3)]]);
 }
 
 unittest // Diagonalization

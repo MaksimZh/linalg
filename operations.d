@@ -93,12 +93,13 @@ void matrixTranspose(Tsource, Tdest)(in Tsource source,
     if(isStorage!Tsource && isStorage!Tdest)
         in
         {
-            assert(dest.isCompatibleDimensions(source.dimensions));
+            assert(dest.isCompatibleDimensions(
+                       [source._dim[1], source._dim[0]]));
         }
 body
 {
     static if(dest.isResizeable)
-        dest.fit(source);
+        dest.setAllDimensions([source._dim[1], source._dim[0]]);
     auto isource = source.byElement!false;
     auto idest = dest.byElementTr!true;
     foreach(ref d; idest)
@@ -106,9 +107,32 @@ body
         d = isource.front;
         isource.popFront();
     }
-
 }
 
+void matrixHermConj(Tsource, Tdest)(in Tsource source,
+                                    ref Tdest dest)
+    if(isStorage!Tsource && isStorage!Tdest)
+        in
+        {
+            assert(dest.isCompatibleDimensions(
+                       [source._dim[1], source._dim[0]]));
+        }
+body
+{
+    static if(is(typeof(source._data[0].conj)))
+    {
+        static if(dest.isResizeable)
+            dest.setAllDimensions([source._dim[1], source._dim[0]]);
+        auto isource = source.byElement!false;
+        auto idest = dest.byElementTr!true;
+        foreach(ref d; idest)
+        {
+            d = isource.front.conj;
+            isource.popFront();
+        }
+    }
+    else matrixTranspose(source, dest);
+}
 
 void matrixMult(Tsource1, Tsource2, Tdest)(ref Tsource1 source1,
                                            ref Tsource2 source2,
