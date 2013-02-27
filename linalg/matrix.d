@@ -3,6 +3,7 @@
 module linalg.matrix;
 
 public import linalg.types;
+
 import linalg.storage.densemd;
 
 struct Matrix(T, size_t nrows_, size_t ncols_,
