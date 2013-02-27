@@ -2,3 +2,7 @@
 
 module linalg.container.dynamic;
 
+template DynamicArray(T)
+{
+    alias T[] DynamicArray;
+}
