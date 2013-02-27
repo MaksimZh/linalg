@@ -1,6 +1,6 @@
 // Written in the D programming language.
 
-module linalg.storage.genericmd;
+module linalg.storage.densemd;
 
 import std.algorithm;
 
@@ -9,7 +9,7 @@ import linalg.storage.container;
 import linalg.storage.stride;
 
 /* Generic multidimensional storage */
-struct StorageGenericMD(T, StorageOrder storageOrder_, params...)
+struct StorageDenseMD(T, StorageOrder storageOrder_, params...)
 {
     public // Check and process parameters
     {
