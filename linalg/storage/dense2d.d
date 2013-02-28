@@ -14,6 +14,7 @@ version(unittest)
 
 import linalg.types;
 import linalg.storage.container;
+import linalg.storage.slice;
 import linalg.storage.mdarray;
 
 private // Auxiliary functions
@@ -89,12 +90,105 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         }
         else
         {
-            size_t[2] dim = dimPattern;
+            size_t[2] dim;
             size_t[2] stride;
         }
     }
 
-    ElementType[][] opCast()
+    static if(isStatic)
+    {
+        //TODO
+    }
+    else
+    {
+        this(inout ContainerType container_,
+             in size_t[2] dim_, in size_t[2] stride_) pure inout
+        {
+            container = container_;
+            dim = dim_;
+            stride = stride_;
+        }
+    }
+
+    public // Slices and indices support
+    {
+        package size_t mapIndex(size_t irow, size_t icol) pure const
+        {
+            return irow * stride[0] + icol * stride[1];
+        }
+
+        ref const(ElementType) readElement(size_t irow, size_t icol) pure const
+        {
+            return container[mapIndex(irow, icol)];
+        }
+
+        ref ElementType takeElement(size_t irow, size_t icol) pure
+        {
+            return container[mapIndex(irow, icol)];
+        }
+
+        inout(StorageDense2D!(ElementType, storageOrder,
+                              dynamicSize, dynamicSize))
+            sliceCopy(SliceBounds row, SliceBounds col) pure inout
+        {
+            return typeof(return)(
+                container[mapIndex(row.lo, col.lo)
+                          ..(mapIndex(row.up - 1, col.up - 1) + 1)],
+                [row.up - row.lo, col.up - col.lo],
+                stride);
+        }
+
+        inout(StorageDense2DView!(ElementType, storageOrder))
+            sliceView(SliceBounds row, SliceBounds col) pure inout
+        {
+            return typeof(return)(
+                container[mapIndex(row.lo, col.lo)
+                          ..(mapIndex(row.up - 1, col.up - 1) + 1)],
+                [row.up - row.lo, col.up - col.lo],
+                stride);
+        }
+    }
+
+    ElementType[][] opCast() pure const
+    {
+        return toArray(container, dim, stride);
+    }
+}
+
+/* Dense multidimensional storage */
+struct StorageDense2DView(T, StorageOrder storageOrder_)
+{
+    public // Check and process parameters
+    {
+        enum size_t[] dimPattern = [dynamicSize, dynamicSize];
+
+        alias T ElementType; // Type of the array elements
+        public enum uint rank = 2; // Number of dimensions
+        enum StorageOrder storageOrder = storageOrder_;
+
+        /* Whether this is a static array with fixed dimensions and strides */
+        enum bool isStatic = false;
+
+        alias DynamicArray!ElementType ContainerType;
+    }
+
+    package // Container, dimensions, strides
+    {
+        ContainerType container;
+
+        size_t[2] dim;
+        size_t[2] stride;
+    }
+
+    this(inout ContainerType container_,
+         in size_t[2] dim_, in size_t[2] stride_) pure inout
+    {
+        container = container_;
+        dim = dim_;
+        stride = stride_;
+    }
+
+    ElementType[][] opCast() pure const
     {
         return toArray(container, dim, stride);
     }
