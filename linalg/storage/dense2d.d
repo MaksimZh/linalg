@@ -110,6 +110,17 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         }
     }
 
+    private // Copy-on-write support
+    {
+        void _share() pure inout
+        {
+        }
+
+        void _unshare() pure inout
+        {
+        }
+    }
+
     public // Slices and indices support
     {
         package size_t mapIndex(size_t irow, size_t icol) pure const
@@ -124,6 +135,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
 
         ref ElementType takeElement(size_t irow, size_t icol) pure
         {
+            _unshare();
             return container[mapIndex(irow, icol)];
         }
 
@@ -131,6 +143,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
                               dynamicSize, dynamicSize))
             sliceCopy(SliceBounds row, SliceBounds col) pure inout
         {
+            _share();
             return typeof(return)(
                 container[mapIndex(row.lo, col.lo)
                           ..(mapIndex(row.up - 1, col.up - 1) + 1)],
@@ -138,8 +151,19 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
                 stride);
         }
 
-        inout(StorageDense2DView!(ElementType, storageOrder))
-            sliceView(SliceBounds row, SliceBounds col) pure inout
+        StorageDense2DView!(ElementType, storageOrder)
+            sliceView(SliceBounds row, SliceBounds col) pure
+        {
+            _unshare();
+            return typeof(return)(
+                container[mapIndex(row.lo, col.lo)
+                          ..(mapIndex(row.up - 1, col.up - 1) + 1)],
+                [row.up - row.lo, col.up - col.lo],
+                stride);
+        }
+
+        const(StorageDense2DView!(ElementType, storageOrder))
+            sliceConstView(SliceBounds row, SliceBounds col) pure const
         {
             return typeof(return)(
                 container[mapIndex(row.lo, col.lo)
