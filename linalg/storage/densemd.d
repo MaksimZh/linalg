@@ -89,7 +89,7 @@ unittest // toArray
                 [20, 21, 22, 23]]]);
 }
 
-/* Generic multidimensional storage */
+/* Dense multidimensional storage */
 struct StorageDenseMD(T, StorageOrder storageOrder_, params...)
 {
     public // Check and process parameters
@@ -126,6 +126,39 @@ struct StorageDenseMD(T, StorageOrder storageOrder_, params...)
             size_t[rank] dim = dimPattern;
             size_t[rank] stride;
         }
+    }
+
+    MultArrayType!(ElementType, rank) opCast()
+    {
+        return toArray!(ElementType, rank)(container, dim, stride);
+    }
+}
+
+/* Dense multidimensional view storage */
+struct StorageDenseMDView(T, StorageOrder storageOrder_, size_t rank_)
+{
+    public // Check and process parameters
+    {
+        static assert(rank_ >= 1);
+        public enum uint rank = rank_; // Number of dimensions
+
+        enum size_t[rank] dimPattern = dynamicSize;
+
+        alias T ElementType; // Type of the array elements
+        enum StorageOrder storageOrder = storageOrder_;
+
+        /* View dimensions assumed never known at compile time */
+        enum bool isStatic = false;
+
+        alias DynamicArray!ElementType ContainerType;
+    }
+
+    package // Container, dimensions, strides
+    {
+        ContainerType container;
+
+        size_t[rank] dim = dimPattern;
+        size_t[rank] stride;
     }
 
     MultArrayType!(ElementType, rank) opCast()
