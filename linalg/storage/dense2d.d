@@ -119,6 +119,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
             static if(isMutable!(typeof(this)))
             {
                 debug(cow) writeln("StorageDense2D._share()");
+                container.addRef();
             }
             /* Nothing to do with constant storage */
         }
@@ -128,6 +129,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
             static if(isMutable!(typeof(this)))
             {
                 debug(cow) writeln("StorageDense2D._unshare()");
+                container.remRef();
             }
             /* Nothing to do with constant storage */
         }
@@ -181,7 +183,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
 
     ElementType[][] opCast() pure const
     {
-        return toArray(container, dim, stride);
+        return toArray(container.array, dim, stride);
     }
 }
 
