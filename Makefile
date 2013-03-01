@@ -4,7 +4,7 @@ LIBS=../../Applications/lapack-3.4.1/liblapack.a ../../Applications/lapack-3.4.1
 SOURCE=$(shell find ./linalg/ -name "*.d")
 
 test: test.d $(SOURCE)
-	$(DMD) $^ $(LIBS) -debug -unittest -version=backend_lapack
+	$(DMD) $^ $(LIBS) -debug -debug=cow -unittest -version=backend_lapack
 
 backup:
 	git bundle create ~/Dropbox/linalg.bundle --all

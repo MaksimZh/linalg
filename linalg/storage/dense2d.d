@@ -3,6 +3,7 @@
 module linalg.storage.dense2d;
 
 import std.algorithm;
+import std.traits;
 
 debug import std.stdio;
 
@@ -114,10 +115,20 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
     {
         void _share() pure inout
         {
+            static if(isMutable!(typeof(this)))
+            {
+                debug(cow) writeln("StorageDense2D._share()");
+            }
+            /* Nothing to do with constant storage */
         }
 
         void _unshare() pure inout
         {
+            static if(isMutable!(typeof(this)))
+            {
+                debug(cow) writeln("StorageDense2D._unshare()");
+            }
+            /* Nothing to do with constant storage */
         }
     }
 
