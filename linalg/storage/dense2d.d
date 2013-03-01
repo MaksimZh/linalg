@@ -97,46 +97,131 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         }
     }
 
+    /* Constructors */
     static if(isStatic)
     {
         //TODO
     }
     else
     {
+        this(in size_t[2] dim_)
+        {
+            container = ContainerType(calcContainerSize(dim));
+            dim = dim_;
+            stride = calcStrides!storageOrder(dim);
+            debug writeln("StorageDense2D<", &this, ">.this()",
+                          " container<", &container, ">.ptr = ",
+                          container.ptr);
+        }
+
         this(inout ContainerType container_,
              in size_t[2] dim_, in size_t[2] stride_) pure inout
         {
             container = container_;
             dim = dim_;
             stride = stride_;
+            debug writeln("StorageDense2D<", &this, ">.this()",
+                          " container<", &container, ">.ptr = ",
+                          container.ptr);
+        }
+
+        this(inout ElementType[] array, in size_t[2] dim_) pure inout
+        {
+            container = ContainerType(array);
+            dim = dim_;
+            stride = calcStrides!storageOrder(dim);
+            debug writeln("StorageDense2D<", &this, ">.this()",
+                          " container<", &container, ">.ptr = ",
+                          container.ptr);
+        }
+
+        this(inout ElementType[] array,
+             in size_t[2] dim_, in size_t[2] stride_) pure inout
+        {
+            container = ContainerType(array);
+            dim = dim_;
+            stride = stride_;
+            debug writeln("StorageDense2D<", &this, ">.this()",
+                          " container<", &container, ">.ptr = ",
+                          container.ptr);
+        }
+    }
+
+    public // Dimensions and memory
+    {
+        /* Test dimensions for compatibility */
+        bool isCompatDim(in size_t[] dim_) pure
+        {
+            static if(isStatic)
+            {
+                return dim == dim_;
+            }
+            else
+            {
+                if(dim.length != rank)
+                    return false;
+                foreach(i, d; dim_)
+                    if((d != dimPattern[i]) && (dimPattern[i] != dynamicSize))
+                        return false;
+                return true;
+            }
+        }
+
+        static if(!isStatic)
+        {
+            /* Recalculate strides and reallocate container
+               for current dimensions
+             */
+            private void _reallocate() pure
+            {
+                debug writeln("StorageDense2D<", &this, ">._reallocate()");
+                stride = calcStrides!storageOrder(dim);
+                container = ContainerType(calcContainerSize(dim));
+            }
+
+            void setDimensions(in size_t[2] dim_) pure
+                in
+                {
+                    assert(isCompatDim(dim));
+                }
+            body
+            {
+                dim = dim_;
+                _reallocate();
+            }
         }
     }
 
     package // Copy-on-write support
     {
-        private void _share() pure inout
+        private void _share() pure
         {
-            static if(isMutable!(typeof(this)))
+            debug(cow) writeln("StorageDense2D<", &this, ">._share()");
+            static if(!isStatic)
             {
-                debug(cow) writeln("StorageDense2D._share()");
                 container.addRef();
             }
-            /* Nothing to do with constant storage */
         }
 
-        private void _unshare() pure inout
+        private void _unshare() pure
         {
-            static if(isMutable!(typeof(this)))
+            debug(cow) writeln("StorageDense2D<", &this, ">._unshare()");
+            static if(!isStatic)
             {
-                debug(cow) writeln("StorageDense2D._unshare()");
+                if(!container.isShared)
+                    return;
                 container.remRef();
+                auto oldContainer = container;
+                auto oldStride = stride;
+                _reallocate();
+                copy2D(oldContainer.array, oldStride,
+                       container.array, stride, dim);
             }
-            /* Nothing to do with constant storage */
         }
 
-        void onChange() pure inout
+        void onChange() pure
         {
-            debug(cow) writeln("StorageDense2D.onChange()");
+            debug(cow) writeln("StorageDense2D<", &this, ">.onChange()");
             _unshare();
         }
     }
@@ -159,10 +244,23 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
             return container[mapIndex(irow, icol)];
         }
 
-        inout(StorageDense2D!(ElementType, storageOrder,
+        const(StorageDense2D!(ElementType, storageOrder,
                               dynamicSize, dynamicSize))
-            sliceCopy(SliceBounds row, SliceBounds col) pure inout
+            sliceCopy(SliceBounds row, SliceBounds col) pure const
         {
+            debug writeln("StorageDense2D<", &this, ">.sliceCopy() const");
+            return typeof(return)(
+                container[mapIndex(row.lo, col.lo)
+                          ..(mapIndex(row.up - 1, col.up - 1) + 1)],
+                [row.up - row.lo, col.up - col.lo],
+                stride);
+        }
+
+        StorageDense2D!(ElementType, storageOrder,
+                        dynamicSize, dynamicSize)
+            sliceCopy(SliceBounds row, SliceBounds col) pure
+        {
+            debug writeln("StorageDense2D<", &this, ">.sliceCopy()");
             _share();
             return typeof(return)(
                 container[mapIndex(row.lo, col.lo)
@@ -174,10 +272,11 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         inout(ViewDense2D!(typeof(this)))
             sliceView(SliceBounds row, SliceBounds col) pure inout
         {
+            debug writeln("StorageDense2D<", &this, ">.sliceView()");
             return typeof(return)(this,
                                   mapIndex(row.lo, col.lo),
                                   [row.up - row.lo, col.up - col.lo],
-                                  stride);
+                                  [row.st, col.st]);
         }
     }
 
@@ -214,7 +313,7 @@ struct ViewDense2D(StorageType)
     }
 
     // Copy-on-write support
-    package void onChange() pure inout
+    package void onChange() pure
     {
         debug(cow) writeln("ViewDense2D.onChange()");
         pStorage.onChange();
@@ -265,4 +364,118 @@ template is2DView(T)
 template is2DStorageOrView(T)
 {
     enum bool is2DStorageOrView = is2DStorage!T || is2DView!T;
+}
+
+struct ByElement(ElementType, bool mutable = true)
+{
+    //TODO: optimize for 2d
+    private
+    {
+        const size_t[] _dim;
+        const size_t[] _stride;
+        static if(mutable)
+            ElementType[] _data;
+        else
+            const ElementType[] _data;
+
+        uint _rank;
+        static if(mutable)
+            ElementType* _ptr;
+        else
+            const(ElementType)* _ptr;
+        size_t[] _index;
+        bool _empty;
+    }
+
+    static if(mutable)
+    {
+        this(ElementType[] data, in size_t[] dim, in size_t[] stride) pure
+            in
+            {
+                assert(stride.length == dim.length);
+            }
+        body
+        {
+            _dim = dim;
+            _stride = stride;
+            _data = data;
+            _rank = cast(uint) dim.length;
+            _ptr = _data.ptr;
+            _index = new size_t[_rank];
+            _empty = false;
+        }
+    }
+    else
+    {
+        this(in ElementType[] data, in size_t[] dim, in size_t[] stride) pure
+            in
+            {
+                assert(stride.length == dim.length);
+            }
+        body
+        {
+            _dim = dim;
+            _stride = stride;
+            _data = data;
+            _rank = cast(uint) dim.length;
+            _ptr = _data.ptr;
+            _index = new size_t[_rank];
+            _empty = false;
+        }
+    }
+
+    @property bool empty() pure const { return _empty; }
+    static if(mutable)
+        @property ref ElementType front() pure { return *_ptr; }
+    else
+        @property ElementType front() pure { return *_ptr; }
+    void popFront() pure
+    {
+        int i = _rank - 1;
+        while((i >= 0) && (_index[i] == _dim[i] - 1))
+        {
+            _ptr -= _stride[i] * _index[i];
+            _index[i] = 0;
+            --i;
+        }
+        if(i >= 0)
+        {
+            _ptr += _stride[i];
+            ++_index[i];
+        }
+        else
+            _empty = true;
+    }
+}
+
+void copy2D(T)(in T[] source, in size_t[2] sStride,
+               T[] dest, in size_t[2] dStride,
+               in size_t[2] dim) pure
+{
+    auto isource = ByElement!(T, false)(source, dim, sStride);
+    auto idest = ByElement!(T, true)(dest, dim, dStride);
+    foreach(ref d; idest)
+    {
+        d = isource.front;
+        isource.popFront();
+    }
+}
+
+unittest
+{
+    debug writeln("storage-unittest-begin");
+    auto a = StorageDense2D!(int, StorageOrder.rowMajor,
+                             dynamicSize, dynamicSize)(
+                                 array(iota(24)), [4, 6]);
+    a.onChange();
+    assert(!a.container.isShared);
+    auto b = a.sliceCopy(SliceBounds(1, 3), SliceBounds(2, 5));
+    assert(a.container.isShared);
+    assert(b.container.isShared);
+    assert(b.container.ptr == a.container.ptr + a.mapIndex(1, 2));
+    b.onChange();
+    assert(!a.container.isShared);
+    assert(!b.container.isShared);
+    assert(!b.container.intersect(a.container));
+    debug writeln("storage-unittest-end");
 }

@@ -13,33 +13,32 @@ struct DynamicArray(T)
 
     public // Constructors
     {
-        this(size_t length)
+        this(size_t length) pure
         {
             _pCounter = new uint;
             *_pCounter = 1;
-            debug(refcount)
-                writeln("DynamicArray<", &this, ">.this()",
-                        " counter<", _pCounter, "> = 1");
             _array.length = length;
+            debug(container)
+                writeln("DynamicArray<", &this, ">.this()",
+                        " counter<", _pCounter, "> = ", *_pCounter,
+                        " ptr = ", _array.ptr);
         }
 
-        this(T[] array) pure
+        inout this(inout T[] array) pure
         {
-            _pCounter = new uint;
-            *_pCounter = 1;
-            debug(refcount)
-                writeln("DynamicArray<", &this, ">.this()",
-                        " counter<", _pCounter, "> = 1");
-            _array = array;
+            auto pCounter = new uint; //HACK
+            *pCounter = 1;
+            this(pCounter, array);
         }
 
         private inout this(inout uint* pCounter, inout T[] array) pure
         {
             _pCounter = pCounter;
-            debug(refcount)
-                writeln("DynamicArray<", &this, ">.this()",
-                        " counter<", _pCounter, "> = ", *_pCounter);
             _array = array;
+            debug(container)
+                writeln("DynamicArray<", &this, ">.this()",
+                        " counter<", _pCounter, "> = ", *_pCounter,
+                        " ptr = ", _array.ptr);
         }
     }
 
@@ -58,7 +57,7 @@ struct DynamicArray(T)
         body
         {
             ++*_pCounter;
-            debug(refcount)
+            debug(container)
                 writeln("DynamicArray<", &this, ">.addRef()",
                         " counter<", _pCounter, "> = ", *_pCounter);
         }
@@ -71,13 +70,13 @@ struct DynamicArray(T)
         body
         {
             --*_pCounter;
-            debug(refcount)
+            debug(container)
                 writeln("DynamicArray<", &this, ">.remRef()",
                         " counter<", _pCounter, "> = ", *_pCounter);
         }
     }
 
-    public // Slice and index interface
+    public // Array interface
     {
         ref inout(T) opIndex(size_t i) pure inout
             in
@@ -96,11 +95,22 @@ struct DynamicArray(T)
             }
         body
         {
+            debug(container) writeln("DynamicArray<", &this, ">.opSlice()");
             return DynamicArray(_pCounter, _array[lo..up]);
+        }
+
+        @property inout(T*) ptr() pure inout
+        {
+            return _array.ptr;
+        }
+
+        @property size_t length() pure const
+        {
+            return _array.length;
         }
     }
 
-    inout(T[]) array() pure inout
+    @property inout(T[]) array() pure inout
         in
         {
             assert(isInitialized, "Container is not initialized");
@@ -109,10 +119,21 @@ struct DynamicArray(T)
     {
         return _array;
     }
+
+    debug bool contains(in T* p) pure const
+    {
+        return (p >= ptr) && (p - ptr < length);
+    }
+
+    debug bool intersect(in DynamicArray a) pure const
+    {
+        return contains(a.ptr) || contains(a.ptr + a.length) || a.contains(ptr);
+    }
 }
 
 unittest
 {
+    debug(container) writeln("refcount-unittest-begin");
     DynamicArray!int a;
     a = DynamicArray!int([0, 1, 2, 3, 4]);
     assert(*a._pCounter == 1);
@@ -127,6 +148,7 @@ unittest
     assert(a[2] == 2);
     auto b = a[1..4];
     assert(b._pCounter is a._pCounter);
+    debug(container) writeln("refcount-unittest-end");
 }
 
 template StaticArray(T, size_t size)
