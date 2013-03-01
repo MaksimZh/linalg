@@ -162,25 +162,23 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
                 stride);
         }
 
-        StorageDense2DView!(ElementType, storageOrder)
+        ViewDense2D!(typeof(this))
             sliceView(SliceBounds row, SliceBounds col) pure
         {
             _unshare();
-            return typeof(return)(
-                container[mapIndex(row.lo, col.lo)
-                          ..(mapIndex(row.up - 1, col.up - 1) + 1)],
-                [row.up - row.lo, col.up - col.lo],
-                stride);
+            return typeof(return)(this,
+                                  mapIndex(row.lo, col.lo),
+                                  [row.up - row.lo, col.up - col.lo],
+                                  stride);
         }
 
-        const(StorageDense2DView!(ElementType, storageOrder))
+        const(ViewDense2D!(typeof(this)))
             sliceConstView(SliceBounds row, SliceBounds col) pure const
         {
-            return typeof(return)(
-                container[mapIndex(row.lo, col.lo)
-                          ..(mapIndex(row.up - 1, col.up - 1) + 1)],
-                [row.up - row.lo, col.up - col.lo],
-                stride);
+            return typeof(return)(this,
+                                  mapIndex(row.lo, col.lo),
+                                  [row.up - row.lo, col.up - col.lo],
+                                  stride);
         }
     }
 
@@ -191,40 +189,48 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
 }
 
 /* Dense multidimensional storage */
-struct StorageDense2DView(T, StorageOrder storageOrder_)
+struct ViewDense2D(StorageType)
 {
     public // Check and process parameters
     {
         enum size_t[] dimPattern = [dynamicSize, dynamicSize];
 
-        alias T ElementType; // Type of the array elements
+        alias StorageType.ElementType ElementType; // Type of the array elements
         public enum uint rank = 2; // Number of dimensions
-        enum StorageOrder storageOrder = storageOrder_;
+        alias StorageType.storageOrder storageOrder;
 
         /* Whether this is a static array with fixed dimensions and strides */
         enum bool isStatic = false;
 
-        alias DynamicArray!ElementType ContainerType;
+        alias StorageType.ContainerType ContainerType;
     }
 
     package // Container, dimensions, strides
     {
-        ContainerType container;
+        StorageType* pStorage;
 
-        size_t[2] dim;
-        size_t[2] stride;
+        const size_t offset;
+        const size_t[2] dim;
+        const size_t[2] stride;
     }
 
-    this(inout ContainerType container_,
-         in size_t[2] dim_, in size_t[2] stride_) pure inout
+    public // Slices and indices support
     {
-        container = container_;
+        package size_t mapIndex(size_t irow, size_t icol) pure const
+        {
+            return
+                offset
+                + irow * stride[0] * pStorage.stride[0]
+                + icol * stride[1] * pStorage.stride[1];
+        }
+    }
+
+    this(inout ref StorageType storage,
+         size_t offset, in size_t[2] dim_, in size_t[2] stride_) pure inout
+    {
+        pStorage = &storage;
+        offset = offset;
         dim = dim_;
         stride = stride_;
-    }
-
-    ElementType[][] opCast() pure const
-    {
-        return toArray(container, dim, stride);
     }
 }
