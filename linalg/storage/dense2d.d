@@ -17,6 +17,7 @@ import linalg.types;
 import linalg.storage.container;
 import linalg.storage.slice;
 import linalg.storage.mdarray;
+import linalg.storage.operations;
 
 private // Auxiliary functions
 {
@@ -111,9 +112,9 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         }
     }
 
-    private // Copy-on-write support
+    package // Copy-on-write support
     {
-        void _share() pure inout
+        private void _share() pure inout
         {
             static if(isMutable!(typeof(this)))
             {
@@ -122,13 +123,19 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
             /* Nothing to do with constant storage */
         }
 
-        void _unshare() pure inout
+        private void _unshare() pure inout
         {
             static if(isMutable!(typeof(this)))
             {
                 debug(cow) writeln("StorageDense2D._unshare()");
             }
             /* Nothing to do with constant storage */
+        }
+
+        void onChange() pure inout
+        {
+            debug(cow) writeln("StorageDense2D.onChange()");
+            _unshare();
         }
     }
 
@@ -146,7 +153,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
 
         ref ElementType takeElement(size_t irow, size_t icol) pure
         {
-            _unshare();
+            onChange();
             return container[mapIndex(irow, icol)];
         }
 
@@ -162,18 +169,8 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
                 stride);
         }
 
-        ViewDense2D!(typeof(this))
-            sliceView(SliceBounds row, SliceBounds col) pure
-        {
-            _unshare();
-            return typeof(return)(this,
-                                  mapIndex(row.lo, col.lo),
-                                  [row.up - row.lo, col.up - col.lo],
-                                  stride);
-        }
-
-        const(ViewDense2D!(typeof(this)))
-            sliceConstView(SliceBounds row, SliceBounds col) pure const
+        inout(ViewDense2D!(typeof(this)))
+            sliceView(SliceBounds row, SliceBounds col) pure inout
         {
             return typeof(return)(this,
                                   mapIndex(row.lo, col.lo),
@@ -214,6 +211,13 @@ struct ViewDense2D(StorageType)
         const size_t[2] stride;
     }
 
+    // Copy-on-write support
+    package void onChange() pure inout
+    {
+        debug(cow) writeln("ViewDense2D.onChange()");
+        pStorage.onChange();
+    }
+
     public // Slices and indices support
     {
         package size_t mapIndex(size_t irow, size_t icol) pure const
@@ -222,6 +226,17 @@ struct ViewDense2D(StorageType)
                 offset
                 + irow * stride[0] * pStorage.stride[0]
                 + icol * stride[1] * pStorage.stride[1];
+        }
+
+        ref const(ElementType) readElement(size_t irow, size_t icol) pure const
+        {
+            return pStorage.container[mapIndex(irow, icol)];
+        }
+
+        ref ElementType takeElement(size_t irow, size_t icol) pure
+        {
+            onChange();
+            return pStorage.container[mapIndex(irow, icol)];
         }
     }
 
@@ -233,4 +248,19 @@ struct ViewDense2D(StorageType)
         dim = dim_;
         stride = stride_;
     }
+}
+
+template is2DStorage(T)
+{
+    enum bool is2DStorage = isInstanceOf!(StorageDense2D, T);
+}
+
+template is2DView(T)
+{
+    enum bool is2DView = isInstanceOf!(ViewDense2D, T);
+}
+
+template is2DStorageOrView(T)
+{
+    enum bool is2DStorageOrView = is2DStorage!T || is2DView!T;
 }
