@@ -350,6 +350,30 @@ struct ViewDense2D(StorageType)
             onChange();
             return pStorage.container[mapIndex(irow, icol)];
         }
+
+        inout(StorageDense2D!(ElementType, storageOrder,
+                              dynamicSize, dynamicSize))
+            sliceCopy(SliceBounds row, SliceBounds col) pure inout
+        {
+            debug writeln("ViewDense2D<", &this, ">.sliceCopy() const");
+            return typeof(return)(
+                pStorage.container[mapIndex(row.lo, col.lo)
+                                   ..(mapIndex(row.up - 1, col.up - 1) + 1)],
+                [row.up - row.lo, col.up - col.lo],
+                [stride[0] * pStorage.stride[0],
+                 stride[1] * pStorage.stride[1]]);
+        }
+
+        inout(ViewDense2D!(typeof(*pStorage)))
+            sliceView(SliceBounds row, SliceBounds col) pure inout
+        {
+            debug writeln("ViewDense2D<", &this, ">.sliceView()");
+            return typeof(return)(*pStorage,
+                                  mapIndex(row.lo, col.lo),
+                                  [row.up - row.lo, col.up - col.lo],
+                                  [stride[0] * pStorage.stride[0],
+                                   stride[1] * pStorage.stride[1]]);
+        }
     }
 
     this(inout ref StorageType storage,
