@@ -165,7 +165,7 @@ struct StaticArray(T, size_t size)
         inout(DynamicArray!T) opSlice(size_t lo, size_t up) pure inout
         {
             debug(container) writeln("StaticArray<", &this, ">.opSlice()");
-            return DynamicArray!T(_array[lo..up]);
+            return DynamicArray!T(cast(inout T[]) _array[lo..up].dup);
         }
 
         @property inout(T*) ptr() pure inout
