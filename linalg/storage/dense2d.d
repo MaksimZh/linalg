@@ -326,7 +326,7 @@ struct ViewDense2D(StorageType)
     // Copy-on-write support
     package void onChange() pure
     {
-        debug(cow) writeln("ViewDense2D.onChange()");
+        debug(cow) writeln("ViewDense2D<", &this, ">.onChange()");
         pStorage.onChange();
     }
 
@@ -355,7 +355,7 @@ struct ViewDense2D(StorageType)
                               dynamicSize, dynamicSize))
             sliceCopy(SliceBounds row, SliceBounds col) pure inout
         {
-            debug writeln("ViewDense2D<", &this, ">.sliceCopy() const");
+            debug writeln("ViewDense2D<", &this, ">.sliceCopy()");
             return typeof(return)(
                 pStorage.container[mapIndex(row.lo, col.lo)
                                    ..(mapIndex(row.up - 1, col.up - 1) + 1)],
@@ -383,6 +383,9 @@ struct ViewDense2D(StorageType)
         offset = offset;
         dim = dim_;
         stride = stride_;
+        debug writeln("ViewDense2D<", &this, ">.this()",
+                      " storage<", pStorage, ">.container.ptr = ",
+                      pStorage.container.ptr);
     }
 }
 
@@ -512,6 +515,13 @@ unittest
     assert(!a.container.isShared);
     assert(!b.container.isShared);
     assert(!b.container.intersect(a.container));
+    b = a.sliceCopy(SliceBounds(1, 3), SliceBounds(2, 5));
+    auto c = a.sliceView(SliceBounds(1, 3), SliceBounds(2, 5));
+    assert(a.container.isShared);
+    assert(b.container.isShared);
+    c.onChange();
+    assert(!a.container.isShared);
+    assert(!b.container.isShared);
     debug writeln("storage-unittest-end");
 }
 
