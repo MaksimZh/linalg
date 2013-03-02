@@ -103,18 +103,6 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 bounds = bounds_;
             }
 
-            auto opSlice()
-            {
-                return Slice!(isIndex, false)(
-                    pSource, bounds, SliceBounds(0, pSource.ncols));
-            }
-
-            auto opSlice(size_t lo, size_t up)
-            {
-                return Slice!(isIndex, false)(
-                    pSource, bounds, SliceBounds(lo, up));
-            }
-
             static if(isIndex)
             {
                 ref const(ElementType) opIndex(size_t i) pure const
@@ -136,34 +124,56 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 ref ElementType opIndexOpAssign(string op)(ElementType rhs,
                                                            size_t i) pure
                 {
-                    return mixin("(*pSource)[bounds.lo, i] " ~ op ~ "= rhs");
+                    return mixin(
+                        "(*pSource)[bounds.lo, i] " ~ op ~ "= rhs");
                 }
             }
             else
             {
-                auto opIndex(size_t i)
+                ref inout auto opIndex(size_t i) pure inout
                 {
-                    return Slice!(isIndex, true)(
-                        pSource, bounds, SliceBounds(i));
+                    return MatrixView!(StorageType, false, true)(
+                        pSource.storage.sliceView(bounds, SliceBounds(i)));
                 }
             }
-        }
 
-        struct Slice(bool isIndexRow, bool isIndexCol)
-        {
-            const SliceBounds boundsRow;
-            const SliceBounds boundsCol;
-
-            Matrix* pSource; // Pointer to the matrix being sliced
-
-            private this(Matrix* pSource_,
-                         in SliceBounds boundsRow_, in SliceBounds boundsCol_)
+            ref inout auto opSlice() pure inout
             {
-                pSource = pSource_;
-                boundsRow = boundsRow_;
-                boundsCol = boundsCol_;
+                return MatrixView!(StorageType, isIndex, false)(
+                    pSource.storage.sliceView(
+                        bounds, SliceBounds(0, pSource.ncols)));
+            }
+
+            ref inout auto opSlice(size_t lo, size_t up) pure inout
+            {
+                return MatrixView!(StorageType, isIndex, false)(
+                    pSource.storage.sliceView(bounds, SliceBounds(lo, up)));
             }
         }
+    }
+}
+
+struct MatrixView(SourceStorageType, bool oneRow, bool oneCol)
+{
+    alias ViewDense2D!(SourceStorageType) StorageType;
+    public // Forward type parameters
+    {
+        alias StorageType.ElementType ElementType;
+        alias StorageType.isStatic isStatic;
+    }
+
+    /* Storage of matrix data */
+    private StorageType storage;
+    public // Forward storage parameters
+    {
+        @property size_t nrows() pure const { return storage.nrows; }
+        @property size_t ncols() pure const { return storage.ncols; }
+    }
+
+    /* Constructor */
+    inout this(inout StorageType storage_) pure
+    {
+        storage = storage_;
     }
 }
 

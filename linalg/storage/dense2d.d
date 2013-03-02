@@ -344,6 +344,9 @@ struct ViewDense2D(StorageType)
         const size_t[2] stride;
     }
 
+    @property size_t nrows() pure const { return dim[0]; }
+    @property size_t ncols() pure const { return dim[1]; }
+
     // Copy-on-write support
     package void onChange() pure
     {
@@ -397,8 +400,8 @@ struct ViewDense2D(StorageType)
         }
     }
 
-    this(inout ref StorageType storage,
-         size_t offset, in size_t[2] dim_, in size_t[2] stride_) pure inout
+    inout this(ref inout StorageType storage,
+               size_t offset, in size_t[2] dim_, in size_t[2] stride_) pure
     {
         pStorage = &storage;
         offset = offset;

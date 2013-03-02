@@ -5,18 +5,18 @@ module linalg.storage.slice;
 /* Structure to store slice boundaries compactly */
 struct SliceBounds
 {
-    size_t lo;
-    size_t up;
-    size_t st;
+    const size_t lo;
+    const size_t up;
+    const size_t st;
 
-    this(size_t lo_, size_t up_)
+    this(size_t lo_, size_t up_) pure
     {
         lo = lo_;
         up = up_;
         st = 1;
     }
 
-    this(size_t i)
+    this(size_t i) pure
     {
         lo = i;
         up = i + 1;
