@@ -156,6 +156,11 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
                           " container<", &container, ">.ptr = ",
                           container.ptr);
         }
+
+        pure ~this()
+        {
+            _release();
+        }
     }
 
     public // Dimensions and memory
@@ -230,6 +235,19 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
                 _reallocate();
                 copy2D(oldContainer.array, oldStride,
                        container.array, stride, dim);
+            }
+        }
+
+        private void _release() pure
+        {
+            debug(cow) writeln("StorageDense2D<", &this, ">._release()");
+            static if(!isStatic)
+            {
+                if(!container.isInitialized)
+                    return;
+                if(!container.isShared)
+                    return;
+                container.remRef();
             }
         }
 
@@ -525,6 +543,23 @@ unittest
     c.onChange();
     assert(!a.container.isShared);
     assert(!b.container.isShared);
+    debug writeln("storage-unittest-end");
+}
+
+unittest
+{
+    debug writeln("storage-unittest-begin");
+    auto a = StorageDense2D!(int, StorageOrder.rowMajor,
+                             dynamicSize, dynamicSize)(
+                                 array(iota(24)), [4, 6]);
+    assert(!a.container.isShared);
+    if(true)
+    {
+        auto b = a.sliceCopy(SliceBounds(1, 3), SliceBounds(2, 5));
+        assert(a.container.isShared);
+        assert(b.container.isShared);
+    }
+    assert(!a.container.isShared);
     debug writeln("storage-unittest-end");
 }
 
