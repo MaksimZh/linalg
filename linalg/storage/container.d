@@ -151,7 +151,36 @@ unittest
     debug(container) writeln("refcount-unittest-end");
 }
 
-template StaticArray(T, size_t size)
+struct StaticArray(T, size_t size)
 {
-    alias T[size] StaticArray;
+    private T[size] _array;
+
+    public // Array interface
+    {
+        ref inout(T) opIndex(size_t i) pure inout
+        {
+            return _array[i];
+        }
+
+        inout(DynamicArray!T) opSlice(size_t lo, size_t up) pure inout
+        {
+            debug(container) writeln("StaticArray<", &this, ">.opSlice()");
+            return DynamicArray!T(_array[lo..up]);
+        }
+
+        @property inout(T*) ptr() pure inout
+        {
+            return _array.ptr;
+        }
+
+        @property size_t length() pure const
+        {
+            return _array.length;
+        }
+    }
+
+    @property inout(T[size]) array() pure inout
+    {
+        return _array;
+    }
 }

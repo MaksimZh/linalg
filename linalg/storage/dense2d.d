@@ -114,8 +114,8 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
                           container.ptr);
         }
 
-        this(inout ContainerType container_,
-             in size_t[2] dim_, in size_t[2] stride_) pure inout
+        inout this(inout ContainerType container_,
+                   in size_t[2] dim_, in size_t[2] stride_) pure
         {
             container = container_;
             dim = dim_;
@@ -125,7 +125,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
                           container.ptr);
         }
 
-        this(inout ElementType[] array, in size_t[2] dim_) pure inout
+        inout this(inout ElementType[] array, in size_t[2] dim_) pure
         {
             container = ContainerType(array);
             dim = dim_;
@@ -135,8 +135,8 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
                           container.ptr);
         }
 
-        this(inout ElementType[] array,
-             in size_t[2] dim_, in size_t[2] stride_) pure inout
+        inout this(inout ElementType[] array,
+                   in size_t[2] dim_, in size_t[2] stride_) pure
         {
             container = ContainerType(array);
             dim = dim_;
