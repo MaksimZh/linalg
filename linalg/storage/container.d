@@ -155,6 +155,14 @@ struct StaticArray(T, size_t size)
 {
     private T[size] _array;
 
+    public // Constructors
+    {
+        inout this(inout T[] array) pure
+        {
+            _array = array;
+        }
+    }
+
     public // Array interface
     {
         ref inout(T) opIndex(size_t i) pure inout

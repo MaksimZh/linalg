@@ -100,7 +100,18 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
     /* Constructors */
     static if(isStatic)
     {
-        //TODO
+        inout this(inout ElementType[] array) pure
+            in
+            {
+                assert(array.length == container.length);
+            }
+        body
+        {
+            container = ContainerType(array);
+            debug writeln("StorageDense2D<", &this, ">.this()",
+                          " container<", &container, ">.ptr = ",
+                          container.ptr);
+        }
     }
     else
     {
@@ -477,5 +488,17 @@ unittest
     assert(!a.container.isShared);
     assert(!b.container.isShared);
     assert(!b.container.intersect(a.container));
+    debug writeln("storage-unittest-end");
+}
+
+unittest
+{
+    debug writeln("storage-unittest-begin");
+    auto a = StorageDense2D!(int, StorageOrder.rowMajor, 4, 6)(array(iota(24)));
+    a.onChange();
+    auto b = a.sliceCopy(SliceBounds(1, 3), SliceBounds(2, 5));
+    assert(!b.container.isShared);
+    b.onChange();
+    assert(!b.container.isShared);
     debug writeln("storage-unittest-end");
 }
