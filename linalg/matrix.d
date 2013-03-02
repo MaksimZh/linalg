@@ -13,6 +13,7 @@ version(unittest)
 public import linalg.types;
 
 import linalg.storage.dense2d;
+import linalg.storage.slice;
 
 struct Matrix(T, size_t nrows_, size_t ncols_,
               StorageOrder storageOrder_ = StorageOrder.rowMajor)
@@ -26,8 +27,13 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 
     /* Storage of matrix data */
     private StorageType storage;
+    public // Forward storage parameters
+    {
+        @property size_t nrows() pure const { return storage.nrows; }
+        @property size_t ncols() pure const { return storage.ncols; }
+    }
 
-       /* Constructors */
+    /* Constructors */
     static if(isStatic)
     {
         inout this(inout ElementType[] array) pure
@@ -67,9 +73,101 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             return mixin("storage.takeElement(irow, icol) " ~ op ~ "= rhs");
         }
     }
+
+    public // Slice interface
+    {
+        auto opSlice()
+        {
+            return SliceProxy!false(&this, SliceBounds(0, nrows));
+        }
+
+        auto opSlice(size_t lo, size_t up)
+        {
+            return SliceProxy!false(&this, SliceBounds(lo, up));
+        }
+
+        auto opIndex(size_t i)
+        {
+            return SliceProxy!true(&this, SliceBounds(i));
+        }
+
+        struct SliceProxy(bool isIndex)
+        {
+            const SliceBounds bounds;
+
+            Matrix* pSource; // Pointer to the matrix being sliced
+
+            private this(Matrix* pSource_, in SliceBounds bounds_)
+            {
+                pSource = pSource_;
+                bounds = bounds_;
+            }
+
+            auto opSlice()
+            {
+                return Slice!(isIndex, false)(
+                    pSource, bounds, SliceBounds(0, pSource.ncols));
+            }
+
+            auto opSlice(size_t lo, size_t up)
+            {
+                return Slice!(isIndex, false)(
+                    pSource, bounds, SliceBounds(lo, up));
+            }
+
+            static if(isIndex)
+            {
+                ref const(ElementType) opIndex(size_t i) pure const
+                {
+                    return (*pSource)[bounds.lo, i];
+                }
+
+                ref ElementType opIndexAssign(ElementType rhs,
+                                              size_t i) pure
+                {
+                    return (*pSource)[bounds.lo, i] = rhs;
+                }
+
+                ref ElementType opIndexUnary(string op)(size_t i) pure
+                {
+                    return mixin(op ~ "((*pSource)[bounds.lo, i])");
+                }
+
+                ref ElementType opIndexOpAssign(string op)(ElementType rhs,
+                                                           size_t i) pure
+                {
+                    return mixin("(*pSource)[bounds.lo, i] " ~ op ~ "= rhs");
+                }
+            }
+            else
+            {
+                auto opIndex(size_t i)
+                {
+                    return Slice!(isIndex, true)(
+                        pSource, bounds, SliceBounds(i));
+                }
+            }
+        }
+
+        struct Slice(bool isIndexRow, bool isIndexCol)
+        {
+            const SliceBounds boundsRow;
+            const SliceBounds boundsCol;
+
+            Matrix* pSource; // Pointer to the matrix being sliced
+
+            private this(Matrix* pSource_,
+                         in SliceBounds boundsRow_, in SliceBounds boundsCol_)
+            {
+                pSource = pSource_;
+                boundsRow = boundsRow_;
+                boundsCol = boundsCol_;
+            }
+        }
+    }
 }
 
-unittest
+unittest // Regular indices
 {
     debug writeln("matrix-unittest-begin");
     auto a = Matrix!(int, 4, 6)(array(iota(24)));
@@ -77,5 +175,16 @@ unittest
     assert((a[1, 2] = 80) == 80);
     assert((++a[1, 2]) == 81);
     assert((a[1, 2] += 3) == 84);
+    debug writeln("matrix-unittest-end");
+}
+
+unittest // Regular indices through slices
+{
+    debug writeln("matrix-unittest-begin");
+    auto a = Matrix!(int, 4, 6)(array(iota(24)));
+    assert(a[1][2] == 8);
+    assert((a[1][2] = 80) == 80);
+    assert((++a[1][2]) == 81);
+    assert((a[1][2] += 3) == 84);
     debug writeln("matrix-unittest-end");
 }

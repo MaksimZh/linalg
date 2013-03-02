@@ -160,6 +160,9 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
 
     public // Dimensions and memory
     {
+        @property size_t nrows() pure const { return dim[0]; }
+        @property size_t ncols() pure const { return dim[1]; }
+
         /* Test dimensions for compatibility */
         bool isCompatDim(in size_t[] dim_) pure
         {
