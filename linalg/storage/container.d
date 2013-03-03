@@ -88,6 +88,17 @@ struct DynamicArray(T)
             return _array[i];
         }
 
+        inout(DynamicArray) opSlice() pure inout
+            in
+            {
+                assert(isInitialized, "Container is not initialized");
+            }
+        body
+        {
+            debug(container) writeln("DynamicArray<", &this, ">.opSlice()");
+            return DynamicArray(_pCounter, _array[]);
+        }
+
         inout(DynamicArray) opSlice(size_t lo, size_t up) pure inout
             in
             {
@@ -105,6 +116,11 @@ struct DynamicArray(T)
         }
 
         @property size_t length() pure const
+        {
+            return _array.length;
+        }
+
+        size_t opDollar() pure const
         {
             return _array.length;
         }
@@ -155,6 +171,8 @@ struct StaticArray(T, size_t size)
 {
     private T[size] _array;
 
+    enum bool isShared = false;
+
     public // Constructors
     {
         inout this(inout T[] array) pure
@@ -170,6 +188,12 @@ struct StaticArray(T, size_t size)
             return _array[i];
         }
 
+        inout(DynamicArray!T) opSlice() pure inout
+        {
+            debug(container) writeln("StaticArray<", &this, ">.opSlice()");
+            return DynamicArray!T(cast(inout T[]) _array[].dup);
+        }
+
         inout(DynamicArray!T) opSlice(size_t lo, size_t up) pure inout
         {
             debug(container) writeln("StaticArray<", &this, ">.opSlice()");
@@ -182,6 +206,11 @@ struct StaticArray(T, size_t size)
         }
 
         @property size_t length() pure const
+        {
+            return _array.length;
+        }
+
+        size_t opDollar() pure const
         {
             return _array.length;
         }

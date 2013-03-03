@@ -211,7 +211,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         }
     }
 
-    package // Copy-on-write support
+    public // Copy-on-write support
     {
         private void _share() pure
         {
@@ -251,10 +251,28 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
             }
         }
 
+        /* Call this method before changing data */
         void onChange() pure
         {
             debug(cow) writeln("StorageDense2D<", &this, ">.onChange()");
             _unshare();
+        }
+
+        /* Call this method before sharing data */
+        void onShare() pure
+        {
+            debug(cow) writeln("StorageDense2D<", &this, ">.onShare()");
+            _share();
+        }
+
+        /* Call this method before data reallocation */
+        void onReset() pure
+        {
+            if(container.isShared)
+            {
+                _release();
+                container = ContainerType.init;
+            }
         }
     }
 
@@ -276,37 +294,12 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
             return container[mapIndex(irow, icol)];
         }
 
-        const(StorageDense2D!(ElementType, storageOrder,
-                              dynamicSize, dynamicSize))
-            sliceCopy(SliceBounds row, SliceBounds col) pure const
-        {
-            debug writeln("StorageDense2D<", &this, ">.sliceCopy() const");
-            return typeof(return)(
-                container[mapIndex(row.lo, col.lo)
-                          ..(mapIndex(row.up - 1, col.up - 1) + 1)],
-                [row.up - row.lo, col.up - col.lo],
-                stride);
-        }
-
-        StorageDense2D!(ElementType, storageOrder,
-                        dynamicSize, dynamicSize)
-            sliceCopy(SliceBounds row, SliceBounds col) pure
-        {
-            debug writeln("StorageDense2D<", &this, ">.sliceCopy()");
-            _share();
-            return typeof(return)(
-                container[mapIndex(row.lo, col.lo)
-                          ..(mapIndex(row.up - 1, col.up - 1) + 1)],
-                [row.up - row.lo, col.up - col.lo],
-                stride);
-        }
-
         inout(ViewDense2D!(typeof(this)))
             sliceView(SliceBounds row, SliceBounds col) pure inout
         {
             debug writeln("StorageDense2D<", &this, ">.sliceView()");
             return typeof(return)(this,
-                                  mapIndex(row.lo, col.lo),
+                                  [row.lo, col.lo],
                                   [row.up - row.lo, col.up - col.lo],
                                   [row.st, col.st]);
         }
@@ -332,31 +325,43 @@ struct ViewDense2D(StorageType)
         /* Whether this is a static array with fixed dimensions and strides */
         enum bool isStatic = false;
 
-        alias StorageType.ContainerType ContainerType;
+        alias DynamicArray!ElementType ContainerType;
     }
 
     package // Container, dimensions, strides
     {
         StorageType* pStorage;
-        const size_t offset;
+        const size_t[2] offset;
         const size_t[2] viewStride;
 
-        @property ref inout(ContainerType) container() inout
-        { return pStorage.container; }
+        @property inout(ContainerType) container() pure inout
+        {
+            size_t start = offset[0] * stride[0] + offset[1] * stride[1];
+            size_t finish =
+                start
+                + (dim[0] - 1) * stride[0]
+                + (dim[1] - 1) * stride[1]
+                + 1;
+            return pStorage.container[start..finish];
+        }
         const size_t[2] dim;
-        const size_t[2] stride;
+        @property const size_t[2] stride() pure const
+        {
+            return [pStorage.stride[0] * viewStride[0],
+                    pStorage.stride[1] * viewStride[1]];
+        }
     }
 
     /* Constructor */
     inout this(ref inout StorageType storage,
-               size_t offset, in size_t[2] dim_, in size_t[2] stride_) pure
+               in size_t[2] offset_,
+               in size_t[2] dim_,
+               in size_t[2] stride_) pure
     {
         pStorage = &storage;
-        offset = offset;
+        offset = offset_;
         dim = dim_;
         viewStride = stride_;
-        stride[0] = pStorage.stride[0] * viewStride[0];
-        stride[1] = pStorage.stride[1] * viewStride[1];
         debug writeln("ViewDense2D<", &this, ">.this()",
                       " storage<", pStorage, ">.container.ptr = ",
                       pStorage.container.ptr);
@@ -365,18 +370,28 @@ struct ViewDense2D(StorageType)
     @property size_t nrows() pure const { return dim[0]; }
     @property size_t ncols() pure const { return dim[1]; }
 
-    // Copy-on-write support
-    package void onChange() pure
+    public // Copy-on-write support
     {
-        debug(cow) writeln("ViewDense2D<", &this, ">.onChange()");
-        pStorage.onChange();
+        /* Call this method before changing data */
+        package void onChange() pure
+        {
+            debug(cow) writeln("ViewDense2D<", &this, ">.onChange()");
+            pStorage.onChange();
+        }
+
+        /* Call this method before sharing data */
+        package void onShare() pure
+        {
+            debug(cow) writeln("ViewDense2D<", &this, ">.onShare()");
+            pStorage.onShare();
+        }
     }
 
     public // Slices and indices support
     {
         package size_t mapIndex(size_t irow, size_t icol) pure const
         {
-            return offset + irow * stride[0] + icol * stride[1];
+            return irow * viewStride[0] + icol * viewStride[1];
         }
 
         ref const(ElementType) readElement(size_t irow, size_t icol) pure const
@@ -390,16 +405,19 @@ struct ViewDense2D(StorageType)
             return pStorage.container[mapIndex(irow, icol)];
         }
 
-        inout(StorageDense2D!(ElementType, storageOrder,
-                              dynamicSize, dynamicSize))
-            sliceCopy(SliceBounds row, SliceBounds col) pure inout
+        const(StorageDense2D!(ElementType, storageOrder,
+                              dynamicSize, dynamicSize)) toStorage() pure const
         {
-            debug writeln("ViewDense2D<", &this, ">.sliceCopy()");
-            return typeof(return)(
-                container[mapIndex(row.lo, col.lo)
-                          ..(mapIndex(row.up - 1, col.up - 1) + 1)],
-                [row.up - row.lo, col.up - col.lo],
-                stride);
+            debug writeln("ViewDense2D<", &this, ">.toStorage()");
+            return typeof(return)(container, dim, stride);
+        }
+
+        StorageDense2D!(ElementType, storageOrder,
+                        dynamicSize, dynamicSize) toStorage() pure
+        {
+            debug writeln("ViewDense2D<", &this, ">.toStorage()");
+            onShare();
+            return typeof(return)(container, dim, stride);
         }
 
         inout(ViewDense2D!(typeof(*pStorage)))
@@ -407,10 +425,9 @@ struct ViewDense2D(StorageType)
         {
             debug writeln("ViewDense2D<", &this, ">.sliceView()");
             return typeof(return)(*pStorage,
-                                  mapIndex(row.lo, col.lo),
+                                  [row.lo, col.lo],
                                   [row.up - row.lo, col.up - col.lo],
-                                  [stride[0] * pStorage.stride[0],
-                                   stride[1] * pStorage.stride[1]]);
+                                  stride);
         }
     }
 }
@@ -533,15 +550,16 @@ unittest
                                  array(iota(24)), [4, 6]);
     a.onChange();
     assert(!a.container.isShared);
-    auto b = a.sliceCopy(SliceBounds(1, 3), SliceBounds(2, 5));
+    auto b = a.sliceView(SliceBounds(1, 3), SliceBounds(2, 5)).toStorage();
     assert(a.container.isShared);
     assert(b.container.isShared);
+    assert(b.container.intersect(a.container));
     assert(b.container.ptr == a.container.ptr + a.mapIndex(1, 2));
     b.onChange();
     assert(!a.container.isShared);
     assert(!b.container.isShared);
     assert(!b.container.intersect(a.container));
-    b = a.sliceCopy(SliceBounds(1, 3), SliceBounds(2, 5));
+    b = a.sliceView(SliceBounds(1, 3), SliceBounds(2, 5)).toStorage();
     auto c = a.sliceView(SliceBounds(1, 3), SliceBounds(2, 5));
     assert(a.container.isShared);
     assert(b.container.isShared);
@@ -560,7 +578,7 @@ unittest
     assert(!a.container.isShared);
     if(true)
     {
-        auto b = a.sliceCopy(SliceBounds(1, 3), SliceBounds(2, 5));
+        auto b = a.sliceView(SliceBounds(1, 3), SliceBounds(2, 5)).toStorage();
         assert(a.container.isShared);
         assert(b.container.isShared);
     }
@@ -573,7 +591,7 @@ unittest
     debug writeln("storage-unittest-begin");
     auto a = StorageDense2D!(int, StorageOrder.rowMajor, 4, 6)(array(iota(24)));
     a.onChange();
-    auto b = a.sliceCopy(SliceBounds(1, 3), SliceBounds(2, 5));
+    auto b = a.sliceView(SliceBounds(1, 3), SliceBounds(2, 5)).toStorage();
     assert(!b.container.isShared);
     b.onChange();
     assert(!b.container.isShared);
