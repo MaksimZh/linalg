@@ -73,6 +73,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
 
         /* Whether this is a static array with fixed dimensions and strides */
         enum bool isStatic = !canFind(dimPattern, dynamicSize);
+        enum bool isResizeable = !isStatic;
 
         static if(isStatic)
             alias StaticArray!(ElementType, calcContainerSize(dimPattern))
@@ -199,7 +200,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
                 container = ContainerType(calcContainerSize(dim));
             }
 
-            void setDimensions(in size_t[2] dim_) pure
+            void setDim(in size_t[2] dim_) pure
                 in
                 {
                     assert(isCompatDim(dim));
@@ -326,6 +327,7 @@ struct ViewDense2D(StorageType)
 
         /* Whether this is a static array with fixed dimensions and strides */
         enum bool isStatic = false;
+        enum bool isResizeable = false;
 
         alias DynamicArray!ElementType ContainerType;
     }
@@ -370,8 +372,17 @@ struct ViewDense2D(StorageType)
                              pStorage.container.ptr);
     }
 
-    @property size_t nrows() pure const { return dim[0]; }
-    @property size_t ncols() pure const { return dim[1]; }
+    public // Dimensions and memory
+    {
+        @property size_t nrows() pure const { return dim[0]; }
+        @property size_t ncols() pure const { return dim[1]; }
+
+        /* Test dimensions for compatibility */
+        bool isCompatDim(in size_t[] dim_) pure
+        {
+            return dim == dim_;
+        }
+    }
 
     public // Copy-on-write support
     {
