@@ -97,7 +97,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         }
     }
 
-    /* Constructors */
+    /* Constructors and destructor */
     static if(isStatic)
     {
         inout this(inout ElementType[] array) pure
@@ -338,10 +338,28 @@ struct ViewDense2D(StorageType)
     package // Container, dimensions, strides
     {
         StorageType* pStorage;
-
         const size_t offset;
+        const size_t[2] viewStride;
+
+        @property ref inout(ContainerType) container() inout
+        { return pStorage.container; }
         const size_t[2] dim;
         const size_t[2] stride;
+    }
+
+    /* Constructor */
+    inout this(ref inout StorageType storage,
+               size_t offset, in size_t[2] dim_, in size_t[2] stride_) pure
+    {
+        pStorage = &storage;
+        offset = offset;
+        dim = dim_;
+        viewStride = stride_;
+        stride[0] = pStorage.stride[0] * viewStride[0];
+        stride[1] = pStorage.stride[1] * viewStride[1];
+        debug writeln("ViewDense2D<", &this, ">.this()",
+                      " storage<", pStorage, ">.container.ptr = ",
+                      pStorage.container.ptr);
     }
 
     @property size_t nrows() pure const { return dim[0]; }
@@ -358,10 +376,7 @@ struct ViewDense2D(StorageType)
     {
         package size_t mapIndex(size_t irow, size_t icol) pure const
         {
-            return
-                offset
-                + irow * stride[0] * pStorage.stride[0]
-                + icol * stride[1] * pStorage.stride[1];
+            return offset + irow * stride[0] + icol * stride[1];
         }
 
         ref const(ElementType) readElement(size_t irow, size_t icol) pure const
@@ -381,11 +396,10 @@ struct ViewDense2D(StorageType)
         {
             debug writeln("ViewDense2D<", &this, ">.sliceCopy()");
             return typeof(return)(
-                pStorage.container[mapIndex(row.lo, col.lo)
-                                   ..(mapIndex(row.up - 1, col.up - 1) + 1)],
+                container[mapIndex(row.lo, col.lo)
+                          ..(mapIndex(row.up - 1, col.up - 1) + 1)],
                 [row.up - row.lo, col.up - col.lo],
-                [stride[0] * pStorage.stride[0],
-                 stride[1] * pStorage.stride[1]]);
+                stride);
         }
 
         inout(ViewDense2D!(typeof(*pStorage)))
@@ -398,18 +412,6 @@ struct ViewDense2D(StorageType)
                                   [stride[0] * pStorage.stride[0],
                                    stride[1] * pStorage.stride[1]]);
         }
-    }
-
-    inout this(ref inout StorageType storage,
-               size_t offset, in size_t[2] dim_, in size_t[2] stride_) pure
-    {
-        pStorage = &storage;
-        offset = offset;
-        dim = dim_;
-        stride = stride_;
-        debug writeln("ViewDense2D<", &this, ">.this()",
-                      " storage<", pStorage, ">.container.ptr = ",
-                      pStorage.container.ptr);
     }
 }
 
