@@ -151,6 +151,11 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             }
         }
     }
+
+    ElementType[][] opCast() pure const
+    {
+        return cast(typeof(return)) storage;
+    }
 }
 
 struct MatrixView(SourceStorageType, bool oneRow, bool oneCol)
@@ -175,6 +180,11 @@ struct MatrixView(SourceStorageType, bool oneRow, bool oneCol)
     {
         storage = storage_;
     }
+
+    ElementType[][] opCast() pure const
+    {
+        return cast(typeof(return)) storage;
+    }
 }
 
 unittest // Regular indices
@@ -196,5 +206,40 @@ unittest // Regular indices through slices
     assert((a[1][2] = 80) == 80);
     assert((++a[1][2]) == 81);
     assert((a[1][2] += 3) == 84);
+    debug writeln("matrix-unittest-end");
+}
+
+unittest
+{
+    debug writeln("matrix-unittest-begin");
+    auto a = Matrix!(int, 3, 4)(array(iota(12)));
+    assert(cast(int[][]) a
+           == [[0, 1, 2, 3],
+               [4, 5, 6, 7],
+               [8, 9, 10, 11]]);
+    assert(cast(int[][]) a[][]
+           == [[0, 1, 2, 3],
+               [4, 5, 6, 7],
+               [8, 9, 10, 11]]);
+    assert(cast(int[][]) a[][1]
+           == [[1],
+               [5],
+               [9]]);
+    assert(cast(int[][]) a[][1..3]
+           == [[1, 2],
+               [5, 6],
+               [9, 10]]);
+    assert(cast(int[][]) a[1][]
+           == [[4, 5, 6, 7]]);
+    assert(a[1][1] == 5);
+    assert(cast(int[][]) a[1..3][]
+           == [[4, 5, 6, 7],
+               [8, 9, 10, 11]]);
+    assert(cast(int[][]) a[1..3][1]
+           == [[5],
+               [9]]);
+    assert(cast(int[][]) a[1..3][1..3]
+           == [[5, 6],
+               [9, 10]]);
     debug writeln("matrix-unittest-end");
 }

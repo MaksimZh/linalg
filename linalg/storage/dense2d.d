@@ -108,9 +108,9 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         body
         {
             container = ContainerType(array);
-            debug writeln("StorageDense2D<", &this, ">.this()",
-                          " container<", &container, ">.ptr = ",
-                          container.ptr);
+            debug(storage) writeln("StorageDense2D<", &this, ">.this()",
+                                   " container<", &container, ">.ptr = ",
+                                   container.ptr);
         }
     }
     else
@@ -120,9 +120,9 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
             container = ContainerType(calcContainerSize(dim));
             dim = dim_;
             stride = calcStrides!storageOrder(dim);
-            debug writeln("StorageDense2D<", &this, ">.this()",
-                          " container<", &container, ">.ptr = ",
-                          container.ptr);
+            debug(storage) writeln("StorageDense2D<", &this, ">.this()",
+                                   " container<", &container, ">.ptr = ",
+                                   container.ptr);
         }
 
         inout this(inout ContainerType container_,
@@ -131,9 +131,9 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
             container = container_;
             dim = dim_;
             stride = stride_;
-            debug writeln("StorageDense2D<", &this, ">.this()",
-                          " container<", &container, ">.ptr = ",
-                          container.ptr);
+            debug(storage) writeln("StorageDense2D<", &this, ">.this()",
+                                   " container<", &container, ">.ptr = ",
+                                   container.ptr);
         }
 
         inout this(inout ElementType[] array, in size_t[2] dim_) pure
@@ -141,9 +141,9 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
             container = ContainerType(array);
             dim = dim_;
             stride = calcStrides!storageOrder(dim);
-            debug writeln("StorageDense2D<", &this, ">.this()",
-                          " container<", &container, ">.ptr = ",
-                          container.ptr);
+            debug(storage) writeln("StorageDense2D<", &this, ">.this()",
+                                   " container<", &container, ">.ptr = ",
+                                   container.ptr);
         }
 
         inout this(inout ElementType[] array,
@@ -152,9 +152,9 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
             container = ContainerType(array);
             dim = dim_;
             stride = stride_;
-            debug writeln("StorageDense2D<", &this, ">.this()",
-                          " container<", &container, ">.ptr = ",
-                          container.ptr);
+            debug(storage) writeln("StorageDense2D<", &this, ">.this()",
+                                   " container<", &container, ">.ptr = ",
+                                   container.ptr);
         }
 
         pure ~this()
@@ -193,7 +193,8 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
              */
             private void _reallocate() pure
             {
-                debug writeln("StorageDense2D<", &this, ">._reallocate()");
+                debug(storage) writeln("StorageDense2D<", &this,
+                                       ">._reallocate()");
                 stride = calcStrides!storageOrder(dim);
                 container = ContainerType(calcContainerSize(dim));
             }
@@ -297,11 +298,12 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         inout(ViewDense2D!(typeof(this)))
             sliceView(SliceBounds row, SliceBounds col) pure inout
         {
-            debug writeln("StorageDense2D<", &this, ">.sliceView()");
+            debug(slice) writeln("StorageDense2D<", &this, ">.sliceView(",
+                                 row, ", ", col, ")");
             return typeof(return)(this,
                                   [row.lo, col.lo],
                                   [row.up - row.lo, col.up - col.lo],
-                                  [row.st, col.st]);
+                                  [row.st || 1, col.st || 1]);
         }
     }
 
@@ -362,9 +364,10 @@ struct ViewDense2D(StorageType)
         offset = offset_;
         dim = dim_;
         viewStride = stride_;
-        debug writeln("ViewDense2D<", &this, ">.this()",
-                      " storage<", pStorage, ">.container.ptr = ",
-                      pStorage.container.ptr);
+        debug(slice) writeln("ViewDense2D<", &this, ">.this(",
+                             offset_, ", ", dim_, ", ", stride_, ")",
+                             " storage<", pStorage, ">.container.ptr = ",
+                             pStorage.container.ptr);
     }
 
     @property size_t nrows() pure const { return dim[0]; }
@@ -408,14 +411,14 @@ struct ViewDense2D(StorageType)
         const(StorageDense2D!(ElementType, storageOrder,
                               dynamicSize, dynamicSize)) toStorage() pure const
         {
-            debug writeln("ViewDense2D<", &this, ">.toStorage()");
+            debug(slice) writeln("ViewDense2D<", &this, ">.toStorage()");
             return typeof(return)(container, dim, stride);
         }
 
         StorageDense2D!(ElementType, storageOrder,
                         dynamicSize, dynamicSize) toStorage() pure
         {
-            debug writeln("ViewDense2D<", &this, ">.toStorage()");
+            debug(slice) writeln("ViewDense2D<", &this, ">.toStorage()");
             onShare();
             return typeof(return)(container, dim, stride);
         }
@@ -423,12 +426,17 @@ struct ViewDense2D(StorageType)
         inout(ViewDense2D!(typeof(*pStorage)))
             sliceView(SliceBounds row, SliceBounds col) pure inout
         {
-            debug writeln("ViewDense2D<", &this, ">.sliceView()");
+            debug(slice) writeln("ViewDense2D<", &this, ">.sliceView()");
             return typeof(return)(*pStorage,
                                   [row.lo, col.lo],
                                   [row.up - row.lo, col.up - col.lo],
                                   stride);
         }
+    }
+
+    ElementType[][] opCast() pure const
+    {
+        return toArray(container.array, dim, stride);
     }
 }
 
