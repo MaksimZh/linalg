@@ -152,6 +152,16 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         }
     }
 
+    public // Assignment
+    {
+        auto opAssign(Tsource)(Tsource source)
+            if(isMatrixOrView!Tsource)
+        {
+            linalg.storage.operations.copy(source.storage, storage);
+            return this;
+        }
+    }
+
     ElementType[][] opCast() pure const
     {
         return cast(typeof(return)) storage;
@@ -181,10 +191,35 @@ struct MatrixView(SourceStorageType, bool oneRow, bool oneCol)
         storage = storage_;
     }
 
+    public // Assignment
+    {
+        auto opAssign(Tsource)(Tsource source)
+            if(isMatrixOrView!Tsource)
+        {
+            linalg.storage.operations.copy(source.storage, storage);
+            return this;
+        }
+    }
+
     ElementType[][] opCast() pure const
     {
         return cast(typeof(return)) storage;
     }
+}
+
+template isMatrix(T)
+{
+    enum bool isMatrix = isInstanceOf!(Matrix, T);
+}
+
+template isMatrixView(T)
+{
+    enum bool isMatrixView = isInstanceOf!(MatrixView, T);
+}
+
+template isMatrixOrView(T)
+{
+    enum bool isMatrixOrView = isMatrix!T || isMatrixView!T;
 }
 
 unittest // Regular indices

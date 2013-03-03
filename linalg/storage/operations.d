@@ -14,8 +14,23 @@ void copy(Tsource, Tdest)(in Tsource source, ref Tdest dest) pure
     }
 body
 {
-    static if(dest.isResizeable)
-        dest.setDim(source.dim);
-    copy2D(source.container.array, source.stride,
-           dest.container.array, dest.stride, dest.dim);
+    static if(is2DView!Tdest)
+    {
+        dest.onChange();
+        copy2D(source.container.array, source.stride,
+               dest.container.array, dest.stride, dest.dim);
+    }
+    else
+    {
+        static if(dest.isStatic)
+        {
+            copy2D(source.container.array, source.stride,
+                   dest.container.array, dest.stride, dest.dim);
+        }
+        else
+        {
+            dest.onReset();
+            dest = Tdest(source.container[], source.dim, source.stride);
+        }
+    }
 }
