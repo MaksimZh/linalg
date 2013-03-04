@@ -214,7 +214,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
 
     public // Copy-on-write support
     {
-        private void _share() pure
+        private void _share() pure const
         {
             debug(cow) writeln("StorageDense2D<", &this, ">._share()");
             static if(!isStatic)
@@ -239,7 +239,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
             }
         }
 
-        private void _release() pure
+        private void _release() pure const
         {
             debug(cow) writeln("StorageDense2D<", &this, ">._release()");
             static if(!isStatic)
