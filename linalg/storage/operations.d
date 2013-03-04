@@ -6,7 +6,7 @@ debug import std.stdio;
 
 import linalg.storage.dense2d;
 
-void copy(Tsource, Tdest)(in Tsource source, ref Tdest dest) pure
+void copy(Tsource, Tdest)(ref Tsource source, ref Tdest dest) pure
     if(is2DStorageOrView!Tsource && is2DStorageOrView!Tdest)
     in
     {
@@ -16,6 +16,7 @@ body
 {
     static if(is2DView!Tdest)
     {
+        debug(copy) writeln("copy to view");
         dest.onChange();
         copy2D(source.container.array, source.stride,
                dest.container.array, dest.stride, dest.dim);
@@ -24,13 +25,18 @@ body
     {
         static if(dest.isStatic)
         {
+            debug(copy) writeln("copy to static");
             copy2D(source.container.array, source.stride,
                    dest.container.array, dest.stride, dest.dim);
         }
         else
         {
+            debug(copy) writeln("copy to dynamic");
             dest.onReset();
-            dest = Tdest(source.container[], source.dim, source.stride);
+            source.onShare();
+            dest.container = source.container[];
+            dest.dim = source.dim;
+            dest.stride = source.stride;
         }
     }
 }

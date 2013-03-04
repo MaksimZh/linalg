@@ -552,12 +552,24 @@ void copy2D(T)(in T[] source, in size_t[2] sStride,
                T[] dest, in size_t[2] dStride,
                in size_t[2] dim) pure
 {
+    debug(copy)
+    {
+        writeln("  copy from");
+        writeln("  ", source, ", ", sStride, ", ", dim);
+        writeln("  copy to");
+        writeln("  ", dest, ", ", dStride, ", ", dim);
+    }
     auto isource = ByElement!(T, false)(source, dim, sStride);
     auto idest = ByElement!(T, true)(dest, dim, dStride);
     foreach(ref d; idest)
     {
         d = isource.front;
         isource.popFront();
+    }
+    debug(copy)
+    {
+        writeln("  copy result");
+        writeln("  ", dest);
     }
 }
 

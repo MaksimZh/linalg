@@ -2,6 +2,8 @@
 
 module linalg.matrix;
 
+import std.traits;
+
 debug import std.stdio;
 
 version(unittest)
@@ -43,6 +45,10 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     }
     else
     {
+        inout this(inout ElementType[] array, size_t nrows_, size_t ncols_) pure
+        {
+            storage = StorageType(array, [nrows_, ncols_]);
+        }
     }
 
     public // Regular indices interface
@@ -244,7 +250,7 @@ unittest // Regular indices through slices
     debug writeln("matrix-unittest-end");
 }
 
-unittest
+unittest // Slicing
 {
     debug writeln("matrix-unittest-begin");
     auto a = Matrix!(int, 3, 4)(array(iota(12)));
@@ -277,4 +283,26 @@ unittest
            == [[5, 6],
                [9, 10]]);
     debug writeln("matrix-unittest-end");
+}
+
+unittest // Assignment
+{
+    alias Matrix!(int, 3, 4) A;
+    A a, b;
+    debug writeln("in");
+    a = A(array(iota(12)));
+    debug writeln("out");
+    auto test = [[0, 1, 2, 3],
+                 [4, 5, 6, 7],
+                 [8, 9, 10, 11]];
+    assert(cast(int[][])a == test);
+    debug writeln(cast(int[][])(a));
+    debug writeln(cast(int[][])(b = a));
+    assert(cast(int[][])(b = a) == test);
+    assert(cast(int[][])b == test);
+    alias Matrix!(int, dynamicSize, dynamicSize) A1;
+    A1 a1, b1;
+    a1 = A1(array(iota(12)), 3, 4);
+    assert(cast(int[][])(b1 = a1) == test);
+    assert(cast(int[][])b1 == test);
 }
