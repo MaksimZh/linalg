@@ -38,7 +38,10 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     {
         inout this(inout ElementType[] array) pure
         {
-            storage = StorageType(array);
+            //HACK
+            auto tmp = StorageType(array);
+            *cast(StorageType*)&storage =
+                *cast(StorageType*)&tmp;
         }
     }
     else
@@ -133,21 +136,21 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 ref inout auto opIndex(size_t i) pure inout
                 {
                     return MatrixView!(StorageType, false, true)(
-                        pSource.storage.sliceView(bounds, SliceBounds(i)));
+                        pSource.storage.slice(bounds, SliceBounds(i)));
                 }
             }
 
             ref inout auto opSlice() pure inout
             {
                 return MatrixView!(StorageType, isIndex, false)(
-                    pSource.storage.sliceView(
+                    pSource.storage.slice(
                         bounds, SliceBounds(0, pSource.ncols)));
             }
 
             ref inout auto opSlice(size_t lo, size_t up) pure inout
             {
                 return MatrixView!(StorageType, isIndex, false)(
-                    pSource.storage.sliceView(bounds, SliceBounds(lo, up)));
+                    pSource.storage.slice(bounds, SliceBounds(lo, up)));
             }
         }
     }
