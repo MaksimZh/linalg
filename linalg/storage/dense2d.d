@@ -97,31 +97,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         }
     }
 
-    public // Constructors and destructor
-    {
-        inout this(this) pure
-        {
-            onShare();
-            debug(storage) writeln("StorageDense2D<", &this, ">.this(this)",
-                                   " container<", &(this.container), ">.ptr = ",
-                                   this.container.ptr);
-        }
-
-        inout this(Tsource)(ref inout(Tsource) source)
-            if(is2DStorageOrView!Tsource)
-        {
-            source.onShare();
-            container = source.container;
-            static if(!isStatic)
-            {
-                dim = source.dim;
-                stride = source.stride;
-            }
-            debug(storage) writeln("StorageDense2D<", &this, ">.this()",
-                                   " container<", &(this.container), ">.ptr = ",
-                                   this.container.ptr);
-        }
-    }
+    /* Constructors and destructor */
     static if(isStatic)
     {
         inout this()(inout ElementType[] array) pure
@@ -190,20 +166,31 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         }
     }
 
-    ref StorageDense2D opAssign(Tsource)(ref Tsource source) pure
-        if(is2DStorageOrView!Tsource)
+    public // Copying
     {
-        source.onShare();
-        container = source.container;
-        static if(!isStatic)
+        inout this(this) pure
         {
-            dim = source.dim;
-            stride = source.stride;
+            onShare();
+            debug(storage) writeln("StorageDense2D<", &this, ">.this(this)",
+                                   " container<", &(this.container), ">.ptr = ",
+                                   this.container.ptr);
         }
-        debug(storage) writeln("StorageDense2D<", &this, ">.opAssign()",
-                               " container<", &(this.container), ">.ptr = ",
-                               this.container.ptr);
-        return this;
+
+        ref StorageDense2D opAssign(Tsource)(ref Tsource source) pure
+            if(is2DStorageOrView!Tsource)
+        {
+            source.onShare();
+            container = source.container;
+            static if(!isStatic)
+            {
+                dim = source.dim;
+                stride = source.stride;
+            }
+            debug(storage) writeln("StorageDense2D<", &this, ">.opAssign()",
+                                   " container<", &(this.container), ">.ptr = ",
+                                   this.container.ptr);
+            return this;
+        }
     }
 
     public // Dimensions and memory
@@ -629,8 +616,8 @@ unittest
     assert(b.container.intersect(a.container));
     if(true)
     {
-        const(S) c = b;
         debug(storage) writeln("c = b");
+        const(S) c = b;
         assert(a.container.isShared);
         assert(b.container.isShared);
         assert(c.container.isShared);
