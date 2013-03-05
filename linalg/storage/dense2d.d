@@ -302,14 +302,10 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         void onReset() pure
         {
             debug(cow) writeln("StorageDense2D<", &this, ">.onReset()");
+            _release();
             static if(!isStatic)
             {
-                if(!container.isInitialized)
-                    return;
-                if(!container.isShared)
-                    return;
-                _release();
-                container = ContainerType.init;
+                container = typeof(container).init;
             }
         }
     }
