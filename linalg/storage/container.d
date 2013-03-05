@@ -21,7 +21,7 @@ struct DynamicArray(T)
                 writeln("    length = ", length);
                 writeln("   {...");
                 scope(exit)
-                    debug(container)
+                    debug
                     {
                         writefln("   }        <%X>.this()", &this);
                         writefln("    counter<%X> = %d",
@@ -51,7 +51,7 @@ struct DynamicArray(T)
                 writefln("    array = <%X>, %d", array.ptr, array.length);
                 writeln("   {...");
                 scope(exit)
-                    debug(container)
+                    debug
                     {
                         writefln("   }        <%X>.this()", &this);
                         writefln("    counter<%X> = %d",
@@ -215,6 +215,18 @@ struct StaticArray(T, size_t size)
     {
         inout this(inout T[] array) pure
         {
+            debug(container)
+            {
+                writefln("StaticArray<%X>.this()", &this);
+                writefln("    array = <%X>, %d", array.ptr, array.length);
+                writeln("   {...");
+                scope(exit)
+                    debug
+                    {
+                        writefln("    array = <%X>, %d",
+                                 _array.ptr, _array.length);
+                    }
+            }
             _array = array;
         }
     }

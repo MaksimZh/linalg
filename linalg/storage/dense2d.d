@@ -108,54 +108,121 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
             }
         body
         {
+            debug(storage)
+            {
+                writefln("StorageDense2D<%X>.this()", &this);
+                writefln("    array = <%X>, %d", array.ptr, array.length);
+                writeln("   {...");
+                scope(exit)
+                    debug
+                    {
+                        writefln("   }          <%X>.this()", &this);
+                        writefln("    container<%X> = <%X>, %d",
+                                 &(this.container),
+                                 this.container.ptr,
+                                 this.container.length);
+                    }
+            }
             container = ContainerType(array);
-            debug(storage) writeln("StorageDense2D<", &this, ">.this()",
-                                   " container<", &(this.container), ">.ptr = ",
-                                   this.container.ptr);
         }
     }
     else
     {
         this()(in size_t[2] dim)
         {
+            debug(storage)
+            {
+                writefln("StorageDense2D<%X>.this()", &this);
+                writeln("    dim = ", dim);
+                writeln("   {...");
+                scope(exit)
+                    debug
+                    {
+                        writefln("   }          <%X>.this()", &this);
+                        writefln("    container<%X> = <%X>, %d",
+                                 &(this.container),
+                                 this.container.ptr,
+                                 this.container.length);
+                    }
+            }
             container = ContainerType(calcContainerSize(dim));
             this.dim = dim;
             stride = calcStrides!storageOrder(dim);
-            debug(storage) writeln("StorageDense2D<", &this, ">.this()",
-                                   " container<", &(this.container), ">.ptr = ",
-                                   this.container.ptr);
         }
 
         inout this()(inout ContainerType container,
                    in size_t[2] dim, in size_t[2] stride) pure
         {
+            debug(storage)
+            {
+                writefln("StorageDense2D<%X>.this()", &this);
+                writefln("    container<%X> = <%X>, %d",
+                         &container, container.ptr, container.length);
+                writeln("    dim = ", dim);
+                writeln("    stride = ", stride);
+                writeln("   {...");
+                scope(exit)
+                    debug
+                    {
+                        writefln("   }          <%X>.this()", &this);
+                        writefln("    container<%X> = <%X>, %d",
+                                 &(this.container),
+                                 this.container.ptr,
+                                 this.container.length);
+                    }
+            }
             this.container = container;
             this.dim = dim;
             this.stride = stride;
-            debug(storage) writeln("StorageDense2D<", &this, ">.this()",
-                                   " container<", &(this.container), ">.ptr = ",
-                                   this.container.ptr);
         }
 
         inout this()(inout ElementType[] array, in size_t[2] dim) pure
         {
+            debug(storage)
+            {
+                writefln("StorageDense2D<%X>.this()", &this);
+                writefln("    array = <%X>, %d", array.ptr, array.length);
+                writeln("    dim = ", dim);
+                writeln("   {...");
+                scope(exit)
+                    debug
+                    {
+                        writefln("   }          <%X>.this()", &this);
+                        writefln("    container<%X> = <%X>, %d",
+                                 &(this.container),
+                                 this.container.ptr,
+                                 this.container.length);
+                    }
+            }
             container = ContainerType(array);
             this.dim = dim;
             stride = calcStrides!storageOrder(dim);
-            debug(storage) writeln("StorageDense2D<", &this, ">.this()",
-                                   " container<", &(this.container), ">.ptr = ",
-                                   this.container.ptr);
         }
 
         inout this()(inout ElementType[] array,
                      in size_t[2] dim, in size_t[2] stride) pure
         {
+            debug(storage)
+            {
+                writefln("StorageDense2D<%X>.this()", &this);
+                writefln("    array = <%X>, %d",
+                         array.ptr, array.length);
+                writeln("    dim = ", dim);
+                writeln("    stride = ", stride);
+                writeln("   {...");
+                scope(exit)
+                    debug
+                    {
+                        writefln("   }          <%X>.this()", &this);
+                        writefln("    container<%X> = <%X>, %d",
+                                 &(this.container),
+                                 this.container.ptr,
+                                 this.container.length);
+                    }
+            }
             container = ContainerType(array);
             this.dim = dim;
             this.stride = stride;
-            debug(storage) writeln("StorageDense2D<", &this, ">.this()",
-                                   " container<", &(this.container), ">.ptr = ",
-                                   this.container.ptr);
         }
 
         pure ~this()
