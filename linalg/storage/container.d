@@ -49,27 +49,27 @@ struct DynamicArray(T)
         @property uint refNumber() pure const { return *_pCounter; }
         @property bool isShared() pure const { return *_pCounter > 1; }
 
-        void addRef() pure
+        void addRef() pure const
             in
             {
                 assert(isInitialized, "Container is not initialized");
             }
         body
         {
-            ++*_pCounter;
+            ++*cast(uint*)_pCounter; //HACK
             debug(container)
                 writeln("DynamicArray<", &this, ">.addRef()",
                         " counter<", _pCounter, "> = ", *_pCounter);
         }
 
-        void remRef() pure
+        void remRef() pure const
             in
             {
                 assert(isInitialized, "Container is not initialized");
             }
         body
         {
-            --*_pCounter;
+            --*cast(uint*)_pCounter; //HACK
             debug(container)
                 writeln("DynamicArray<", &this, ">.remRef()",
                         " counter<", _pCounter, "> = ", *_pCounter);
