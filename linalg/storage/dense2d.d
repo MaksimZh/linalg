@@ -180,6 +180,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         ref StorageDense2D opAssign(Tsource)(ref Tsource source) pure
             if(is2DStorageOrView!Tsource)
         {
+            onReset();
             source.onShare();
             container = source.container;
             static if(!isStatic)
@@ -300,8 +301,13 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         /* Call this method before data reallocation */
         void onReset() pure
         {
-            if(container.isShared)
+            debug(cow) writeln("StorageDense2D<", &this, ">.onReset()");
+            static if(!isStatic)
             {
+                if(!container.isInitialized)
+                    return;
+                if(!container.isShared)
+                    return;
                 _release();
                 container = ContainerType.init;
             }
@@ -569,9 +575,9 @@ void copy2D(T)(in T[] source, in size_t[2] sStride,
 {
     debug(copy)
     {
-        writeln("  copy from");
+        writeln("  copy from <", source.ptr, ">");
         writeln("  ", source, ", ", sStride, ", ", dim);
-        writeln("  copy to");
+        writeln("  copy to <", dest.ptr, ">");
         writeln("  ", dest, ", ", dStride, ", ", dim);
     }
     auto isource = ByElement!(T, false)(source, dim, sStride);

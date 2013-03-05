@@ -145,6 +145,19 @@ struct DynamicArray(T)
     {
         return contains(a.ptr) || contains(a.ptr + a.length) || a.contains(ptr);
     }
+
+    ref auto opAssign(size_t size)(const StaticArray!(T, size) source)
+        in
+        {
+            assert(!isInitialized);
+        }
+    body
+    {
+        _pCounter = new uint;
+        *_pCounter = 1;
+        _array = source.array.dup;
+        return this;
+    }
 }
 
 unittest
@@ -152,6 +165,7 @@ unittest
     debug(container) writeln("refcount-unittest-begin");
     DynamicArray!int a;
     a = DynamicArray!int([0, 1, 2, 3, 4]);
+    assert(a.array.ptr is a.ptr);
     assert(*a._pCounter == 1);
     assert(!a.isShared);
     a.addRef();
@@ -216,8 +230,8 @@ struct StaticArray(T, size_t size)
         }
     }
 
-    @property inout(T[size]) array() pure inout
+    @property inout(T[]) array() pure inout
     {
-        return _array;
+        return _array[];
     }
 }

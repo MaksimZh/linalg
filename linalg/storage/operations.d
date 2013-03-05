@@ -32,11 +32,8 @@ body
         else
         {
             debug(copy) writeln("copy to dynamic");
-            dest.onReset();
-            source.onShare();
-            dest.container = source.container[];
-            dest.dim = source.dim;
-            dest.stride = source.stride;
+            dest = source;
+            debug(copy) writeln("copy to dynamic finish");
         }
     }
 }
