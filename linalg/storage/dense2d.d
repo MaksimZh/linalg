@@ -5,7 +5,7 @@ module linalg.storage.dense2d;
 import std.algorithm;
 import std.traits;
 
-debug import std.stdio;
+debug import linalg.debugging;
 
 version(unittest)
 {
@@ -110,17 +110,20 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         {
             debug(storage)
             {
-                writefln("StorageDense2D<%X>.this()", &this);
-                writefln("    array = <%X>, %d", array.ptr, array.length);
-                writeln("   {...");
+                indent.writefln("StorageDense2D<%X>.this()", &this);
+                indent.add();
+                indent.writefln("array = <%X>, %d", array.ptr, array.length);
+                indent.writeln("...");
+                indent.add();
                 scope(exit)
                     debug
                     {
-                        writefln("   }          <%X>.this()", &this);
-                        writefln("    container<%X> = <%X>, %d",
-                                 &(this.container),
-                                 this.container.ptr,
-                                 this.container.length);
+                        indent.rem();
+                        indent.writefln("container<%X> = <%X>, %d",
+                                        &(this.container),
+                                        this.container.ptr,
+                                        this.container.length);
+                        indent.rem();
                     }
             }
             container = ContainerType(array);
@@ -132,17 +135,20 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         {
             debug(storage)
             {
-                writefln("StorageDense2D<%X>.this()", &this);
-                writeln("    dim = ", dim);
-                writeln("   {...");
+                indent.writefln("StorageDense2D<%X>.this()", &this);
+                indent.add();
+                indent.writeln("dim = ", dim);
+                indent.writeln("...");
+                indent.add();
                 scope(exit)
                     debug
                     {
-                        writefln("   }          <%X>.this()", &this);
-                        writefln("    container<%X> = <%X>, %d",
-                                 &(this.container),
-                                 this.container.ptr,
-                                 this.container.length);
+                        indent.rem();
+                        indent.writefln("container<%X> = <%X>, %d",
+                                        &(this.container),
+                                        this.container.ptr,
+                                        this.container.length);
+                        indent.rem();
                     }
             }
             container = ContainerType(calcContainerSize(dim));
@@ -155,20 +161,23 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         {
             debug(storage)
             {
-                writefln("StorageDense2D<%X>.this()", &this);
-                writefln("    container<%X> = <%X>, %d",
-                         &container, container.ptr, container.length);
-                writeln("    dim = ", dim);
-                writeln("    stride = ", stride);
-                writeln("   {...");
+                indent.writefln("StorageDense2D<%X>.this()", &this);
+                indent.add();
+                indent.writefln("container<%X> = <%X>, %d",
+                                &container, container.ptr, container.length);
+                indent.writeln("dim = ", dim);
+                indent.writeln("stride = ", stride);
+                indent.writeln("...");
+                indent.add();
                 scope(exit)
                     debug
                     {
-                        writefln("   }          <%X>.this()", &this);
-                        writefln("    container<%X> = <%X>, %d",
-                                 &(this.container),
-                                 this.container.ptr,
-                                 this.container.length);
+                        indent.rem();
+                        indent.writefln("container<%X> = <%X>, %d",
+                                        &(this.container),
+                                        this.container.ptr,
+                                        this.container.length);
+                        indent.rem();
                     }
             }
             this.container = container;
@@ -180,18 +189,21 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         {
             debug(storage)
             {
-                writefln("StorageDense2D<%X>.this()", &this);
-                writefln("    array = <%X>, %d", array.ptr, array.length);
-                writeln("    dim = ", dim);
-                writeln("   {...");
+                indent.writefln("StorageDense2D<%X>.this()", &this);
+                indent.add();
+                indent.writefln("array = <%X>, %d", array.ptr, array.length);
+                indent.writeln("dim = ", dim);
+                indent.writeln("...");
+                indent.add();
                 scope(exit)
                     debug
                     {
-                        writefln("   }          <%X>.this()", &this);
-                        writefln("    container<%X> = <%X>, %d",
-                                 &(this.container),
-                                 this.container.ptr,
-                                 this.container.length);
+                        indent.rem();
+                        indent.writefln("container<%X> = <%X>, %d",
+                                        &(this.container),
+                                        this.container.ptr,
+                                        this.container.length);
+                        indent.rem();
                     }
             }
             container = ContainerType(array);
@@ -204,20 +216,23 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         {
             debug(storage)
             {
-                writefln("StorageDense2D<%X>.this()", &this);
-                writefln("    array = <%X>, %d",
-                         array.ptr, array.length);
-                writeln("    dim = ", dim);
-                writeln("    stride = ", stride);
-                writeln("   {...");
+                indent.writefln("StorageDense2D<%X>.this()", &this);
+                indent.add();
+                indent.writefln("array = <%X>, %d",
+                                array.ptr, array.length);
+                indent.writeln("dim = ", dim);
+                indent.writeln("stride = ", stride);
+                indent.writeln("...");
+                indent.add();
                 scope(exit)
                     debug
                     {
-                        writefln("   }          <%X>.this()", &this);
-                        writefln("    container<%X> = <%X>, %d",
-                                 &(this.container),
-                                 this.container.ptr,
-                                 this.container.length);
+                        indent.rem();
+                        indent.writefln("container<%X> = <%X>, %d",
+                                        &(this.container),
+                                        this.container.ptr,
+                                        this.container.length);
+                        indent.rem();
                     }
             }
             container = ContainerType(array);
@@ -227,9 +242,21 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
 
         pure ~this()
         {
-            debug(storage) writeln("StorageDense2D<", &this, ">.~this()",
-                                   " container<", &(this.container), ">.ptr = ",
-                                   this.container.ptr);
+            debug(storage)
+            {
+                indent.writeln("StorageDense2D<", &this, ">.~this()",
+                               " container<", &(this.container), ">.ptr = ",
+                               this.container.ptr);
+                indent.add();
+                indent.writeln("...");
+                indent.add();
+                scope(exit)
+                    debug
+                    {
+                        indent.rem();
+                        indent.rem();
+                    }
+            }
             _release();
         }
     }
@@ -239,14 +266,36 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         inout this(this) pure
         {
             onShare();
-            debug(storage) writeln("StorageDense2D<", &this, ">.this(this)",
-                                   " container<", &(this.container), ">.ptr = ",
-                                   this.container.ptr);
+            debug(storage)
+                indent.writeln("StorageDense2D<", &this, ">.this(this)",
+                               " container<", &(this.container), ">.ptr = ",
+                               this.container.ptr);
         }
 
         ref StorageDense2D opAssign(Tsource)(ref Tsource source) pure
             if(is2DStorageOrView!Tsource)
         {
+            debug(storage)
+            {
+                indent.writefln("StorageDense2D<%X>.opAssign()", &this);
+                indent.add();
+                indent.writefln("source.container<%X> = <%X>, %d",
+                                &source.container,
+                                source.container.ptr,
+                                source.container.length);
+                indent.writeln("...");
+                indent.add();
+                scope(exit)
+                    debug
+                    {
+                        indent.rem();
+                        indent.writefln("container<%X> = <%X>, %d",
+                                        &(this.container),
+                                        this.container.ptr,
+                                        this.container.length);
+                        indent.rem();
+                    }
+            }
             onReset();
             source.onShare();
             container = source.container;
@@ -255,9 +304,6 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
                 dim = source.dim;
                 stride = source.stride;
             }
-            debug(storage) writeln("StorageDense2D<", &this, ">.opAssign()",
-                                   " container<", &(this.container), ">.ptr = ",
-                                   this.container.ptr);
             return this;
         }
     }
@@ -292,8 +338,23 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
              */
             private void _reallocate() pure
             {
-                debug(storage) writeln("StorageDense2D<", &this,
-                                       ">._reallocate()");
+                debug(storage)
+                {
+                    indent.writefln("StorageDense2D<%X>._reallocate()", &this);
+                    indent.add();
+                    indent.writeln("...");
+                    indent.add();
+                    scope(exit)
+                        debug
+                        {
+                            indent.rem();
+                            indent.writefln("container<%X> = <%X>, %d",
+                                            &(this.container),
+                                            this.container.ptr,
+                                            this.container.length);
+                            indent.rem();
+                        }
+                }
                 stride = calcStrides!storageOrder(dim);
                 container = ContainerType(calcContainerSize(dim));
             }
@@ -315,7 +376,19 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
     {
         private void _share() pure const
         {
-            debug(cow) writeln("StorageDense2D<", &this, ">._share()");
+            debug(cow)
+            {
+                indent.writefln("StorageDense2D<%X>._share()", &this);
+                indent.add();
+                indent.writeln("...");
+                indent.add();
+                scope(exit)
+                    debug
+                    {
+                        indent.rem();
+                        indent.rem();
+                    }
+            }
             static if(!isStatic)
             {
                 container.addRef();
@@ -324,7 +397,23 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
 
         private void _unshare() pure
         {
-            debug(cow) writeln("StorageDense2D<", &this, ">._unshare()");
+            debug(cow)
+            {
+                indent.writefln("StorageDense2D<%X>._unshare()", &this);
+                indent.add();
+                indent.writeln("...");
+                indent.add();
+                scope(exit)
+                    debug
+                    {
+                        indent.rem();
+                        indent.writefln("container<%X> = <%X>, %d",
+                                        &(this.container),
+                                        this.container.ptr,
+                                        this.container.length);
+                        indent.rem();
+                    }
+            }
             static if(!isStatic)
             {
                 if(!container.isShared)
@@ -340,7 +429,19 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
 
         private void _release() pure const
         {
-            debug(cow) writeln("StorageDense2D<", &this, ">._release()");
+            debug(cow)
+            {
+                indent.writefln("StorageDense2D<%X>._release()", &this);
+                indent.add();
+                indent.writeln("...");
+                indent.add();
+                scope(exit)
+                    debug
+                    {
+                        indent.rem();
+                        indent.rem();
+                    }
+            }
             static if(!isStatic)
             {
                 if(!container.isInitialized)
@@ -354,21 +455,57 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         /* Call this method before changing data */
         void onChange() pure
         {
-            debug(cow) writeln("StorageDense2D<", &this, ">.onChange()");
+            debug(cow)
+            {
+                indent.writefln("StorageDense2D<%X>.onChange()", &this);
+                indent.add();
+                indent.writeln("...");
+                indent.add();
+                scope(exit)
+                    debug
+                    {
+                        indent.rem();
+                        indent.rem();
+                    }
+            }
             _unshare();
         }
 
         /* Call this method before sharing data */
         void onShare() pure const
         {
-            debug(cow) writeln("StorageDense2D<", &this, ">.onShare()");
+            debug(cow)
+            {
+                indent.writefln("StorageDense2D<%X>.onShare()", &this);
+                indent.add();
+                indent.writeln("...");
+                indent.add();
+                scope(exit)
+                    debug
+                    {
+                        indent.rem();
+                        indent.rem();
+                    }
+            }
             _share();
         }
 
         /* Call this method before data reallocation */
         void onReset() pure
         {
-            debug(cow) writeln("StorageDense2D<", &this, ">.onReset()");
+            debug(cow)
+            {
+                indent.writefln("StorageDense2D<%X>.onReset()", &this);
+                indent.add();
+                indent.writeln("...");
+                indent.add();
+                scope(exit)
+                    debug
+                    {
+                        indent.rem();
+                        indent.rem();
+                    }
+            }
             _release();
             static if(!isStatic)
             {
@@ -398,8 +535,20 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         inout(ViewDense2D!(typeof(this)))
             slice(SliceBounds row, SliceBounds col) pure inout
         {
-            debug(slice) writeln("StorageDense2D<", &this, ">.sliceView(",
-                                 row, ", ", col, ")");
+            debug(slice)
+            {
+                indent.writefln("StorageDense2D<%X>.slice(%s, %s)",
+                                &this, row, col);
+                indent.add();
+                indent.writeln("...");
+                indent.add();
+                scope(exit)
+                    debug
+                    {
+                        indent.rem();
+                        indent.rem();
+                    }
+            }
             return typeof(return)(this,
                                   [row.lo, col.lo],
                                   [row.up - row.lo, col.up - col.lo],
@@ -461,14 +610,30 @@ struct ViewDense2D(StorageType)
                in size_t[2] dim,
                in size_t[2] stride) pure
     {
+        debug(slice)
+        {
+            indent.writefln("ViewDense2D<%X>.this()", &this);
+            indent.add();
+            indent.writeln("offset = ", offset);
+            indent.writeln("dim = ", dim);
+            indent.writeln("stride = ", stride);
+            indent.writeln("...");
+            indent.add();
+            scope(exit)
+                debug
+                {
+                    indent.rem();
+                    indent.writefln("pStorage = <%X>", pStorage);
+                    indent.writefln("container = <%X>, %d",
+                                    this.container.ptr,
+                                    this.container.length);
+                    indent.rem();
+                }
+        }
         pStorage = &storage;
         this.offset = offset;
         this.dim = dim;
         viewStride = stride;
-        debug(slice) writeln("ViewDense2D<", &this, ">.this(",
-                             offset, ", ", dim, ", ", stride, ")",
-                             " storage<", pStorage, ">.container.ptr = ",
-                             pStorage.container.ptr);
     }
 
     public // Dimensions and memory
@@ -488,14 +653,38 @@ struct ViewDense2D(StorageType)
         /* Call this method before changing data */
         package void onChange() pure
         {
-            debug(cow) writeln("ViewDense2D<", &this, ">.onChange()");
+            debug(cow)
+            {
+                indent.writefln("ViewDense2D<%X>.onChange()", &this);
+                indent.add();
+                indent.writeln("...");
+                indent.add();
+                scope(exit)
+                    debug
+                    {
+                        indent.rem();
+                        indent.rem();
+                    }
+            }
             pStorage.onChange();
         }
 
         /* Call this method before sharing data */
         package void onShare() pure
         {
-            debug(cow) writeln("ViewDense2D<", &this, ">.onShare()");
+            debug(cow)
+            {
+                indent.writefln("ViewDense2D<%X>.onShare()", &this);
+                indent.add();
+                indent.writeln("...");
+                indent.add();
+                scope(exit)
+                    debug
+                    {
+                        indent.rem();
+                        indent.rem();
+                    }
+            }
             pStorage.onShare();
         }
     }
@@ -521,7 +710,20 @@ struct ViewDense2D(StorageType)
         inout(ViewDense2D!(typeof(*pStorage)))
             slice(SliceBounds row, SliceBounds col) pure inout
         {
-            debug(slice) writeln("ViewDense2D<", &this, ">.sliceView()");
+            debug(slice)
+            {
+                indent.writefln("ViewDense2D<%X>.slice(%s, %s)",
+                                &this, row, col);
+                indent.add();
+                indent.writeln("...");
+                indent.add();
+                scope(exit)
+                    debug
+                    {
+                        indent.rem();
+                        indent.rem();
+                    }
+            }
             return typeof(return)(*pStorage,
                                   [row.lo, col.lo],
                                   [row.up - row.lo, col.up - col.lo],
@@ -638,10 +840,21 @@ void copy2D(T)(in T[] source, in size_t[2] sStride,
 {
     debug(copy)
     {
-        writeln("  copy from <", source.ptr, ">");
-        writeln("  ", source, ", ", sStride, ", ", dim);
-        writeln("  copy to <", dest.ptr, ">");
-        writeln("  ", dest, ", ", dStride, ", ", dim);
+        indent.writeln("copy2D");
+        indent.add();
+        indent.writefln("source = <%X>, %d", source.ptr, source.length);
+        indent.writeln("sStride = ", sStride);
+        indent.writefln("dest = <%X>, %d", dest.ptr, dest.length);
+        indent.writeln("dStride = ", dStride);
+        indent.writeln("dim = ", dim);
+        indent.writeln("...");
+        indent.add();
+        scope(exit)
+            debug
+            {
+                indent.rem();
+                indent.rem();
+            }
     }
     auto isource = ByElement!(T, false)(source, dim, sStride);
     auto idest = ByElement!(T, true)(dest, dim, dStride);
@@ -649,11 +862,6 @@ void copy2D(T)(in T[] source, in size_t[2] sStride,
     {
         d = isource.front;
         isource.popFront();
-    }
-    debug(copy)
-    {
-        writeln("  copy result");
-        writeln("  ", dest);
     }
 }
 

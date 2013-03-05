@@ -2,7 +2,7 @@
 
 module linalg.storage.container;
 
-debug import std.stdio;
+debug import linalg.debugging;
 
 struct DynamicArray(T)
 {
@@ -17,17 +17,20 @@ struct DynamicArray(T)
         {
             debug(container)
             {
-                writefln("DynamicArray<%X>.this()", &this);
-                writeln("    length = ", length);
-                writeln("   {...");
+                indent.writefln("DynamicArray<%X>.this()", indent, &this);
+                indent.add();
+                indent.writeln("length = ", length);
+                indent.writeln("...");
+                indent.add();
                 scope(exit)
                     debug
                     {
-                        writefln("   }        <%X>.this()", &this);
-                        writefln("    counter<%X> = %d",
-                                 _pCounter, *_pCounter);
-                        writefln("    array = <%X>, %d",
-                                 _array.ptr, _array.length);
+                        indent.rem();
+                        indent.writefln("counter<%X> = %d",
+                                        _pCounter, *_pCounter);
+                        indent.writefln("array = <%X>, %d",
+                                        _array.ptr, _array.length);
+                        indent.rem();
                     }
             }
             _pCounter = new uint;
@@ -46,18 +49,21 @@ struct DynamicArray(T)
         {
             debug(container)
             {
-                writefln("DynamicArray<%X>.this()", &this);
-                writefln("    pCounter = <%X>", pCounter);
-                writefln("    array = <%X>, %d", array.ptr, array.length);
-                writeln("   {...");
+                indent.writefln("DynamicArray<%X>.this()", &this);
+                indent.add();
+                indent.writefln("pCounter = <%X>", pCounter);
+                indent.writefln("array = <%X>, %d", array.ptr, array.length);
+                indent.writeln("...");
+                indent.add();
                 scope(exit)
                     debug
                     {
-                        writefln("   }        <%X>.this()", &this);
-                        writefln("    counter<%X> = %d",
-                                 _pCounter, *_pCounter);
-                        writefln("    array = <%X>, %d",
-                                 _array.ptr, _array.length);
+                        indent.rem();
+                        indent.writefln("counter<%X> = %d",
+                                        _pCounter, *_pCounter);
+                        indent.writefln("array = <%X>, %d",
+                                        _array.ptr, _array.length);
+                        indent.rem();
                     }
             }
             _pCounter = pCounter;
@@ -81,8 +87,8 @@ struct DynamicArray(T)
         {
             ++*cast(uint*)_pCounter; //HACK: immutable
             debug(container)
-                writeln("DynamicArray<", &this, ">.addRef()",
-                        " counter<", _pCounter, "> = ", *_pCounter);
+                indent.writeln("DynamicArray<", &this, ">.addRef()",
+                               " counter<", _pCounter, "> = ", *_pCounter);
         }
 
         void remRef() pure const
@@ -94,8 +100,8 @@ struct DynamicArray(T)
         {
             --*cast(uint*)_pCounter; //HACK: immutable
             debug(container)
-                writeln("DynamicArray<", &this, ">.remRef()",
-                        " counter<", _pCounter, "> = ", *_pCounter);
+                indent.writeln("DynamicArray<", &this, ">.remRef()",
+                               " counter<", _pCounter, "> = ", *_pCounter);
         }
     }
 
@@ -118,7 +124,8 @@ struct DynamicArray(T)
             }
         body
         {
-            debug(container) writeln("DynamicArray<", &this, ">.opSlice()");
+            debug(container)
+                indent.writeln("DynamicArray<", &this, ">.opSlice()");
             return DynamicArray(_pCounter, _array[]);
         }
 
@@ -129,8 +136,9 @@ struct DynamicArray(T)
             }
         body
         {
-            debug(container) writefln("DynamicArray<%X>.opSlice(%d, %d)",
-                                      &this, lo, up);
+            debug(container)
+                indent.writefln("DynamicArray<%X>.opSlice(%d, %d)",
+                                &this, lo, up);
             return DynamicArray(_pCounter, _array[lo..up]);
         }
 
@@ -217,14 +225,18 @@ struct StaticArray(T, size_t size)
         {
             debug(container)
             {
-                writefln("StaticArray<%X>.this()", &this);
-                writefln("    array = <%X>, %d", array.ptr, array.length);
-                writeln("   {...");
+                indent.writefln("StaticArray<%X>.this()", &this);
+                indent.add();
+                indent.writefln("array = <%X>, %d", array.ptr, array.length);
+                indent.writeln("...");
+                indent.add();
                 scope(exit)
                     debug
                     {
-                        writefln("    array = <%X>, %d",
-                                 _array.ptr, _array.length);
+                        indent.rem();
+                        indent.writefln("array = <%X>, %d",
+                                        _array.ptr, _array.length);
+                        indent.rem();
                     }
             }
             _array = array;
@@ -240,13 +252,15 @@ struct StaticArray(T, size_t size)
 
         inout(DynamicArray!T) opSlice() pure inout
         {
-            debug(container) writeln("StaticArray<", &this, ">.opSlice()");
+            debug(container)
+                indent.writeln("StaticArray<", &this, ">.opSlice()");
             return DynamicArray!T(cast(inout T[]) _array[].dup);
         }
 
         inout(DynamicArray!T) opSlice(size_t lo, size_t up) pure inout
         {
-            debug(container) writefln("StaticArray<%X>.opSlice(%d, %d)",
+            debug(container)
+                indent.writefln("StaticArray<%X>.opSlice(%d, %d)",
                                       &this, lo, up);
             return DynamicArray!T(cast(inout T[]) _array[lo..up].dup);
         }

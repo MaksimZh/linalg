@@ -211,6 +211,7 @@ struct MatrixView(SourceStorageType, bool oneRow, bool oneCol)
         auto opAssign(Tsource)(Tsource source)
             if(isMatrixOrView!Tsource)
         {
+            debug writeln("MatrixView.opAssign()");
             linalg.storage.operations.copy(source.storage, storage);
             return this;
         }
