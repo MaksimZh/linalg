@@ -198,7 +198,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 
     public // Assignment
     {
-        ref auto opAssign(Tsource)(Tsource source)
+        ref auto opAssign(Tsource)(auto ref Tsource source)
             if(isMatrixOrView!Tsource)
         {
             debug(matrix)
@@ -244,14 +244,27 @@ struct MatrixView(SourceStorageType, bool oneRow, bool oneCol)
     }
 
     /* Constructor */
-    inout this(inout StorageType storage_) pure
+    inout this(inout StorageType storage) pure
     {
-        storage = storage_;
+        debug(matrix)
+        {
+            indent.writefln("MatrixView<%X>.this()", &this);
+            indent.add();
+            indent.writeln("...");
+            indent.add();
+            scope(exit)
+                debug
+                {
+                    indent.rem();
+                    indent.rem();
+                }
+        }
+        this.storage = storage;
     }
 
     public // Assignment
     {
-        auto opAssign(Tsource)(Tsource source)
+        auto opAssign(Tsource)(auto ref Tsource source)
             if(isMatrixOrView!Tsource)
         {
             debug(matrix)
