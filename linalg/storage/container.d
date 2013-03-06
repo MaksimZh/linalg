@@ -287,7 +287,7 @@ struct StaticArray(T, size_t size)
                         indent.rem();
                     }
             }
-            return DynamicArray!T(cast(inout T[]) _array[].dup);
+            return DynamicArray!T(cast(inout T[]) _array[]);
         }
 
         inout(DynamicArray!T) opSlice(size_t lo, size_t up) pure inout
@@ -306,7 +306,7 @@ struct StaticArray(T, size_t size)
                         indent.rem();
                     }
             }
-            return DynamicArray!T(cast(inout T[]) _array[lo..up].dup);
+            return DynamicArray!T(cast(inout T[]) _array[lo..up]);
         }
 
         @property inout(T*) ptr() pure inout

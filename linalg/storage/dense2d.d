@@ -401,6 +401,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
             {
                 indent.writefln("StorageDense2D<%X>._unshare()", &this);
                 indent.add();
+                indent.writeln("container.isShared = ", container.isShared);
                 indent.writeln("...");
                 indent.add();
                 scope(exit)

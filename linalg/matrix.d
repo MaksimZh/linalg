@@ -402,3 +402,19 @@ unittest // Assignment
     assert(cast(int[][])c1 == test);
     debug writeln("matrix-unittest-end");
 }
+
+unittest // Assignment for slices
+{
+    auto a = Matrix!(int, 3, 4)(array(iota(12)));
+    auto b = Matrix!(int, 2, 2)(array(iota(12, 16)));
+    debug writeln("c = a[][]");
+    auto c = a[1..3][1..3];
+    auto test = [[0, 1, 2, 3],
+                 [4, 12, 13, 7],
+                 [8, 14, 15, 11]];
+    debug writeln("c = b");
+    assert(cast(int[][]) (c = b) == cast(int[][]) b);
+    assert(cast(int[][]) a == test);
+    a[1][1] = 100;
+    assert(a[1][1] == 100);
+}
