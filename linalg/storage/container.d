@@ -125,7 +125,18 @@ struct DynamicArray(T)
         body
         {
             debug(container)
+            {
                 indent.writeln("DynamicArray<", &this, ">.opSlice()");
+                indent.add();
+                indent.writeln("...");
+                indent.add();
+                scope(exit)
+                    debug
+                    {
+                        indent.rem();
+                        indent.rem();
+                    }
+            }
             return DynamicArray(_pCounter, _array[]);
         }
 
@@ -137,8 +148,19 @@ struct DynamicArray(T)
         body
         {
             debug(container)
+            {
                 indent.writefln("DynamicArray<%X>.opSlice(%d, %d)",
                                 &this, lo, up);
+                indent.add();
+                indent.writeln("...");
+                indent.add();
+                scope(exit)
+                    debug
+                    {
+                        indent.rem();
+                        indent.rem();
+                    }
+            }
             return DynamicArray(_pCounter, _array[lo..up]);
         }
 
@@ -253,15 +275,37 @@ struct StaticArray(T, size_t size)
         inout(DynamicArray!T) opSlice() pure inout
         {
             debug(container)
+            {
                 indent.writeln("StaticArray<", &this, ">.opSlice()");
+                indent.add();
+                indent.writeln("...");
+                indent.add();
+                scope(exit)
+                    debug
+                    {
+                        indent.rem();
+                        indent.rem();
+                    }
+            }
             return DynamicArray!T(cast(inout T[]) _array[].dup);
         }
 
         inout(DynamicArray!T) opSlice(size_t lo, size_t up) pure inout
         {
             debug(container)
+            {
                 indent.writefln("StaticArray<%X>.opSlice(%d, %d)",
-                                      &this, lo, up);
+                                &this, lo, up);
+                indent.add();
+                indent.writeln("...");
+                indent.add();
+                scope(exit)
+                    debug
+                    {
+                        indent.rem();
+                        indent.rem();
+                    }
+            }
             return DynamicArray!T(cast(inout T[]) _array[lo..up].dup);
         }
 
