@@ -4,7 +4,7 @@ module linalg.matrix;
 
 import std.traits;
 
-debug import std.stdio;
+debug import linalg.debugging;
 
 version(unittest)
 {
@@ -40,22 +40,52 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     {
         inout this(inout ElementType[] array) pure
         {
+            debug(matrix)
+            {
+                indent.writefln("Matrix<%X>.this()", &this);
+                indent.add();
+                indent.writefln("array = <%X>, %d", array.ptr, array.length);
+                indent.writeln("...");
+                indent.add();
+                scope(exit)
+                    debug
+                    {
+                        indent.rem();
+                        indent.writefln("storage<%X>", &(this.storage));
+                        indent.rem();
+                    }
+            }
             //HACK
             auto tmp = StorageType(array);
             *cast(StorageType*)&storage =
                 *cast(StorageType*)&tmp;
-            debug writeln("Matrix.this()");
         }
     }
     else
     {
-        inout this(inout ElementType[] array, size_t nrows_, size_t ncols_) pure
+        inout this(inout ElementType[] array, size_t nrows, size_t ncols) pure
         {
+            debug(matrix)
+            {
+                indent.writefln("Matrix<%X>.this()", &this);
+                indent.add();
+                indent.writefln("array = <%X>, %d", array.ptr, array.length);
+                indent.writeln("nrwos = ", nrows);
+                indent.writeln("ncols = ", ncols);
+                indent.writeln("...");
+                indent.add();
+                scope(exit)
+                    debug
+                    {
+                        indent.rem();
+                        indent.writefln("storage<%X>", &(this.storage));
+                        indent.rem();
+                    }
+            }
             //HACK
-            auto tmp = StorageType(array, [nrows_, ncols_]);
+            auto tmp = StorageType(array, [nrows, ncols]);
             *cast(StorageType*)&storage =
                 *cast(StorageType*)&tmp;
-            debug writeln("Matrix.this()");
         }
     }
 
@@ -171,7 +201,20 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         ref auto opAssign(Tsource)(Tsource source)
             if(isMatrixOrView!Tsource)
         {
-            debug writeln("Matrix.opAssign()");
+            debug(matrix)
+            {
+                indent.writefln("Matrix<%X>.opAssign()", &this);
+                indent.add();
+                indent.writefln("source<%X>", &source);
+                indent.writeln("...");
+                indent.add();
+                scope(exit)
+                    debug
+                    {
+                        indent.rem();
+                        indent.rem();
+                    }
+            }
             linalg.storage.operations.copy(source.storage, this.storage);
             return this;
         }
@@ -211,7 +254,20 @@ struct MatrixView(SourceStorageType, bool oneRow, bool oneCol)
         auto opAssign(Tsource)(Tsource source)
             if(isMatrixOrView!Tsource)
         {
-            debug writeln("MatrixView.opAssign()");
+            debug(matrix)
+            {
+                indent.writefln("MatrixView<%X>.opAssign()", &this);
+                indent.add();
+                indent.writefln("source<%X>", &source);
+                indent.writeln("...");
+                indent.add();
+                scope(exit)
+                    debug
+                    {
+                        indent.rem();
+                        indent.rem();
+                    }
+            }
             linalg.storage.operations.copy(source.storage, storage);
             return this;
         }
