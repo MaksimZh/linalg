@@ -14,8 +14,6 @@ version(unittest)
 }
 
 import linalg.types;
-import linalg.storage.container;
-import linalg.storage.slice;
 import linalg.storage.mdarray;
 import linalg.storage.operations;
 
@@ -76,10 +74,9 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         enum bool isResizeable = !isStatic;
 
         static if(isStatic)
-            alias StaticArray!(ElementType, calcContainerSize(dimPattern))
-                ContainerType;
+            alias ElementType[calcContainerSize(dimPattern)] ContainerType;
         else
-            alias DynamicArray!ElementType ContainerType;
+            alias ElementType[] ContainerType;
     }
 
     package // Container, dimensions, strides
@@ -119,14 +116,13 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
                     debug
                     {
                         indent.rem();
-                        indent.writefln("container<%X> = <%X>, %d",
-                                        &(this.container),
+                        indent.writefln("container = <%X>, %d",
                                         this.container.ptr,
                                         this.container.length);
                         indent.rem();
                     }
             }
-            container = ContainerType(array);
+            container = array;
         }
     }
     else
@@ -144,45 +140,15 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
                     debug
                     {
                         indent.rem();
-                        indent.writefln("container<%X> = <%X>, %d",
-                                        &(this.container),
+                        indent.writefln("container = <%X>, %d",
                                         this.container.ptr,
                                         this.container.length);
                         indent.rem();
                     }
             }
-            container = ContainerType(calcContainerSize(dim));
             this.dim = dim;
             stride = calcStrides!storageOrder(dim);
-        }
-
-        inout this()(inout ContainerType container,
-                   in size_t[2] dim, in size_t[2] stride) pure
-        {
-            debug(storage)
-            {
-                indent.writefln("StorageDense2D<%X>.this()", &this);
-                indent.add();
-                indent.writefln("container<%X> = <%X>, %d",
-                                &container, container.ptr, container.length);
-                indent.writeln("dim = ", dim);
-                indent.writeln("stride = ", stride);
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.writefln("container<%X> = <%X>, %d",
-                                        &(this.container),
-                                        this.container.ptr,
-                                        this.container.length);
-                        indent.rem();
-                    }
-            }
-            this.container = container;
-            this.dim = dim;
-            this.stride = stride;
+            _reallocate();
         }
 
         inout this()(inout ElementType[] array, in size_t[2] dim) pure
@@ -206,9 +172,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
                         indent.rem();
                     }
             }
-            container = ContainerType(array);
-            this.dim = dim;
-            stride = calcStrides!storageOrder(dim);
+            this(array, dim, calcStrides!storageOrder(dim));
         }
 
         inout this()(inout ElementType[] array,
@@ -235,76 +199,9 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
                         indent.rem();
                     }
             }
-            container = ContainerType(array);
+            container = array;
             this.dim = dim;
             this.stride = stride;
-        }
-
-        pure ~this()
-        {
-            debug(storage)
-            {
-                indent.writeln("StorageDense2D<", &this, ">.~this()",
-                               " container<", &(this.container), ">.ptr = ",
-                               this.container.ptr);
-                indent.add();
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.rem();
-                    }
-            }
-            _release();
-        }
-    }
-
-    public // Copying
-    {
-        inout this(this) pure
-        {
-            onShare();
-            debug(storage)
-                indent.writeln("StorageDense2D<", &this, ">.this(this)",
-                               " container<", &(this.container), ">.ptr = ",
-                               this.container.ptr);
-        }
-
-        ref StorageDense2D opAssign(Tsource)(ref Tsource source) pure
-            if(is2DStorageOrView!Tsource)
-        {
-            debug(storage)
-            {
-                indent.writefln("StorageDense2D<%X>.opAssign()", &this);
-                indent.add();
-                indent.writefln("source.container<%X> = <%X>, %d",
-                                &source.container,
-                                source.container.ptr,
-                                source.container.length);
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.writefln("container<%X> = <%X>, %d",
-                                        &(this.container),
-                                        this.container.ptr,
-                                        this.container.length);
-                        indent.rem();
-                    }
-            }
-            onReset();
-            source.onShare();
-            container = source.container;
-            static if(!isStatic)
-            {
-                dim = source.dim;
-                stride = source.stride;
-            }
-            return this;
         }
     }
 
@@ -356,7 +253,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
                         }
                 }
                 stride = calcStrides!storageOrder(dim);
-                container = ContainerType(calcContainerSize(dim));
+                container = new ElementType[calcContainerSize(dim)];
             }
 
             void setDim(in size_t[2] dim_) pure
@@ -372,385 +269,32 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         }
     }
 
-    public // Copy-on-write support
-    {
-        private void _share() pure const
-        {
-            debug(cow)
-            {
-                indent.writefln("StorageDense2D<%X>._share()", &this);
-                indent.add();
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.rem();
-                    }
-            }
-            static if(!isStatic)
-            {
-                container.addRef();
-            }
-        }
-
-        private void _unshare() pure
-        {
-            debug(cow)
-            {
-                indent.writefln("StorageDense2D<%X>._unshare()", &this);
-                indent.add();
-                indent.writeln("container.isShared = ", container.isShared);
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.writefln("container<%X> = <%X>, %d",
-                                        &(this.container),
-                                        this.container.ptr,
-                                        this.container.length);
-                        indent.rem();
-                    }
-            }
-            static if(!isStatic)
-            {
-                if(!container.isShared)
-                    return;
-                container.remRef();
-                auto oldContainer = container;
-                auto oldStride = stride;
-                _reallocate();
-                copy2D(oldContainer.array, oldStride,
-                       container.array, stride, dim);
-            }
-        }
-
-        private void _release() pure const
-        {
-            debug(cow)
-            {
-                indent.writefln("StorageDense2D<%X>._release()", &this);
-                indent.add();
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.rem();
-                    }
-            }
-            static if(!isStatic)
-            {
-                if(!container.isInitialized)
-                    return;
-                if(!container.isShared)
-                    return;
-                container.remRef();
-            }
-        }
-
-        /* Call this method before changing data */
-        void onChange() pure
-        {
-            debug(cow)
-            {
-                indent.writefln("StorageDense2D<%X>.onChange()", &this);
-                indent.add();
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.rem();
-                    }
-            }
-            _unshare();
-        }
-
-        /* Call this method before sharing data */
-        void onShare() pure const
-        {
-            debug(cow)
-            {
-                indent.writefln("StorageDense2D<%X>.onShare()", &this);
-                indent.add();
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.rem();
-                    }
-            }
-            _share();
-        }
-
-        /* Call this method before data reallocation */
-        void onReset() pure
-        {
-            debug(cow)
-            {
-                indent.writefln("StorageDense2D<%X>.onReset()", &this);
-                indent.add();
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.rem();
-                    }
-            }
-            _release();
-            static if(!isStatic)
-            {
-                container = typeof(container).init;
-            }
-        }
-    }
-
     public // Slices and indices support
     {
         package size_t mapIndex(size_t irow, size_t icol) pure const
         {
             return irow * stride[0] + icol * stride[1];
         }
+    }
 
-        ref const(ElementType) readElement(size_t irow, size_t icol) pure const
-        {
-            return container[mapIndex(irow, icol)];
-        }
-
-        ref ElementType takeElement(size_t irow, size_t icol) pure
-        {
-            onChange();
-            return container[mapIndex(irow, icol)];
-        }
-
-        inout(ViewDense2D!(typeof(this)))
-            slice(SliceBounds row, SliceBounds col) pure inout
-        {
-            debug(slice)
-            {
-                indent.writefln("StorageDense2D<%X>.slice(%s, %s)",
-                                &this, row, col);
-                indent.add();
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.rem();
-                    }
-            }
-            return typeof(return)(this,
-                                  [row.lo, col.lo],
-                                  [row.up - row.lo, col.up - col.lo],
-                                  [row.st || 1, col.st || 1]);
-        }
+    @property StorageDense2D dup() pure const
+    {
+        auto result = StorageDense2D(this.dim);
+        copy2D(this.container, this.stride,
+               result.container, result.stride,
+               result.dim);
+        return result;
     }
 
     ElementType[][] opCast() pure const
     {
-        return toArray(container.array, dim, stride);
+        return toArray(container, dim, stride);
     }
 }
 
-/* Dense multidimensional storage */
-struct ViewDense2D(StorageType)
+template isStorageDense2D(T)
 {
-    public // Check and process parameters
-    {
-        enum size_t[] dimPattern = [dynamicSize, dynamicSize];
-
-        alias StorageType.ElementType ElementType; // Type of the array elements
-        public enum uint rank = 2; // Number of dimensions
-        alias StorageType.storageOrder storageOrder;
-
-        /* Whether this is a static array with fixed dimensions and strides */
-        enum bool isStatic = false;
-        enum bool isResizeable = false;
-
-        alias DynamicArray!ElementType ContainerType;
-    }
-
-    package // Container, dimensions, strides
-    {
-        StorageType* pStorage;
-        const size_t[2] offset;
-        const size_t[2] viewStride;
-
-        @property inout(ContainerType) container() pure inout
-        {
-            size_t start = offset[0] * stride[0] + offset[1] * stride[1];
-            size_t finish =
-                start
-                + (dim[0] - 1) * stride[0]
-                + (dim[1] - 1) * stride[1]
-                + 1;
-            return pStorage.container[start..finish];
-        }
-        const size_t[2] dim;
-        @property const size_t[2] stride() pure const
-        {
-            return [pStorage.stride[0] * viewStride[0],
-                    pStorage.stride[1] * viewStride[1]];
-        }
-    }
-
-    /* Constructor */
-    inout this(ref inout StorageType storage,
-               in size_t[2] offset,
-               in size_t[2] dim,
-               in size_t[2] stride) pure
-    {
-        debug(slice)
-        {
-            indent.writefln("ViewDense2D<%X>.this()", &this);
-            indent.add();
-            indent.writeln("offset = ", offset);
-            indent.writeln("dim = ", dim);
-            indent.writeln("stride = ", stride);
-            indent.writeln("...");
-            indent.add();
-            scope(exit)
-                debug
-                {
-                    indent.rem();
-                    indent.writefln("pStorage = <%X>", pStorage);
-                    indent.writefln("container = <%X>, %d",
-                                    this.container.ptr,
-                                    this.container.length);
-                    indent.rem();
-                }
-        }
-        pStorage = &storage;
-        this.offset = offset;
-        this.dim = dim;
-        viewStride = stride;
-    }
-
-    public // Dimensions and memory
-    {
-        @property size_t nrows() pure const { return dim[0]; }
-        @property size_t ncols() pure const { return dim[1]; }
-
-        /* Test dimensions for compatibility */
-        bool isCompatDim(in size_t[] dim_) pure
-        {
-            return dim == dim_;
-        }
-    }
-
-    public // Copy-on-write support
-    {
-        /* Call this method before changing data */
-        package void onChange() pure
-        {
-            debug(cow)
-            {
-                indent.writefln("ViewDense2D<%X>.onChange()", &this);
-                indent.add();
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.rem();
-                    }
-            }
-            pStorage.onChange();
-        }
-
-        /* Call this method before sharing data */
-        package void onShare() pure
-        {
-            debug(cow)
-            {
-                indent.writefln("ViewDense2D<%X>.onShare()", &this);
-                indent.add();
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.rem();
-                    }
-            }
-            pStorage.onShare();
-        }
-    }
-
-    public // Slices and indices support
-    {
-        package size_t mapIndex(size_t irow, size_t icol) pure const
-        {
-            return irow * viewStride[0] + icol * viewStride[1];
-        }
-
-        ref const(ElementType) readElement(size_t irow, size_t icol) pure const
-        {
-            return pStorage.container[mapIndex(irow, icol)];
-        }
-
-        ref ElementType takeElement(size_t irow, size_t icol) pure
-        {
-            onChange();
-            return pStorage.container[mapIndex(irow, icol)];
-        }
-
-        inout(ViewDense2D!(typeof(*pStorage)))
-            slice(SliceBounds row, SliceBounds col) pure inout
-        {
-            debug(slice)
-            {
-                indent.writefln("ViewDense2D<%X>.slice(%s, %s)",
-                                &this, row, col);
-                indent.add();
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.rem();
-                    }
-            }
-            return typeof(return)(*pStorage,
-                                  [row.lo, col.lo],
-                                  [row.up - row.lo, col.up - col.lo],
-                                  stride);
-        }
-    }
-
-    ElementType[][] opCast() pure const
-    {
-        return toArray(container.array, dim, stride);
-    }
-}
-
-template is2DStorage(T)
-{
-    enum bool is2DStorage = isInstanceOf!(StorageDense2D, T);
-}
-
-template is2DView(T)
-{
-    enum bool is2DView = isInstanceOf!(ViewDense2D, T);
-}
-
-template is2DStorageOrView(T)
-{
-    enum bool is2DStorageOrView = is2DStorage!T || is2DView!T;
+    enum bool isStorageDense2D = isInstanceOf!(StorageDense2D, T);
 }
 
 struct ByElement(ElementType, bool mutable = true)
@@ -864,76 +408,4 @@ void copy2D(T)(in T[] source, in size_t[2] sStride,
         d = isource.front;
         isource.popFront();
     }
-}
-
-unittest
-{
-    debug(storage) writeln("storage-unittest-begin");
-    debug(storage) writeln("a");
-    auto a = StorageDense2D!(int, StorageOrder.rowMajor,
-                             dynamicSize, dynamicSize)(
-                                 array(iota(24)), [4, 6]);
-    assert(!a.container.isShared);
-    debug(storage) writeln("a.onChange");
-    a.onChange();
-    assert(!a.container.isShared);
-    debug(storage) writeln("b = a");
-    auto b = a;
-    assert(a.container.isShared);
-    assert(b.container.isShared);
-    assert(b.container.intersect(a.container));
-    debug(storage) writeln("b.onChange");
-    b.onChange();
-    assert(!a.container.isShared);
-    assert(!b.container.isShared);
-    assert(!b.container.intersect(a.container));
-    debug(storage) writeln("b = a");
-    b = a;
-    assert(a.container.isShared);
-    assert(b.container.isShared);
-    assert(b.container.intersect(a.container));
-    debug(storage) writeln("a.onChange");
-    a.onChange();
-    assert(!a.container.isShared);
-    assert(!b.container.isShared);
-    assert(!b.container.intersect(a.container));
-    debug(storage) writeln("storage-unittest-end");
-}
-
-unittest
-{
-    debug(storage) writeln("storage-unittest-begin");
-    alias
-        StorageDense2D!(int, StorageOrder.rowMajor,
-                        dynamicSize, dynamicSize)
-        S;
-    debug(storage) writeln("a");
-    auto a = S(array(iota(24)), [4, 6]);
-    assert(!a.container.isShared);
-    debug(storage) writeln("b = a");
-    const(S) b = a;
-    assert(a.container.isShared);
-    assert(b.container.isShared);
-    assert(b.container.intersect(a.container));
-    if(true)
-    {
-        debug(storage) writeln("c = b");
-        const(S) c = b;
-        assert(a.container.isShared);
-        assert(b.container.isShared);
-        assert(c.container.isShared);
-        assert(b.container.intersect(a.container));
-        assert(c.container.intersect(a.container));
-        assert(c.container.intersect(b.container));
-        debug(storage) writeln("a.onChange");
-        a.onChange();
-        assert(!a.container.isShared);
-        assert(b.container.isShared);
-        assert(c.container.isShared);
-        assert(!b.container.intersect(a.container));
-        assert(!c.container.intersect(a.container));
-        assert(c.container.intersect(b.container));
-    }
-    assert(!b.container.isShared);
-    debug(storage) writeln("storage-unittest-end");
 }

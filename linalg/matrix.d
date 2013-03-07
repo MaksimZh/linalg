@@ -15,7 +15,6 @@ version(unittest)
 public import linalg.types;
 
 import linalg.storage.dense2d;
-import linalg.storage.slice;
 
 struct Matrix(T, size_t nrows_, size_t ncols_,
               StorageOrder storageOrder_ = StorageOrder.rowMajor)
@@ -89,203 +88,6 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         }
     }
 
-    public // Regular indices interface
-    {
-        //TODO: make assignment accept any suitable type
-
-        ref const(ElementType) opIndex(size_t irow, size_t icol) pure const
-        {
-            return storage.readElement(irow, icol);
-        }
-
-        ref ElementType opIndexAssign(ElementType rhs,
-                                      size_t irow, size_t icol) pure
-        {
-            storage.takeElement(irow, icol) = rhs; //DMD: Not lvalue???
-            return storage.takeElement(irow, icol);
-        }
-
-        ref ElementType opIndexUnary(string op)(size_t irow, size_t icol) pure
-        {
-            return mixin(op ~ "(storage.takeElement(irow, icol))");
-        }
-
-        ref ElementType opIndexOpAssign(string op)(ElementType rhs,
-                                                   size_t irow,
-                                                   size_t icol) pure
-        {
-            return mixin("storage.takeElement(irow, icol) " ~ op ~ "= rhs");
-        }
-    }
-
-    public // Slice interface
-    {
-        auto opSlice()
-        {
-            return SliceProxy!false(&this, SliceBounds(0, nrows));
-        }
-
-        auto opSlice(size_t lo, size_t up)
-        {
-            return SliceProxy!false(&this, SliceBounds(lo, up));
-        }
-
-        auto opIndex(size_t i)
-        {
-            return SliceProxy!true(&this, SliceBounds(i));
-        }
-
-        struct SliceProxy(bool isIndex)
-        {
-            const SliceBounds bounds;
-
-            Matrix* pSource; // Pointer to the matrix being sliced
-
-            private this(Matrix* pSource_, in SliceBounds bounds_)
-            {
-                pSource = pSource_;
-                bounds = bounds_;
-            }
-
-            static if(isIndex)
-            {
-                ref const(ElementType) opIndex(size_t i) pure const
-                {
-                    return (*pSource)[bounds.lo, i];
-                }
-
-                ref ElementType opIndexAssign(ElementType rhs,
-                                              size_t i) pure
-                {
-                    return (*pSource)[bounds.lo, i] = rhs;
-                }
-
-                ref ElementType opIndexUnary(string op)(size_t i) pure
-                {
-                    return mixin(op ~ "((*pSource)[bounds.lo, i])");
-                }
-
-                ref ElementType opIndexOpAssign(string op)(ElementType rhs,
-                                                           size_t i) pure
-                {
-                    return mixin(
-                        "(*pSource)[bounds.lo, i] " ~ op ~ "= rhs");
-                }
-            }
-            else
-            {
-                ref inout auto opIndex(size_t i) pure inout
-                {
-                    return MatrixView!(StorageType, false, true)(
-                        pSource.storage.slice(bounds, SliceBounds(i)));
-                }
-            }
-
-            ref inout auto opSlice() pure inout
-            {
-                return MatrixView!(StorageType, isIndex, false)(
-                    pSource.storage.slice(
-                        bounds, SliceBounds(0, pSource.ncols)));
-            }
-
-            ref inout auto opSlice(size_t lo, size_t up) pure inout
-            {
-                return MatrixView!(StorageType, isIndex, false)(
-                    pSource.storage.slice(bounds, SliceBounds(lo, up)));
-            }
-        }
-    }
-
-    public // Assignment
-    {
-        ref auto opAssign(Tsource)(auto ref Tsource source)
-            if(isMatrixOrView!Tsource)
-        {
-            debug(matrix)
-            {
-                indent.writefln("Matrix<%X>.opAssign()", &this);
-                indent.add();
-                indent.writefln("source<%X>", &source);
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.rem();
-                    }
-            }
-            linalg.storage.operations.copy(source.storage, this.storage);
-            return this;
-        }
-    }
-
-    ElementType[][] opCast() pure const
-    {
-        return cast(typeof(return)) storage;
-    }
-}
-
-struct MatrixView(SourceStorageType, bool oneRow, bool oneCol)
-{
-    alias ViewDense2D!(SourceStorageType) StorageType;
-    public // Forward type parameters
-    {
-        alias StorageType.ElementType ElementType;
-        alias StorageType.isStatic isStatic;
-    }
-
-    /* Storage of matrix data */
-    private StorageType storage;
-    public // Forward storage parameters
-    {
-        @property size_t nrows() pure const { return storage.nrows; }
-        @property size_t ncols() pure const { return storage.ncols; }
-    }
-
-    /* Constructor */
-    inout this(inout StorageType storage) pure
-    {
-        debug(matrix)
-        {
-            indent.writefln("MatrixView<%X>.this()", &this);
-            indent.add();
-            indent.writeln("...");
-            indent.add();
-            scope(exit)
-                debug
-                {
-                    indent.rem();
-                    indent.rem();
-                }
-        }
-        this.storage = storage;
-    }
-
-    public // Assignment
-    {
-        auto opAssign(Tsource)(auto ref Tsource source)
-            if(isMatrixOrView!Tsource)
-        {
-            debug(matrix)
-            {
-                indent.writefln("MatrixView<%X>.opAssign()", &this);
-                indent.add();
-                indent.writefln("source<%X>", &source);
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.rem();
-                    }
-            }
-            linalg.storage.operations.copy(source.storage, storage);
-            return this;
-        }
-    }
-
     ElementType[][] opCast() pure const
     {
         return cast(typeof(return)) storage;
@@ -297,16 +99,7 @@ template isMatrix(T)
     enum bool isMatrix = isInstanceOf!(Matrix, T);
 }
 
-template isMatrixView(T)
-{
-    enum bool isMatrixView = isInstanceOf!(MatrixView, T);
-}
-
-template isMatrixOrView(T)
-{
-    enum bool isMatrixOrView = isMatrix!T || isMatrixView!T;
-}
-
+version(none){
 unittest // Regular indices
 {
     debug writeln("matrix-unittest-begin");
@@ -417,4 +210,5 @@ unittest // Assignment for slices
     assert(cast(int[][]) a == test);
     a[1][1] = 100;
     assert(a[1][1] == 100);
+}
 }
