@@ -17,7 +17,7 @@ public import linalg.types;
 import linalg.storage.dense2d;
 
 struct Matrix(T, size_t nrows_, size_t ncols_,
-              StorageOrder storageOrder_ = StorageOrder.rowMajor)
+              StorageOrder storageOrder_ = defaultStorageOrder)
 {
     alias StorageDense2D!(T, storageOrder_, nrows_, ncols_) StorageType;
     public // Forward type parameters
@@ -88,6 +88,24 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         }
     }
 
+    public // Slices and indices support
+    {
+        auto opSlice(size_t dimIndex)(size_t lo, size_t up) pure const
+        {
+            return storage.opSlice!(dimIndex)(lo, up);
+        }
+
+        auto opDollar(size_t dimIndex)() pure const
+        {
+            return storage.opDollar!(dimIndex);
+        }
+
+        ref inout auto opIndex(size_t irow, size_t icol) pure inout
+        {
+            return storage.opIndex(irow, icol);
+        }
+    }
+
     ElementType[][] opCast() pure const
     {
         return cast(typeof(return)) storage;
@@ -99,18 +117,21 @@ template isMatrix(T)
     enum bool isMatrix = isInstanceOf!(Matrix, T);
 }
 
-version(none){
 unittest // Regular indices
 {
     debug writeln("matrix-unittest-begin");
     auto a = Matrix!(int, 4, 6)(array(iota(24)));
     assert(a[1, 2] == 8);
     assert((a[1, 2] = 80) == 80);
-    assert((++a[1, 2]) == 81);
-    assert((a[1, 2] += 3) == 84);
+    assert(a[1, 2] == 80);
+    ++a[1, 2];
+    assert(a[1, 2] == 81);
+    a[1, 2] += 3;
+    assert(a[1, 2] == 84);
     debug writeln("matrix-unittest-end");
 }
 
+version(none){
 unittest // Regular indices through slices
 {
     debug writeln("matrix-unittest-begin");

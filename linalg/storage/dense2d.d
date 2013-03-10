@@ -313,7 +313,9 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
 
     @property StorageDense2D dup() pure const
     {
-        auto result = StorageDense2D(this.dim);
+        //DMD: ... inout variables can only be declared inside inout functions
+        //auto result = StorageDense2D(this.dim);
+        StorageDense2D result = StorageDense2D(this.dim);
         copy2D(this.container, this.stride,
                result.container, result.stride,
                result.dim);
