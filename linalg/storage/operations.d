@@ -14,4 +14,12 @@ void copy(Tsource, Tdest)(const ref Tsource source, ref Tdest dest) pure
     }
 body
 {
+    alias source.ElementType T;
+    auto isource = source.byElement;
+    auto idest = dest.byElement;
+    foreach(ref d; idest)
+    {
+        d = isource.front;
+        isource.popFront();
+    }
 }

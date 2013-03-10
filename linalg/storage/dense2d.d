@@ -17,6 +17,7 @@ import linalg.types;
 import linalg.storage.mdarray;
 import linalg.storage.operations;
 import linalg.storage.slice;
+import linalg.storage.iterators;
 
 private // Auxiliary functions
 {
@@ -316,9 +317,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         //DMD: ... inout variables can only be declared inside inout functions
         //auto result = StorageDense2D(this.dim);
         StorageDense2D result = StorageDense2D(this.dim);
-        copy2D(this.container, this.stride,
-               result.container, result.stride,
-               result.dim);
+        copy(this, result);
         return result;
     }
 
@@ -326,128 +325,23 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
     {
         return toArray(container, dim, stride);
     }
+
+    @property auto byElement() pure
+    {
+        return ByElement!(ElementType, true)(container,
+                                             dim,
+                                             stride);
+    }
+
+    @property auto byElement() pure const
+    {
+        return ByElement!(ElementType, false)(container,
+                                              dim,
+                                              stride);
+    }
 }
 
 template isStorageDense2D(T)
 {
     enum bool isStorageDense2D = isInstanceOf!(StorageDense2D, T);
-}
-
-struct ByElement(ElementType, bool mutable = true)
-{
-    //TODO: optimize for 2d
-    private
-    {
-        const size_t[] _dim;
-        const size_t[] _stride;
-        static if(mutable)
-            ElementType[] _data;
-        else
-            const ElementType[] _data;
-
-        uint _rank;
-        static if(mutable)
-            ElementType* _ptr;
-        else
-            const(ElementType)* _ptr;
-        size_t[] _index;
-        bool _empty;
-    }
-
-    static if(mutable)
-    {
-        this(ElementType[] data, in size_t[] dim, in size_t[] stride) pure
-            in
-            {
-                assert(stride.length == dim.length);
-            }
-        body
-        {
-            _dim = dim;
-            _stride = stride;
-            _data = data;
-            _rank = cast(uint) dim.length;
-            _ptr = _data.ptr;
-            _index = new size_t[_rank];
-            _empty = false;
-        }
-    }
-    else
-    {
-        this(in ElementType[] data, in size_t[] dim, in size_t[] stride) pure
-            in
-            {
-                assert(stride.length == dim.length);
-            }
-        body
-        {
-            _dim = dim;
-            _stride = stride;
-            _data = data;
-            _rank = cast(uint) dim.length;
-            _ptr = _data.ptr;
-            _index = new size_t[_rank];
-            _empty = false;
-        }
-    }
-
-    @property bool empty() pure const { return _empty; }
-    static if(mutable)
-        @property ref ElementType front() pure { return *_ptr; }
-    else
-        @property ElementType front() pure { return *_ptr; }
-    void popFront() pure
-    {
-        int i = _rank - 1;
-        while((i >= 0) && (_index[i] == _dim[i] - 1))
-        {
-            _ptr -= _stride[i] * _index[i];
-            _index[i] = 0;
-            --i;
-        }
-        if(i >= 0)
-        {
-            _ptr += _stride[i];
-            ++_index[i];
-        }
-        else
-            _empty = true;
-    }
-}
-
-void copy2D(T)(in T[] source, in size_t[2] sStride,
-               T[] dest, in size_t[2] dStride,
-               in size_t[2] dim) pure
-{
-    debug(copy)
-    {
-        indent.writeln("copy2D");
-        indent.add();
-        indent.writefln("source = <%X>, %d", source.ptr, source.length);
-        indent.writeln("sStride = ", sStride);
-        indent.writefln("dest = <%X>, %d", dest.ptr, dest.length);
-        indent.writeln("dStride = ", dStride);
-        indent.writeln("dim = ", dim);
-        indent.writeln("...");
-        indent.add();
-        scope(exit)
-            debug
-            {
-                indent.rem();
-                indent.rem();
-            }
-    }
-    auto isource = ByElement!(T, false)(source, dim, sStride);
-    auto idest = ByElement!(T, true)(dest, dim, dStride);
-    foreach(ref d; idest)
-    {
-        d = isource.front;
-        isource.popFront();
-    }
-}
-
-unittest
-{
-    auto a = StorageDense2D!(int, StorageOrder.rowMajor,
-                             dynamicSize, dynamicSize)([4, 4]);
 }
