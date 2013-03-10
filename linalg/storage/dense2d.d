@@ -16,6 +16,7 @@ version(unittest)
 import linalg.types;
 import linalg.storage.mdarray;
 import linalg.storage.operations;
+import linalg.storage.slice;
 
 private // Auxiliary functions
 {
@@ -275,6 +276,39 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         {
             return irow * stride[0] + icol * stride[1];
         }
+
+        Slice opSlice(size_t dimIndex)(size_t lo, size_t up) pure const
+        {
+            return Slice(lo, up);
+        }
+
+        size_t opDollar(size_t dimIndex)() pure const
+        {
+            return dim[dimIndex];
+        }
+
+        ref inout auto opIndex(size_t irow, size_t icol) pure inout
+        {
+            return container[mapIndex(irow, icol)];
+        }
+
+        ref inout auto opIndex(Slice srow, size_t icol) pure inout
+        {
+            debug(slice) writeln("slice ", srow, ", ", icol);
+            return container[mapIndex(srow.lo, icol)]; //FIXME
+        }
+
+        ref inout auto opIndex(size_t irow, Slice scol) pure inout
+        {
+            debug(slice) writeln("slice ", irow, ", ", scol);
+            return container[mapIndex(irow, scol.lo)]; //FIXME
+        }
+
+        ref inout auto opIndex(Slice srow, Slice scol) pure inout
+        {
+            debug(slice) writeln("slice ", srow, ", ", scol);
+            return container[mapIndex(srow.lo, scol.lo)]; //FIXME
+        }
     }
 
     @property StorageDense2D dup() pure const
@@ -408,4 +442,10 @@ void copy2D(T)(in T[] source, in size_t[2] sStride,
         d = isource.front;
         isource.popFront();
     }
+}
+
+unittest
+{
+    auto a = StorageDense2D!(int, StorageOrder.rowMajor,
+                             dynamicSize, dynamicSize)([4, 4]);
 }
