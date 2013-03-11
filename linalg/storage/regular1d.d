@@ -1,6 +1,6 @@
 // Written in the D programming language.
 
-module linalg.storage.regular2d;
+module linalg.storage.regular1d;
 
 import std.algorithm;
 import std.traits;
@@ -21,61 +21,33 @@ import linalg.storage.iterators;
 
 private // Auxiliary functions
 {
-    // Calculates strides in data array for dense storage
-    size_t[2] calcStrides(StorageOrder storageOrder)(in size_t[2] dim) pure
-    {
-        static if(storageOrder == StorageOrder.rowMajor)
-            return [dim[1], 1];
-        else static if(storageOrder == StorageOrder.colMajor)
-            return [1, dim[0]];
-        else
-            static assert(false);
-    }
-
-    // Calculates container size for dense storage
-    size_t calcContainerSize(in size_t[2] dim) pure
-    {
-        return dim[0] * dim[1];
-    }
-
     // Convert storage to built-in multidimensional array
     auto toArray(T)(in T[] container,
-                    in size_t[2] dim,
-                    in size_t[2] stride) pure
+                    size_t dim,
+                    size_t stride) pure
     {
-        auto result = new T[][](dim[0], dim[1]);
-        foreach(i; 0..dim[0])
-            foreach(j; 0..dim[1])
-                result[i][j] = container[i*stride[0] + j*stride[1]];
+        auto result = new T[](dim);
+        foreach(i; 0..dim)
+            result[i] = container[i*stride];
         return result;
-    }
-
-    unittest // toArray
-    {
-        assert(toArray(array(iota(12)), [3, 4], [4, 1])
-               == [[0, 1, 2, 3],
-                   [4, 5, 6, 7],
-                   [8, 9, 10, 11]]);
     }
 }
 
 /* Regular multidimensional storage */
-struct StorageRegular2D(T, StorageOrder storageOrder_,
-                      size_t nrows_, size_t ncols_)
+struct StorageRegular1D(T, size_t dim_)
 {
     public // Check and process parameters
     {
-        enum size_t[] dimPattern = [nrows_, ncols_];
+        enum size_t dimPattern = dim_;
 
         alias T ElementType; // Type of the array elements
-        public enum uint rank = 2; // Number of dimensions
-        enum StorageOrder storageOrder = storageOrder_;
+        public enum uint rank = 1; // Number of dimensions
 
         /* Whether this is a static array with fixed dimensions and strides */
-        enum bool isStatic = !canFind(dimPattern, dynamicSize);
+        enum bool isStatic = dimPattern != dynamicSize;
 
         static if(isStatic)
-            alias ElementType[calcContainerSize(dimPattern)] ContainerType;
+            alias ElementType[dimPattern] ContainerType;
         else
             alias ElementType[] ContainerType;
     }
@@ -86,13 +58,13 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
         static if(isStatic)
         {
-            enum size_t[2] dim = dimPattern;
-            enum size_t[2] stride = calcStrides!storageOrder(dim);
+            enum size_t dim = dimPattern;
+            enum size_t stride = 1;
         }
         else
         {
-            size_t[2] dim;
-            size_t[2] stride;
+            size_t dim;
+            size_t stride;
         }
     }
 
@@ -108,7 +80,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         {
             debug(storage)
             {
-                indent.writefln("StorageRegular2D<%X>.this()", &this);
+                indent.writefln("StorageRegular1D<%X>.this()", &this);
                 indent.add();
                 indent.writefln("array = <%X>, %d", array.ptr, array.length);
                 indent.writeln("...");
@@ -128,11 +100,11 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
     }
     else
     {
-        this()(in size_t[2] dim)
+        this()(size_t dim)
         {
             debug(storage)
             {
-                indent.writefln("StorageRegular2D<%X>.this()", &this);
+                indent.writefln("StorageRegular1D<%X>.this()", &this);
                 indent.add();
                 indent.writeln("dim = ", dim);
                 indent.writeln("...");
@@ -148,18 +120,17 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                     }
             }
             this.dim = dim;
-            stride = calcStrides!storageOrder(dim);
+            stride = 1;
             _reallocate();
         }
 
-        inout this()(inout ElementType[] array, in size_t[2] dim) pure
+        inout this()(inout ElementType[] array) pure
         {
             debug(storage)
             {
-                indent.writefln("StorageRegular2D<%X>.this()", &this);
+                indent.writefln("StorageRegular1D<%X>.this()", &this);
                 indent.add();
                 indent.writefln("array = <%X>, %d", array.ptr, array.length);
-                indent.writeln("dim = ", dim);
                 indent.writeln("...");
                 indent.add();
                 scope(exit)
@@ -173,15 +144,15 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                         indent.rem();
                     }
             }
-            this(array, dim, calcStrides!storageOrder(dim));
+            this(array, array.length, 1);
         }
 
         inout this()(inout ElementType[] array,
-                     in size_t[2] dim, in size_t[2] stride) pure
+                     size_t dim, size_t stride) pure
         {
             debug(storage)
             {
-                indent.writefln("StorageRegular2D<%X>.this()", &this);
+                indent.writefln("StorageRegular1D<%X>.this()", &this);
                 indent.add();
                 indent.writefln("array = <%X>, %d",
                                 array.ptr, array.length);
@@ -208,24 +179,18 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
     public // Dimensions and memory
     {
-        @property size_t nrows() pure const { return dim[0]; }
-        @property size_t ncols() pure const { return dim[1]; }
+        @property size_t length() pure const { return dim; }
 
         /* Test dimensions for compatibility */
-        bool isCompatDim(in size_t[] dim_) pure
+        bool isCompatDim(in size_t dim) pure
         {
             static if(isStatic)
             {
-                return dim == dim_;
+                return dim == dimPattern;
             }
             else
             {
-                if(dim.length != rank)
-                    return false;
-                foreach(i, d; dim_)
-                    if((d != dimPattern[i]) && (dimPattern[i] != dynamicSize))
-                        return false;
-                return true;
+                return (dim == dimPattern) || (dimPattern == dynamicSize);
             }
         }
 
@@ -238,7 +203,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             {
                 debug(storage)
                 {
-                    indent.writefln("StorageRegular2D<%X>._reallocate()", &this);
+                    indent.writefln("StorageRegular1D<%X>._reallocate()", &this);
                     indent.add();
                     indent.writeln("...");
                     indent.add();
@@ -253,18 +218,18 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                             indent.rem();
                         }
                 }
-                stride = calcStrides!storageOrder(dim);
-                container = new ElementType[calcContainerSize(dim)];
+                stride = 1;
+                container = new ElementType[dim];
             }
 
-            void setDim(in size_t[2] dim_) pure
+            void setDim(in size_t dim) pure
                 in
                 {
                     assert(isCompatDim(dim));
                 }
             body
             {
-                dim = dim_;
+                this.dim = dim;
                 _reallocate();
             }
         }
@@ -272,62 +237,47 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
     public // Slices and indices support
     {
-        package size_t mapIndex(size_t irow, size_t icol) pure const
+        package size_t mapIndex(size_t i) pure const
         {
-            return irow * stride[0] + icol * stride[1];
+            return i * stride;
         }
-
-        //TODO:
-        /+package auto slice(Slice srow, Slice scol) pure const
-        {
-            return StorageOrder2D!(ElementType, storageOder,
-                                   dynamicSize, dynamicSize);
-        }+/
 
         Slice opSlice(size_t dimIndex)(size_t lo, size_t up) pure const
         {
+            static assert(dimIndex == 0);
             return Slice(lo, up);
         }
 
         size_t opDollar(size_t dimIndex)() pure const
         {
-            return dim[dimIndex];
+            static assert(dimIndex == 0);
+            return dim;
         }
 
-        ref inout auto opIndex(size_t irow, size_t icol) pure inout
+        ref inout auto opIndex(size_t i) pure inout
         {
-            return container[mapIndex(irow, icol)];
+            return container[mapIndex(i)];
         }
 
-        ref inout auto opIndex(Slice srow, size_t icol) pure inout
+        ref inout auto opIndex(Slice s) pure inout
         {
-            debug(slice) writeln("slice ", srow, ", ", icol);
-            return container[mapIndex(srow.lo, icol)]; //FIXME
-        }
-
-        ref inout auto opIndex(size_t irow, Slice scol) pure inout
-        {
-            debug(slice) writeln("slice ", irow, ", ", scol);
-            return container[mapIndex(irow, scol.lo)]; //FIXME
-        }
-
-        ref inout auto opIndex(Slice srow, Slice scol) pure inout
-        {
-            debug(slice) writeln("slice ", srow, ", ", scol);
-            return container[mapIndex(srow.lo, scol.lo)]; //FIXME
+            debug(slice) writeln("slice ", s);
+            return StorageRegular1D!(ElementType, dynamicSize)(
+                container[mapIndex(s.lo)..mapIndex(s.up)], s.length, stride);
         }
     }
 
-    @property StorageRegular2D dup() pure const
+    /* Makes copy of the data and returns new storage referring to it.
+       The storage returned is always dynamic.
+    */
+    @property auto dup() pure const
     {
-        //DMD: ... inout variables can only be declared inside inout functions
-        //auto result = StorageRegular2D(this.dim);
-        StorageRegular2D result = StorageRegular2D(this.dim);
+        auto result = StorageRegular1D(this.dim);
         copy(this, result);
         return result;
     }
 
-    ElementType[][] opCast() pure const
+    ElementType[] opCast() pure const
     {
         return toArray(container, dim, stride);
     }
@@ -347,7 +297,73 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
     }
 }
 
-template isStorageRegular2D(T)
+template isStorageRegular1D(T)
 {
-    enum bool isStorageRegular2D = isInstanceOf!(StorageRegular2D, T);
+    enum bool isStorageRegular1D = isInstanceOf!(StorageRegular1D, T);
+}
+
+/* Iterator */
+struct ByElement(ElementType, bool mutable = true)
+{
+    private
+    {
+        static if(mutable)
+            ElementType[] _data;
+        else
+            const ElementType[] _data;
+        const size_t _dim;
+        const size_t _stride;
+
+        static if(mutable)
+            ElementType* _ptr;
+        else
+            const(ElementType)* _ptr;
+        const ElementType* _ptrFin;
+    }
+
+    static if(mutable)
+    {
+        this(ElementType[] data, size_t dim, size_t stride) pure
+        {
+            _data = data;
+            _dim = dim;
+            _stride = stride;
+            _ptr = _data.ptr;
+            _ptrFin = _data.ptr + dim;
+        }
+    }
+    else
+    {
+        this(in ElementType[] data, size_t dim, size_t stride) pure
+        {
+            _data = data;
+            _dim = dim;
+            _stride = stride;
+            _ptr = _data.ptr;
+            _ptrFin = _data.ptr + dim;
+        }
+    }
+
+    @property bool empty() pure const { return _ptr < _ptrFin; }
+    static if(mutable)
+        @property ref ElementType front() pure { return *_ptr; }
+    else
+        @property ElementType front() pure { return *_ptr; }
+    void popFront() pure { _ptr += _stride; }
+}
+
+unittest // Static
+{
+    //auto a = StorageRegular1D!(int, 4);
+}
+
+unittest // Dynamic
+{
+    debug writeln("linalg.storage.regular1d unittest-begin");
+    { // Constructors
+        auto a = StorageRegular1D!(int, dynamicSize)(4);
+        auto b = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3]);
+        auto c = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3], 2, 3);
+    }
+    debug writeln("linalg.storage.regular1d unittest-end");
 }
