@@ -17,7 +17,6 @@ import linalg.types;
 import linalg.storage.mdarray;
 import linalg.storage.operations;
 import linalg.storage.slice;
-import linalg.storage.iterators;
 
 private // Auxiliary functions
 {
@@ -68,7 +67,7 @@ struct StorageRegular1D(T, size_t dim_)
         }
     }
 
-    /* Constructors and destructor */
+    /* Constructors */
     static if(isStatic)
     {
         inout this()(inout ElementType[] array) pure
@@ -272,7 +271,7 @@ struct StorageRegular1D(T, size_t dim_)
     */
     @property auto dup() pure const
     {
-        auto result = StorageRegular1D(this.dim);
+        auto result = StorageRegular1D!(ElementType, dynamicSize)(this.dim);
         copy(this, result);
         return result;
     }
@@ -354,7 +353,10 @@ struct ByElement(ElementType, bool mutable = true)
 
 unittest // Static
 {
-    //auto a = StorageRegular1D!(int, 4);
+    debug writeln("linalg.storage.regular1d unittest-begin");
+    auto a = StorageRegular1D!(int, 4)([0, 1, 2, 3]);
+    assert(cast(int[]) a == [0, 1, 2, 3]);
+    debug writeln("linalg.storage.regular1d unittest-end");
 }
 
 unittest // Dynamic
@@ -362,8 +364,11 @@ unittest // Dynamic
     debug writeln("linalg.storage.regular1d unittest-begin");
     { // Constructors
         auto a = StorageRegular1D!(int, dynamicSize)(4);
+        assert(cast(int[]) a == [int.init, int.init, int.init, int.init]);
         auto b = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3]);
+        assert(cast(int[]) b == [0, 1, 2, 3]);
         auto c = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3], 2, 3);
+        assert(cast(int[]) c == [0, 3]);
     }
     debug writeln("linalg.storage.regular1d unittest-end");
 }
