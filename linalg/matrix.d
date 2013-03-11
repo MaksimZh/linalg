@@ -14,12 +14,12 @@ version(unittest)
 
 public import linalg.types;
 
-import linalg.storage.dense2d;
+import linalg.storage.regular2d;
 
 struct Matrix(T, size_t nrows_, size_t ncols_,
               StorageOrder storageOrder_ = defaultStorageOrder)
 {
-    alias StorageDense2D!(T, storageOrder_, nrows_, ncols_) StorageType;
+    alias StorageRegular2D!(T, storageOrder_, nrows_, ncols_) StorageType;
     public // Forward type parameters
     {
         alias StorageType.ElementType ElementType;

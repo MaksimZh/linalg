@@ -4,10 +4,10 @@ module linalg.storage.operations;
 
 debug import std.stdio;
 
-import linalg.storage.dense2d;
+import linalg.storage.regular2d;
 
 void copy(Tsource, Tdest)(const ref Tsource source, ref Tdest dest) pure
-    if(isStorageDense2D!Tsource && isStorageDense2D!Tdest)
+    if(isStorageRegular2D!Tsource && isStorageRegular2D!Tdest)
     in
     {
         assert(dest.isCompatDim(source.dim));

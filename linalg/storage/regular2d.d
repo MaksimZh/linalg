@@ -1,6 +1,6 @@
 // Written in the D programming language.
 
-module linalg.storage.dense2d;
+module linalg.storage.regular2d;
 
 import std.algorithm;
 import std.traits;
@@ -59,8 +59,8 @@ private // Auxiliary functions
     }
 }
 
-/* Dense multidimensional storage */
-struct StorageDense2D(T, StorageOrder storageOrder_,
+/* Regular multidimensional storage */
+struct StorageRegular2D(T, StorageOrder storageOrder_,
                       size_t nrows_, size_t ncols_)
 {
     public // Check and process parameters
@@ -109,7 +109,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         {
             debug(storage)
             {
-                indent.writefln("StorageDense2D<%X>.this()", &this);
+                indent.writefln("StorageRegular2D<%X>.this()", &this);
                 indent.add();
                 indent.writefln("array = <%X>, %d", array.ptr, array.length);
                 indent.writeln("...");
@@ -133,7 +133,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         {
             debug(storage)
             {
-                indent.writefln("StorageDense2D<%X>.this()", &this);
+                indent.writefln("StorageRegular2D<%X>.this()", &this);
                 indent.add();
                 indent.writeln("dim = ", dim);
                 indent.writeln("...");
@@ -157,7 +157,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         {
             debug(storage)
             {
-                indent.writefln("StorageDense2D<%X>.this()", &this);
+                indent.writefln("StorageRegular2D<%X>.this()", &this);
                 indent.add();
                 indent.writefln("array = <%X>, %d", array.ptr, array.length);
                 indent.writeln("dim = ", dim);
@@ -182,7 +182,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         {
             debug(storage)
             {
-                indent.writefln("StorageDense2D<%X>.this()", &this);
+                indent.writefln("StorageRegular2D<%X>.this()", &this);
                 indent.add();
                 indent.writefln("array = <%X>, %d",
                                 array.ptr, array.length);
@@ -239,7 +239,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
             {
                 debug(storage)
                 {
-                    indent.writefln("StorageDense2D<%X>._reallocate()", &this);
+                    indent.writefln("StorageRegular2D<%X>._reallocate()", &this);
                     indent.add();
                     indent.writeln("...");
                     indent.add();
@@ -278,6 +278,13 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
             return irow * stride[0] + icol * stride[1];
         }
 
+        //TODO:
+        /+package auto slice(Slice srow, Slice scol) pure const
+        {
+            return StorageOrder2D!(ElementType, storageOder,
+                                   dynamicSize, dynamicSize);
+        }+/
+
         Slice opSlice(size_t dimIndex)(size_t lo, size_t up) pure const
         {
             return Slice(lo, up);
@@ -312,11 +319,11 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
         }
     }
 
-    @property StorageDense2D dup() pure const
+    @property StorageRegular2D dup() pure const
     {
         //DMD: ... inout variables can only be declared inside inout functions
-        //auto result = StorageDense2D(this.dim);
-        StorageDense2D result = StorageDense2D(this.dim);
+        //auto result = StorageRegular2D(this.dim);
+        StorageRegular2D result = StorageRegular2D(this.dim);
         copy(this, result);
         return result;
     }
@@ -341,7 +348,7 @@ struct StorageDense2D(T, StorageOrder storageOrder_,
     }
 }
 
-template isStorageDense2D(T)
+template isStorageRegular2D(T)
 {
-    enum bool isStorageDense2D = isInstanceOf!(StorageDense2D, T);
+    enum bool isStorageRegular2D = isInstanceOf!(StorageRegular2D, T);
 }
