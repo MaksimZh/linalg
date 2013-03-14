@@ -18,6 +18,7 @@ import linalg.storage.mdarray;
 import linalg.storage.operations;
 import linalg.storage.slice;
 import linalg.storage.iterators;
+import linalg.storage.regular1d;
 
 private // Auxiliary functions
 {
@@ -61,7 +62,7 @@ private // Auxiliary functions
 
 /* Regular multidimensional storage */
 struct StorageRegular2D(T, StorageOrder storageOrder_,
-                      size_t nrows_, size_t ncols_)
+                        size_t nrows_, size_t ncols_)
 {
     public // Check and process parameters
     {
@@ -252,13 +253,6 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             return irow * stride[0] + icol * stride[1];
         }
 
-        //TODO:
-        /+package auto slice(Slice srow, Slice scol) pure const
-        {
-            return StorageOrder2D!(ElementType, storageOder,
-                                   dynamicSize, dynamicSize);
-        }+/
-
         Slice opSlice(size_t dimIndex)(size_t lo, size_t up) pure const
         {
             return Slice(lo, up);
@@ -277,27 +271,42 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         ref inout auto opIndex(Slice srow, size_t icol) pure inout
         {
             debug(slice) debugOP.writeln("slice ", srow, ", ", icol);
-            return container[mapIndex(srow.lo, icol)]; //FIXME
+            return StorageRegular1D!(ElementType, dynamicSize)(
+                container[mapIndex(srow.lo, icol)..mapIndex(srow.up, icol)],
+                srow.length, stride[1]);
         }
 
         ref inout auto opIndex(size_t irow, Slice scol) pure inout
         {
             debug(slice) debugOP.writeln("slice ", irow, ", ", scol);
-            return container[mapIndex(irow, scol.lo)]; //FIXME
+            return StorageRegular1D!(ElementType, dynamicSize)(
+                container[mapIndex(irow, scol.lo)..mapIndex(irow, scol.up)],
+                scol.length, stride[0]);
         }
 
         ref inout auto opIndex(Slice srow, Slice scol) pure inout
         {
             debug(slice) debugOP.writeln("slice ", srow, ", ", scol);
-            return container[mapIndex(srow.lo, scol.lo)]; //FIXME
+            return StorageRegular2D!(ElementType, storageOrder,
+                                     dynamicSize, dynamicSize)(
+                container[mapIndex(srow.lo, scol.lo)
+                          ..
+                          mapIndex(srow.up, scol.up)],
+                [srow.length, scol.length], stride);
         }
     }
 
-    @property StorageRegular2D dup() pure const
+    @property auto dup() pure const
     {
-        //DMD: ... inout variables can only be declared inside inout functions
-        //auto result = StorageRegular2D(this.dim);
-        StorageRegular2D result = StorageRegular2D(this.dim);
+        debug(storage)
+        {
+            debugOP.writefln("StorageRegular2D<%X>.dup()", &this);
+            mixin(debugIndentScope);
+            debugOP.writeln("...");
+            mixin(debugIndentScope);
+        }
+        auto result = StorageRegular2D!(ElementType, storageOrder,
+                                        dynamicSize, dynamicSize)(this.dim);
         copy(this, result);
         return result;
     }
@@ -309,16 +318,14 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
     @property auto byElement() pure
     {
-        return ByElement!(ElementType, true)(container,
-                                             dim,
-                                             stride);
+        return linalg.storage.iterators.ByElement!(ElementType, true)(
+            container, dim, stride);
     }
 
     @property auto byElement() pure const
     {
-        return ByElement!(ElementType, false)(container,
-                                              dim,
-                                              stride);
+        return linalg.storage.iterators.ByElement!(ElementType, false)(
+            container, dim, stride);
     }
 }
 
