@@ -2,7 +2,7 @@
 
 module linalg.storage.operations;
 
-debug import std.stdio;
+debug import linalg.debugging;
 
 import linalg.storage.regular1d;
 import linalg.storage.regular2d;
@@ -16,7 +16,25 @@ void copy(Tsource, Tdest)(const ref Tsource source, ref Tdest dest) pure
     }
 body
 {
-    alias source.ElementType T;
+    debug(operations)
+    {
+        indent.writefln("operations.copy()");
+        indent.add();
+        indent.writefln("from <%X>, %d",
+                        source.container.ptr,
+                        source.container.length);
+        indent.writefln("to   <%X>, %d",
+                        dest.container.ptr,
+                        dest.container.length);
+        indent.writeln("...");
+        indent.add();
+        scope(exit)
+            debug
+            {
+                indent.rem();
+                indent.rem();
+            }
+    }
     auto isource = source.byElement;
     auto idest = dest.byElement;
     foreach(ref d; idest)

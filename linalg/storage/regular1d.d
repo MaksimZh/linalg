@@ -271,6 +271,19 @@ struct StorageRegular1D(T, size_t dim_)
     */
     @property auto dup() pure const
     {
+        debug(storage)
+        {
+            indent.writefln("StorageRegular1D<%X>.dup()", &this);
+            indent.add();
+            indent.writeln("...");
+            indent.add();
+            scope(exit)
+                debug
+                {
+                    indent.rem();
+                    indent.rem();
+                }
+        }
         auto result = StorageRegular1D!(ElementType, dynamicSize)(this.dim);
         copy(this, result);
         return result;
@@ -343,7 +356,7 @@ struct ByElement(ElementType, bool mutable = true)
         }
     }
 
-    @property bool empty() pure const { return _ptr < _ptrFin; }
+    @property bool empty() pure const { return _ptr >= _ptrFin; }
     static if(mutable)
         @property ref ElementType front() pure { return *_ptr; }
     else
@@ -353,22 +366,36 @@ struct ByElement(ElementType, bool mutable = true)
 
 unittest // Static
 {
-    debug writeln("linalg.storage.regular1d unittest-begin");
+    debug(storage)
+    {
+        indent.writeln("linalg.storage.regular1d unittest: Static");
+        indent.add();
+        scope(exit) debug indent.rem();
+    }
     auto a = StorageRegular1D!(int, 4)([0, 1, 2, 3]);
     assert(cast(int[]) a == [0, 1, 2, 3]);
-    debug writeln("linalg.storage.regular1d unittest-end");
 }
 
 unittest // Dynamic
 {
-    debug writeln("linalg.storage.regular1d unittest-begin");
-    { // Constructors
-        auto a = StorageRegular1D!(int, dynamicSize)(4);
-        assert(cast(int[]) a == [int.init, int.init, int.init, int.init]);
-        auto b = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3]);
-        assert(cast(int[]) b == [0, 1, 2, 3]);
-        auto c = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3], 2, 3);
-        assert(cast(int[]) c == [0, 3]);
+    debug(storage)
+    {
+        indent.writeln("linalg.storage.regular1d unittest: Dynamic");
+        indent.add();
+        scope(exit) debug indent.rem();
     }
-    debug writeln("linalg.storage.regular1d unittest-end");
+    // Constructors
+    auto a = StorageRegular1D!(int, dynamicSize)(4);
+    assert(cast(int[]) a == [int.init, int.init, int.init, int.init]);
+    auto b = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3]);
+    assert(cast(int[]) b == [0, 1, 2, 3]);
+    auto c = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3], 2, 3);
+    assert(cast(int[]) c == [0, 3]);
+    // .dup
+    auto d = b.dup;
+    assert(cast(int[]) d == [0, 1, 2, 3]);
+    // Indices
+    assert(b[0] == 0);
+    assert(b[2] == 2);
+    assert(b[3] == 3);
 }
