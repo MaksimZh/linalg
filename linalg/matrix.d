@@ -41,18 +41,13 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         {
             debug(matrix)
             {
-                indent.writefln("Matrix<%X>.this()", &this);
-                indent.add();
-                indent.writefln("array = <%X>, %d", array.ptr, array.length);
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.writefln("storage<%X>", &(this.storage));
-                        indent.rem();
-                    }
+                debugOP.writefln("Matrix<%X>.this()", &this);
+                mixin(debugIndentScope);
+                debugOP.writefln("array = <%X>, %d", array.ptr, array.length);
+                debugOP.writeln("...");
+                scope(exit) debug debugOP.writefln(
+                    "storage<%X>", &(this.storage));
+                mixin(debugIndentScope);
             }
             //HACK
             auto tmp = StorageType(array);
@@ -66,20 +61,15 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         {
             debug(matrix)
             {
-                indent.writefln("Matrix<%X>.this()", &this);
-                indent.add();
-                indent.writefln("array = <%X>, %d", array.ptr, array.length);
-                indent.writeln("nrwos = ", nrows);
-                indent.writeln("ncols = ", ncols);
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.writefln("storage<%X>", &(this.storage));
-                        indent.rem();
-                    }
+                debugOP.writefln("Matrix<%X>.this()", &this);
+                mixin(debugIndentScope);
+                debugOP.writefln("array = <%X>, %d", array.ptr, array.length);
+                debugOP.writeln("nrwos = ", nrows);
+                debugOP.writeln("ncols = ", ncols);
+                debugOP.writeln("...");
+                scope(exit) debug debugOP.writefln(
+                    "storage<%X>", &(this.storage));
+                mixin(debugIndentScope);
             }
             //HACK
             auto tmp = StorageType(array, [nrows, ncols]);
@@ -119,7 +109,11 @@ template isMatrix(T)
 
 unittest // Regular indices
 {
-    debug writeln("matrix-unittest-begin");
+    debug(matrix)
+    {
+        debugOP.writeln("linalg.matrix unittest: Regular indices");
+        mixin(debugIndentScope);
+    }
     auto a = Matrix!(int, 4, 6)(array(iota(24)));
     assert(a[1, 2] == 8);
     assert((a[1, 2] = 80) == 80);
@@ -128,7 +122,6 @@ unittest // Regular indices
     assert(a[1, 2] == 81);
     a[1, 2] += 3;
     assert(a[1, 2] == 84);
-    debug writeln("matrix-unittest-end");
 }
 
 version(none){

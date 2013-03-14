@@ -79,20 +79,15 @@ struct StorageRegular1D(T, size_t dim_)
         {
             debug(storage)
             {
-                indent.writefln("StorageRegular1D<%X>.this()", &this);
-                indent.add();
-                indent.writefln("array = <%X>, %d", array.ptr, array.length);
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.writefln("container = <%X>, %d",
-                                        this.container.ptr,
-                                        this.container.length);
-                        indent.rem();
-                    }
+                debugOP.writefln("StorageRegular1D<%X>.this()", &this);
+                mixin(debugIndentScope);
+                debugOP.writefln("array = <%X>, %d", array.ptr, array.length);
+                debugOP.writeln("...");
+                scope(exit) debug debugOP.writefln(
+                    "container = <%X>, %d",
+                    this.container.ptr,
+                    this.container.length);
+                mixin(debugIndentScope);
             }
             container = array;
         }
@@ -103,20 +98,15 @@ struct StorageRegular1D(T, size_t dim_)
         {
             debug(storage)
             {
-                indent.writefln("StorageRegular1D<%X>.this()", &this);
-                indent.add();
-                indent.writeln("dim = ", dim);
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.writefln("container = <%X>, %d",
-                                        this.container.ptr,
-                                        this.container.length);
-                        indent.rem();
-                    }
+                debugOP.writefln("StorageRegular1D<%X>.this()", &this);
+                mixin(debugIndentScope);
+                debugOP.writeln("dim = ", dim);
+                debugOP.writeln("...");
+                scope(exit) debug debugOP.writefln(
+                    "container = <%X>, %d",
+                    this.container.ptr,
+                    this.container.length);
+                mixin(debugIndentScope);
             }
             this.dim = dim;
             stride = 1;
@@ -127,21 +117,16 @@ struct StorageRegular1D(T, size_t dim_)
         {
             debug(storage)
             {
-                indent.writefln("StorageRegular1D<%X>.this()", &this);
-                indent.add();
-                indent.writefln("array = <%X>, %d", array.ptr, array.length);
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.writefln("container<%X> = <%X>, %d",
-                                        &(this.container),
-                                        this.container.ptr,
-                                        this.container.length);
-                        indent.rem();
-                    }
+                debugOP.writefln("StorageRegular1D<%X>.this()", &this);
+                mixin(debugIndentScope);
+                debugOP.writefln("array = <%X>, %d", array.ptr, array.length);
+                debugOP.writeln("...");
+                scope(exit) debug debugOP.writefln(
+                    "container<%X> = <%X>, %d",
+                    &(this.container),
+                    this.container.ptr,
+                    this.container.length);
+                mixin(debugIndentScope);
             }
             this(array, array.length, 1);
         }
@@ -151,24 +136,19 @@ struct StorageRegular1D(T, size_t dim_)
         {
             debug(storage)
             {
-                indent.writefln("StorageRegular1D<%X>.this()", &this);
-                indent.add();
-                indent.writefln("array = <%X>, %d",
-                                array.ptr, array.length);
-                indent.writeln("dim = ", dim);
-                indent.writeln("stride = ", stride);
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.writefln("container<%X> = <%X>, %d",
-                                        &(this.container),
-                                        this.container.ptr,
-                                        this.container.length);
-                        indent.rem();
-                    }
+                debugOP.writefln("StorageRegular1D<%X>.this()", &this);
+                mixin(debugIndentScope);
+                debugOP.writefln("array = <%X>, %d",
+                                 array.ptr, array.length);
+                debugOP.writeln("dim = ", dim);
+                debugOP.writeln("stride = ", stride);
+                debugOP.writeln("...");
+                scope(exit) debug debugOP.writefln(
+                    "container<%X> = <%X>, %d",
+                    &(this.container),
+                    this.container.ptr,
+                    this.container.length);
+                mixin(debugIndentScope);
             }
             container = array;
             this.dim = dim;
@@ -202,20 +182,15 @@ struct StorageRegular1D(T, size_t dim_)
             {
                 debug(storage)
                 {
-                    indent.writefln("StorageRegular1D<%X>._reallocate()", &this);
-                    indent.add();
-                    indent.writeln("...");
-                    indent.add();
-                    scope(exit)
-                        debug
-                        {
-                            indent.rem();
-                            indent.writefln("container<%X> = <%X>, %d",
-                                            &(this.container),
-                                            this.container.ptr,
-                                            this.container.length);
-                            indent.rem();
-                        }
+                    debugOP.writefln("StorageRegular1D<%X>._reallocate()", &this);
+                    mixin(debugIndentScope);
+                    debugOP.writeln("...");
+                    scope(exit) debug debugOP.writefln(
+                        "container<%X> = <%X>, %d",
+                        &(this.container),
+                        this.container.ptr,
+                        this.container.length);
+                    mixin(debugIndentScope);
                 }
                 stride = 1;
                 container = new ElementType[dim];
@@ -260,7 +235,7 @@ struct StorageRegular1D(T, size_t dim_)
 
         ref inout auto opIndex(Slice s) pure inout
         {
-            debug(slice) writeln("slice ", s);
+            debug(slice) debugOP.writeln("slice ", s);
             return StorageRegular1D!(ElementType, dynamicSize)(
                 container[mapIndex(s.lo)..mapIndex(s.up)], s.length, stride);
         }
@@ -273,16 +248,10 @@ struct StorageRegular1D(T, size_t dim_)
     {
         debug(storage)
         {
-            indent.writefln("StorageRegular1D<%X>.dup()", &this);
-            indent.add();
-            indent.writeln("...");
-            indent.add();
-            scope(exit)
-                debug
-                {
-                    indent.rem();
-                    indent.rem();
-                }
+            debugOP.writefln("StorageRegular1D<%X>.dup()", &this);
+            mixin(debugIndentScope);
+            debugOP.writeln("...");
+            mixin(debugIndentScope);
         }
         auto result = StorageRegular1D!(ElementType, dynamicSize)(this.dim);
         copy(this, result);
@@ -368,9 +337,8 @@ unittest // Static
 {
     debug(storage)
     {
-        indent.writeln("linalg.storage.regular1d unittest: Static");
-        indent.add();
-        scope(exit) debug indent.rem();
+        debugOP.writeln("linalg.storage.regular1d unittest: Static");
+        mixin(debugIndentScope);
     }
     auto b = StorageRegular1D!(int, 4)([0, 1, 2, 3]);
     assert(cast(int[]) b == [0, 1, 2, 3]);
@@ -404,9 +372,8 @@ unittest // Dynamic
 {
     debug(storage)
     {
-        indent.writeln("linalg.storage.regular1d unittest: Dynamic");
-        indent.add();
-        scope(exit) debug indent.rem();
+        debugOP.writeln("linalg.storage.regular1d unittest: Dynamic");
+        mixin(debugIndentScope);
     }
     // Constructors
     auto a = StorageRegular1D!(int, dynamicSize)(4);

@@ -7,29 +7,15 @@ public import std.stdio;
 import std.range;
 import std.algorithm;
 
-struct Indentation
+struct OutputProxy
 {
-    size_t level = 0;
-
-    void add() pure
-    {
-        ++level;
-    }
-
-    void rem() pure
-        in
-        {
-            assert(level > 0);
-        }
-    body
-    {
-        --level;
-    }
+    uint indentLevel = 0;
+    uint silentLevel = 0;
 
     string opCast()
     {
-        if(level > 0)
-            return cast(string) reduce!("a ~ b")(repeat("  ", level));
+        if(indentLevel > 0)
+            return cast(string) reduce!("a ~ b")(repeat("    ", indentLevel));
         else
             return "";
     }
@@ -41,31 +27,30 @@ struct Indentation
 
     void write(T...)(T args)
     {
-        std.stdio.write(this, args);
+        if(!silentLevel)
+            std.stdio.write(this, args);
     }
 
     void writeln(T...)(T args)
     {
-        std.stdio.writeln(this, args);
+        if(!silentLevel)
+            std.stdio.writeln(this, args);
     }
 
     void writefln(T...)(T args)
     {
-        std.stdio.write(this);
-        std.stdio.writefln(args);
+        if(!silentLevel)
+        {
+            std.stdio.write(this);
+            std.stdio.writefln(args);
+        }
     }
 }
 
-public Indentation indent;
+public OutputProxy debugOP;
 
-unittest
-{
-    Indentation ind;
-    assert(cast(string) ind == "");
-    ind.add();
-    assert(cast(string) ind == "  ");
-    ind.add();
-    assert(cast(string) ind == "    ");
-    ind.rem();
-    assert(cast(string) ind == "  ");
-}
+enum string debugIndentScope =
+    "++debugOP.indentLevel; scope(exit) debug --debugOP.indentLevel;";
+
+enum string debugSilentScope =
+    "++debugOP.silentLevel; scope(exit) debug --debugOP.silentLevel;";

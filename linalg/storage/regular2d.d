@@ -108,20 +108,15 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         {
             debug(storage)
             {
-                indent.writefln("StorageRegular2D<%X>.this()", &this);
-                indent.add();
-                indent.writefln("array = <%X>, %d", array.ptr, array.length);
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.writefln("container = <%X>, %d",
-                                        this.container.ptr,
-                                        this.container.length);
-                        indent.rem();
-                    }
+                debugOP.writefln("StorageRegular2D<%X>.this()", &this);
+                mixin(debugIndentScope);
+                debugOP.writefln("array = <%X>, %d", array.ptr, array.length);
+                debugOP.writeln("...");
+                scope(exit) debug debugOP.writefln(
+                    "container = <%X>, %d",
+                    this.container.ptr,
+                    this.container.length);
+                mixin(debugIndentScope);
             }
             container = array;
         }
@@ -132,20 +127,15 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         {
             debug(storage)
             {
-                indent.writefln("StorageRegular2D<%X>.this()", &this);
-                indent.add();
-                indent.writeln("dim = ", dim);
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.writefln("container = <%X>, %d",
-                                        this.container.ptr,
-                                        this.container.length);
-                        indent.rem();
-                    }
+                debugOP.writefln("StorageRegular2D<%X>.this()", &this);
+                mixin(debugIndentScope);
+                debugOP.writeln("dim = ", dim);
+                debugOP.writeln("...");
+                scope(exit) debug debugOP.writefln(
+                    "container = <%X>, %d",
+                    this.container.ptr,
+                    this.container.length);
+                mixin(debugIndentScope);
             }
             this.dim = dim;
             stride = calcStrides!storageOrder(dim);
@@ -156,22 +146,17 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         {
             debug(storage)
             {
-                indent.writefln("StorageRegular2D<%X>.this()", &this);
-                indent.add();
-                indent.writefln("array = <%X>, %d", array.ptr, array.length);
-                indent.writeln("dim = ", dim);
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.writefln("container<%X> = <%X>, %d",
-                                        &(this.container),
-                                        this.container.ptr,
-                                        this.container.length);
-                        indent.rem();
-                    }
+                debugOP.writefln("StorageRegular2D<%X>.this()", &this);
+                mixin(debugIndentScope);
+                debugOP.writefln("array = <%X>, %d", array.ptr, array.length);
+                debugOP.writeln("dim = ", dim);
+                debugOP.writeln("...");
+                scope(exit) debug debugOP.writefln(
+                    "container<%X> = <%X>, %d",
+                    &(this.container),
+                    this.container.ptr,
+                    this.container.length);
+                mixin(debugIndentScope);
             }
             this(array, dim, calcStrides!storageOrder(dim));
         }
@@ -181,24 +166,19 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         {
             debug(storage)
             {
-                indent.writefln("StorageRegular2D<%X>.this()", &this);
-                indent.add();
-                indent.writefln("array = <%X>, %d",
-                                array.ptr, array.length);
-                indent.writeln("dim = ", dim);
-                indent.writeln("stride = ", stride);
-                indent.writeln("...");
-                indent.add();
-                scope(exit)
-                    debug
-                    {
-                        indent.rem();
-                        indent.writefln("container<%X> = <%X>, %d",
-                                        &(this.container),
-                                        this.container.ptr,
-                                        this.container.length);
-                        indent.rem();
-                    }
+                debugOP.writefln("StorageRegular2D<%X>.this()", &this);
+                mixin(debugIndentScope);
+                debugOP.writefln("array = <%X>, %d",
+                                 array.ptr, array.length);
+                debugOP.writeln("dim = ", dim);
+                debugOP.writeln("stride = ", stride);
+                debugOP.writeln("...");
+                scope(exit) debug debugOP.writefln(
+                    "container<%X> = <%X>, %d",
+                    &(this.container),
+                    this.container.ptr,
+                    this.container.length);
+                mixin(debugIndentScope);
             }
             container = array;
             this.dim = dim;
@@ -238,20 +218,15 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             {
                 debug(storage)
                 {
-                    indent.writefln("StorageRegular2D<%X>._reallocate()", &this);
-                    indent.add();
-                    indent.writeln("...");
-                    indent.add();
-                    scope(exit)
-                        debug
-                        {
-                            indent.rem();
-                            indent.writefln("container<%X> = <%X>, %d",
-                                            &(this.container),
-                                            this.container.ptr,
-                                            this.container.length);
-                            indent.rem();
-                        }
+                    debugOP.writefln("StorageRegular2D<%X>._reallocate()", &this);
+                    mixin(debugIndentScope);
+                    debugOP.writeln("...");
+                    mixin(debugIndentScope);
+                    scope(exit) debug debugOP.writefln(
+                        "container<%X> = <%X>, %d",
+                        &(this.container),
+                        this.container.ptr,
+                        this.container.length);
                 }
                 stride = calcStrides!storageOrder(dim);
                 container = new ElementType[calcContainerSize(dim)];
@@ -301,19 +276,19 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
         ref inout auto opIndex(Slice srow, size_t icol) pure inout
         {
-            debug(slice) writeln("slice ", srow, ", ", icol);
+            debug(slice) debugOP.writeln("slice ", srow, ", ", icol);
             return container[mapIndex(srow.lo, icol)]; //FIXME
         }
 
         ref inout auto opIndex(size_t irow, Slice scol) pure inout
         {
-            debug(slice) writeln("slice ", irow, ", ", scol);
+            debug(slice) debugOP.writeln("slice ", irow, ", ", scol);
             return container[mapIndex(irow, scol.lo)]; //FIXME
         }
 
         ref inout auto opIndex(Slice srow, Slice scol) pure inout
         {
-            debug(slice) writeln("slice ", srow, ", ", scol);
+            debug(slice) debugOP.writeln("slice ", srow, ", ", scol);
             return container[mapIndex(srow.lo, scol.lo)]; //FIXME
         }
     }

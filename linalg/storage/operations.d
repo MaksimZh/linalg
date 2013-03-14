@@ -18,22 +18,16 @@ body
 {
     debug(operations)
     {
-        indent.writefln("operations.copy()");
-        indent.add();
-        indent.writefln("from <%X>, %d",
+        debugOP.writefln("operations.copy()");
+        mixin(debugIndentScope);
+        debugOP.writefln("from <%X>, %d",
                         source.container.ptr,
                         source.container.length);
-        indent.writefln("to   <%X>, %d",
+        debugOP.writefln("to   <%X>, %d",
                         dest.container.ptr,
                         dest.container.length);
-        indent.writeln("...");
-        indent.add();
-        scope(exit)
-            debug
-            {
-                indent.rem();
-                indent.rem();
-            }
+        debugOP.writeln("...");
+        mixin(debugIndentScope);
     }
     auto isource = source.byElement;
     auto idest = dest.byElement;
