@@ -372,8 +372,32 @@ unittest // Static
         indent.add();
         scope(exit) debug indent.rem();
     }
-    auto a = StorageRegular1D!(int, 4)([0, 1, 2, 3]);
-    assert(cast(int[]) a == [0, 1, 2, 3]);
+    auto b = StorageRegular1D!(int, 4)([0, 1, 2, 3]);
+    assert(cast(int[]) b == [0, 1, 2, 3]);
+    immutable auto ib = StorageRegular1D!(int, 4)([0, 1, 2, 3]);
+    assert(cast(int[]) ib == [0, 1, 2, 3]);
+    // .dup
+    auto d = b.dup;
+    assert(cast(int[]) d == [0, 1, 2, 3]);
+    // Iterator
+    int[] tmp = [];
+    foreach(t; b.byElement)
+        tmp ~= t;
+    assert(tmp == [0, 1, 2, 3]);
+    tmp = [];
+    foreach(t; ib.byElement)
+        tmp ~= t;
+    assert(tmp == [0, 1, 2, 3]);
+    foreach(ref t; d.byElement)
+        t = 4;
+    assert(cast(int[]) d == [4, 4, 4, 4]);
+    foreach(ref t; ib.byElement)
+        t = 4;
+    assert(cast(int[]) ib == [0, 1, 2, 3]);
+    // Indices
+    assert(b[0] == 0);
+    assert(b[2] == 2);
+    assert(b[3] == 3);
 }
 
 unittest // Dynamic
