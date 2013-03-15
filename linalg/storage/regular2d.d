@@ -333,3 +333,26 @@ template isStorageRegular2D(T)
 {
     enum bool isStorageRegular2D = isInstanceOf!(StorageRegular2D, T);
 }
+
+unittest // Dynamic
+{
+    version(none) debug mixin(debugSilentScope);
+
+    // Constructors
+    auto a = StorageRegular2D!(int, defaultStorageOrder,
+                               dynamicSize, dynamicSize)([3, 4]);
+    assert(cast(int[][]) a == [[int.init, int.init, int.init, int.init],
+                               [int.init, int.init, int.init, int.init],
+                               [int.init, int.init, int.init, int.init]]);
+    auto b = StorageRegular2D!(int, defaultStorageOrder,
+                               dynamicSize, dynamicSize)(
+                                   array(iota(12)), [3, 4]);
+    assert(cast(int[][]) b == [[0, 1, 2, 3],
+                               [4, 5, 6, 7],
+                               [8, 9, 10, 11]]);
+    auto c = StorageRegular2D!(int, defaultStorageOrder,
+                               dynamicSize, dynamicSize)(
+                                   array(iota(12)), [2, 2], [8, 3]);
+    assert(cast(int[][]) c == [[0, 3],
+                               [8, 11]]);
+}

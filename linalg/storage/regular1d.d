@@ -335,11 +335,13 @@ struct ByElement(ElementType, bool mutable = true)
 
 unittest // Static
 {
-    debug(storage)
+    debug(unittests)
     {
         debugOP.writeln("linalg.storage.regular1d unittest: Static");
         mixin(debugIndentScope);
     }
+    else debug mixin(debugSilentScope);
+
     auto b = StorageRegular1D!(int, 4)([0, 1, 2, 3]);
     assert(cast(int[]) b == [0, 1, 2, 3]);
     immutable auto ib = StorageRegular1D!(int, 4)([0, 1, 2, 3]);
@@ -370,11 +372,13 @@ unittest // Static
 
 unittest // Dynamic
 {
-    debug(storage)
+    debug(unittests)
     {
         debugOP.writeln("linalg.storage.regular1d unittest: Dynamic");
         mixin(debugIndentScope);
     }
+    else debug mixin(debugSilentScope);
+
     // Constructors
     auto a = StorageRegular1D!(int, dynamicSize)(4);
     assert(cast(int[]) a == [int.init, int.init, int.init, int.init]);
