@@ -334,9 +334,73 @@ template isStorageRegular2D(T)
     enum bool isStorageRegular2D = isInstanceOf!(StorageRegular2D, T);
 }
 
+unittest // Static
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.storage.regular2d unittest: Static");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    // Constructors
+    auto b = StorageRegular2D!(int, defaultStorageOrder,
+                               3, 4)(
+                                   array(iota(12)));
+    assert(cast(int[][]) b == [[0, 1, 2, 3],
+                               [4, 5, 6, 7],
+                               [8, 9, 10, 11]]);
+    immutable auto ib = StorageRegular2D!(int, defaultStorageOrder,
+                               3, 4)(
+                                   array(iota(12)));
+    assert(cast(int[][]) ib == [[0, 1, 2, 3],
+                                [4, 5, 6, 7],
+                                [8, 9, 10, 11]]);
+
+    //.dup
+    auto d = b.dup;
+    assert(cast(int[][]) d == [[0, 1, 2, 3],
+                               [4, 5, 6, 7],
+                               [8, 9, 10, 11]]);
+    auto d1 = ib.dup;
+    assert(cast(int[][]) d1 == [[0, 1, 2, 3],
+                                [4, 5, 6, 7],
+                                [8, 9, 10, 11]]);
+
+    // Iterator
+    int[] tmp = [];
+    foreach(t; b.byElement)
+        tmp ~= t;
+    assert(tmp == array(iota(12)));
+    tmp = [];
+    foreach(t; ib.byElement)
+        tmp ~= t;
+    assert(tmp == array(iota(12)));
+    foreach(ref t; d.byElement)
+        t = 14;
+    assert(cast(int[][]) d == [[14, 14, 14, 14],
+                               [14, 14, 14, 14],
+                               [14, 14, 14, 14]]);
+    foreach(ref t; ib.byElement)
+        t = 4;
+    assert(cast(int[][]) ib == [[0, 1, 2, 3],
+                                [4, 5, 6, 7],
+                                [8, 9, 10, 11]]);
+
+    // Indices
+    assert(b[0, 0] == 0);
+    assert(b[1, 2] == 6);
+    assert(b[2, 3] == 11);
+}
+
 unittest // Dynamic
 {
-    version(none) debug mixin(debugSilentScope);
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.storage.regular2d unittest: Dynamic");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
 
     // Constructors
     auto a = StorageRegular2D!(int, defaultStorageOrder,
@@ -355,4 +419,58 @@ unittest // Dynamic
                                    array(iota(12)), [2, 2], [8, 3]);
     assert(cast(int[][]) c == [[0, 3],
                                [8, 11]]);
+    immutable auto ia = StorageRegular2D!(int, defaultStorageOrder,
+                                          dynamicSize, dynamicSize)([3, 4]);
+    assert(cast(int[][]) ia == [[int.init, int.init, int.init, int.init],
+                                [int.init, int.init, int.init, int.init],
+                                [int.init, int.init, int.init, int.init]]);
+    immutable auto ib = StorageRegular2D!(int, defaultStorageOrder,
+                                          dynamicSize, dynamicSize)(
+                                              array(iota(12)), [3, 4]);
+    assert(cast(int[][]) ib == [[0, 1, 2, 3],
+                                [4, 5, 6, 7],
+                                [8, 9, 10, 11]]);
+    immutable auto ic = StorageRegular2D!(int, defaultStorageOrder,
+                                          dynamicSize, dynamicSize)(
+                                              array(iota(12)), [2, 2], [8, 3]);
+    assert(cast(int[][]) ic == [[0, 3],
+                                [8, 11]]);
+
+    //.dup
+    auto d = b.dup;
+    assert(cast(int[][]) d == [[0, 1, 2, 3],
+                               [4, 5, 6, 7],
+                               [8, 9, 10, 11]]);
+    auto d1 = ic.dup;
+    assert(cast(int[][]) d1 == [[0, 3],
+                                [8, 11]]);
+
+    // Iterator
+    int[] tmp = [];
+    foreach(t; b.byElement)
+        tmp ~= t;
+    assert(tmp == array(iota(12)));
+    tmp = [];
+    foreach(t; ib.byElement)
+        tmp ~= t;
+    assert(tmp == array(iota(12)));
+    foreach(ref t; d.byElement)
+        t = 14;
+    assert(cast(int[][]) d == [[14, 14, 14, 14],
+                               [14, 14, 14, 14],
+                               [14, 14, 14, 14]]);
+    foreach(ref t; ib.byElement)
+        t = 4;
+    assert(cast(int[][]) ib == [[0, 1, 2, 3],
+                                [4, 5, 6, 7],
+                                [8, 9, 10, 11]]);
+
+    // Indices
+    assert(b[0, 0] == 0);
+    assert(b[1, 2] == 6);
+    assert(b[2, 3] == 11);
+
+    assert(c[0, 0] == 0);
+    assert(c[0, 1] == 3);
+    assert(c[1, 1] == 11);
 }

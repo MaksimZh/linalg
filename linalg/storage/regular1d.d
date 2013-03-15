@@ -346,9 +346,13 @@ unittest // Static
     assert(cast(int[]) b == [0, 1, 2, 3]);
     immutable auto ib = StorageRegular1D!(int, 4)([0, 1, 2, 3]);
     assert(cast(int[]) ib == [0, 1, 2, 3]);
+
     // .dup
     auto d = b.dup;
     assert(cast(int[]) d == [0, 1, 2, 3]);
+    auto d1 = ib.dup;
+    assert(cast(int[]) d1 == [0, 1, 2, 3]);
+
     // Iterator
     int[] tmp = [];
     foreach(t; b.byElement)
@@ -364,6 +368,7 @@ unittest // Static
     foreach(ref t; ib.byElement)
         t = 4;
     assert(cast(int[]) ib == [0, 1, 2, 3]);
+
     // Indices
     assert(b[0] == 0);
     assert(b[2] == 2);
@@ -392,9 +397,13 @@ unittest // Dynamic
     assert(cast(int[]) ib == [0, 1, 2, 3]);
     immutable auto ic = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3], 2, 3);
     assert(cast(int[]) ic == [0, 3]);
+
     // .dup
     auto d = b.dup;
     assert(cast(int[]) d == [0, 1, 2, 3]);
+    auto d1 = ic.dup;
+    assert(cast(int[]) d1 == [0, 3]);
+
     // Iterator
     int[] tmp = [];
     foreach(t; b.byElement)
@@ -410,8 +419,12 @@ unittest // Dynamic
     foreach(ref t; ib.byElement)
         t = 4;
     assert(cast(int[]) ib == [0, 1, 2, 3]);
+
     // Indices
     assert(b[0] == 0);
     assert(b[2] == 2);
     assert(b[3] == 3);
+
+    assert(c[0] == 0);
+    assert(c[1] == 3);
 }
