@@ -16,10 +16,40 @@ public import linalg.types;
 
 import linalg.storage.regular2d;
 
+template MatrixStorageType(T, StorageOrder storageOrder,
+                           size_t nrows, size_t ncols)
+{
+    static if(nrows == 1)
+        alias StorageRegular1D!(T, ncols) MatrixStorageType;
+    else static if(ncols == 1)
+        alias StorageRegular1D!(T, nrows) MatrixStorageType;
+    else
+        alias StorageRegular2D!(T, storageOrder, nrows, ncols)
+            MatrixStorageType;
+}
+
+enum MatrixShape
+{
+    row,
+    col,
+    matrix
+}
+
+auto shapeForDim(size_t nrows, size_t ncols)
+{
+    if(nrows == 1)
+        return MatrixShape.col;
+    else if(ncols == 1)
+        return MatrixShape.row;
+    else
+        return MatrixShape.matrix;
+}
+
 struct Matrix(T, size_t nrows_, size_t ncols_,
               StorageOrder storageOrder_ = defaultStorageOrder)
 {
-    alias StorageRegular2D!(T, storageOrder_, nrows_, ncols_) StorageType;
+    alias MatrixStorageType!(T, storageOrder_, nrows_, ncols_) StorageType;
+    enum shape = shapeForDim(nrows_, ncols_);
     public // Forward type parameters
     {
         alias StorageType.ElementType ElementType;
@@ -28,11 +58,23 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 
     /* Storage of matrix data */
     private StorageType storage;
-    public // Forward storage parameters
+    /* Forward storage parameters */
+    static if(shape == MatrixShape.matrix)
     {
         @property size_t nrows() pure const { return storage.nrows; }
         @property size_t ncols() pure const { return storage.ncols; }
     }
+    else static if(shape == MatrixShape.row)
+    {
+        enum size_t nrows = 1;
+        @property size_t ncols() pure const { return storage.dim; }
+    }
+    else static if(shape == MatrixShape.col)
+    {
+        @property size_t nrows() pure const { return storage.dim; }
+        enum size_t ncols = 1;
+    }
+    else static assert(false);
 
     /* Constructors */
     static if(isStatic)
@@ -107,6 +149,7 @@ template isMatrix(T)
     enum bool isMatrix = isInstanceOf!(Matrix, T);
 }
 
+version(none){
 unittest // Regular indices
 {
     debug(matrix)
@@ -124,7 +167,6 @@ unittest // Regular indices
     assert(a[1, 2] == 84);
 }
 
-version(none){
 unittest // Regular indices through slices
 {
     debug writeln("matrix-unittest-begin");
