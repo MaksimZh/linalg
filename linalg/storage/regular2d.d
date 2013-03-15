@@ -185,6 +185,37 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             this.dim = dim;
             this.stride = stride;
         }
+
+        inout this(Tsource)(ref inout Tsource source) pure
+            if(isStorageRegular1D!Tsource)
+        {
+            debug(storage)
+            {
+                debugOP.writefln("StorageRegular2D<%X>.this()", &this);
+                mixin(debugIndentScope);
+                debugOP.writefln("source.container = <%X>, %d",
+                                 source.container.ptr,
+                                 source.container.length);
+                debugOP.writeln("...");
+                scope(exit) debug debugOP.writefln(
+                    "container<%X> = <%X>, %d",
+                    &(this.container),
+                    this.container.ptr,
+                    this.container.length);
+                mixin(debugIndentScope);
+            }
+            container = source.container;
+            static if(storageOrder == StorageOrder.rowMajor)
+            {
+                this.dim = [1, source.length];
+                this.stride = [1, source.stride];
+            }
+            else
+            {
+                this.dim = [source.length, 1];
+                this.stride = [source.stride, 1];
+            }
+        }
     }
 
     public // Dimensions and memory

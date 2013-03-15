@@ -152,11 +152,24 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     {
     }
 
+    /* Cast to built-in array */
     static if(isVector)
     {
-        ElementType[] opCast() pure const
+        auto opCast(Tcast)() pure const
+            if(is(Tcast == ElementType[]))
         {
-            return cast(typeof(return)) storage;
+            return cast(Tcast) storage;
+        }
+
+        auto opCast(Tcast)() pure const
+            if(is(Tcast == ElementType[][]))
+        {
+            return cast(Tcast)
+                StorageRegular2D!(ElementType,
+                                  shape == MatrixShape.row
+                                  ? StorageOrder.rowMajor
+                                  : StorageOrder.colMajor,
+                                  dynamicSize, dynamicSize)(storage);
         }
     }
     else
@@ -189,9 +202,14 @@ unittest // Static
     auto ar = Matrix!(int, 1, 3)(array(iota(3)));
     assert([ar.nrows, ar.ncols] == [1, 3]);
     assert(cast(int[]) ar == [0, 1, 2]);
+    assert(cast(int[][]) ar == [[0, 1, 2]]);
     auto ac = Matrix!(int, 4, 1)(array(iota(4)));
     assert([ac.nrows, ac.ncols] == [4, 1]);
     assert(cast(int[]) ac == [0, 1, 2, 3]);
+    assert(cast(int[][]) ac == [[0],
+                                [1],
+                                [2],
+                                [3]]);
 }
 
 unittest // Dynamic
@@ -210,9 +228,14 @@ unittest // Dynamic
     auto br = Matrix!(int, 1, dynamicSize)(array(iota(3)));
     assert([br.nrows, br.ncols] == [1, 3]);
     assert(cast(int[]) br == [0, 1, 2]);
+    assert(cast(int[][]) br == [[0, 1, 2]]);
     auto bc = Matrix!(int, dynamicSize, 1)(array(iota(4)));
     assert([bc.nrows, bc.ncols] == [4, 1]);
     assert(cast(int[]) bc == [0, 1, 2, 3]);
+    assert(cast(int[][]) bc == [[0],
+                                [1],
+                                [2],
+                                [3]]);
 }
 
 
