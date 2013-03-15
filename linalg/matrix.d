@@ -14,6 +14,7 @@ version(unittest)
 
 public import linalg.types;
 
+import linalg.storage.regular1d;
 import linalg.storage.regular2d;
 
 template MatrixStorageType(T, StorageOrder storageOrder,
@@ -38,9 +39,9 @@ enum MatrixShape
 auto shapeForDim(size_t nrows, size_t ncols)
 {
     if(nrows == 1)
-        return MatrixShape.col;
-    else if(ncols == 1)
         return MatrixShape.row;
+    else if(ncols == 1)
+        return MatrixShape.col;
     else
         return MatrixShape.matrix;
 }
@@ -49,7 +50,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
               StorageOrder storageOrder_ = defaultStorageOrder)
 {
     alias MatrixStorageType!(T, storageOrder_, nrows_, ncols_) StorageType;
-    enum shape = shapeForDim(nrows_, ncols_);
+    enum auto shape = shapeForDim(nrows_, ncols_);
+    enum bool isVector = shape != MatrixShape.matrix;
     public // Forward type parameters
     {
         alias StorageType.ElementType ElementType;
@@ -67,11 +69,11 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     else static if(shape == MatrixShape.row)
     {
         enum size_t nrows = 1;
-        @property size_t ncols() pure const { return storage.dim; }
+        @property size_t ncols() pure const { return storage.length; }
     }
     else static if(shape == MatrixShape.col)
     {
-        @property size_t nrows() pure const { return storage.dim; }
+        @property size_t nrows() pure const { return storage.length; }
         enum size_t ncols = 1;
     }
     else static assert(false);
@@ -99,48 +101,70 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     }
     else
     {
-        inout this(inout ElementType[] array, size_t nrows, size_t ncols) pure
+        static if(isVector)
         {
-            debug(matrix)
+            inout this(inout ElementType[] array) pure
             {
-                debugOP.writefln("Matrix<%X>.this()", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("array = <%X>, %d", array.ptr, array.length);
-                debugOP.writeln("nrwos = ", nrows);
-                debugOP.writeln("ncols = ", ncols);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "storage<%X>", &(this.storage));
-                mixin(debugIndentScope);
+                debug(matrix)
+                {
+                    debugOP.writefln("Matrix<%X>.this()", &this);
+                    mixin(debugIndentScope);
+                    debugOP.writefln("array = <%X>, %d",
+                                     array.ptr, array.length);
+                    debugOP.writeln("...");
+                    scope(exit) debug debugOP.writefln(
+                        "storage<%X>", &(this.storage));
+                    mixin(debugIndentScope);
+                }
+                //HACK
+                auto tmp = StorageType(array);
+                *cast(StorageType*)&storage =
+                    *cast(StorageType*)&tmp;
             }
-            //HACK
-            auto tmp = StorageType(array, [nrows, ncols]);
-            *cast(StorageType*)&storage =
-                *cast(StorageType*)&tmp;
+        }
+        else
+        {
+            inout this(inout ElementType[] array,
+                       size_t nrows, size_t ncols) pure
+            {
+                debug(matrix)
+                {
+                    debugOP.writefln("Matrix<%X>.this()", &this);
+                    mixin(debugIndentScope);
+                    debugOP.writefln("array = <%X>, %d",
+                                     array.ptr, array.length);
+                    debugOP.writeln("nrwos = ", nrows);
+                    debugOP.writeln("ncols = ", ncols);
+                    debugOP.writeln("...");
+                    scope(exit) debug debugOP.writefln(
+                        "storage<%X>", &(this.storage));
+                    mixin(debugIndentScope);
+                }
+                //HACK
+                auto tmp = StorageType(array, [nrows, ncols]);
+                *cast(StorageType*)&storage =
+                    *cast(StorageType*)&tmp;
+            }
         }
     }
 
     public // Slices and indices support
     {
-        auto opSlice(size_t dimIndex)(size_t lo, size_t up) pure const
-        {
-            return storage.opSlice!(dimIndex)(lo, up);
-        }
-
-        auto opDollar(size_t dimIndex)() pure const
-        {
-            return storage.opDollar!(dimIndex);
-        }
-
-        ref inout auto opIndex(size_t irow, size_t icol) pure inout
-        {
-            return storage.opIndex(irow, icol);
-        }
     }
 
-    ElementType[][] opCast() pure const
+    static if(isVector)
     {
-        return cast(typeof(return)) storage;
+        ElementType[] opCast() pure const
+        {
+            return cast(typeof(return)) storage;
+        }
+    }
+    else
+    {
+        ElementType[][] opCast() pure const
+        {
+            return cast(typeof(return)) storage;
+        }
     }
 }
 
@@ -148,6 +172,36 @@ template isMatrix(T)
 {
     enum bool isMatrix = isInstanceOf!(Matrix, T);
 }
+
+unittest // Static
+{
+    debug//(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Static");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+    auto a = Matrix!(int, 3, 4)(array(iota(12)));
+    assert([a.nrows, a.ncols] == [3, 4]);
+    auto ar = Matrix!(int, 1, 3)(array(iota(3)));
+    assert([ar.nrows, ar.ncols] == [1, 3]);
+    auto ac = Matrix!(int, 4, 1)(array(iota(4)));
+    assert([ac.nrows, ac.ncols] == [4, 1]);
+}
+
+unittest // Dynamic
+{
+    debug//(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Dynamic");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+    auto b = Matrix!(int, dynamicSize, dynamicSize)(array(iota(12)), 3, 4);
+    auto br = Matrix!(int, 1, dynamicSize)(array(iota(3)));
+    auto bc = Matrix!(int, dynamicSize, 1)(array(iota(4)));
+}
+
 
 version(none){
 unittest // Regular indices

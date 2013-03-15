@@ -343,8 +343,10 @@ unittest // Static
     else debug mixin(debugSilentScope);
 
     auto b = StorageRegular1D!(int, 4)([0, 1, 2, 3]);
+    assert(b.length == 4);
     assert(cast(int[]) b == [0, 1, 2, 3]);
     immutable auto ib = StorageRegular1D!(int, 4)([0, 1, 2, 3]);
+    assert(ib.length == 4);
     assert(cast(int[]) ib == [0, 1, 2, 3]);
 
     // .dup
@@ -386,16 +388,22 @@ unittest // Dynamic
 
     // Constructors
     auto a = StorageRegular1D!(int, dynamicSize)(4);
+    assert(a.length == 4);
     assert(cast(int[]) a == [int.init, int.init, int.init, int.init]);
     auto b = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3]);
+    assert(b.length == 4);
     assert(cast(int[]) b == [0, 1, 2, 3]);
     auto c = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3], 2, 3);
+    assert(c.length == 2);
     assert(cast(int[]) c == [0, 3]);
     immutable auto ia = StorageRegular1D!(int, dynamicSize)(4);
+    assert(ia.length == 4);
     assert(cast(int[]) ia == [int.init, int.init, int.init, int.init]);
     immutable auto ib = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3]);
+    assert(ib.length == 4);
     assert(cast(int[]) ib == [0, 1, 2, 3]);
     immutable auto ic = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3], 2, 3);
+    assert(ic.length == 2);
     assert(cast(int[]) ic == [0, 3]);
 
     // .dup
