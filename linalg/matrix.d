@@ -183,10 +183,15 @@ unittest // Static
     else debug mixin(debugSilentScope);
     auto a = Matrix!(int, 3, 4)(array(iota(12)));
     assert([a.nrows, a.ncols] == [3, 4]);
+    assert(cast(int[][]) a == [[0, 1, 2, 3],
+                               [4, 5, 6, 7],
+                               [8, 9, 10, 11]]);
     auto ar = Matrix!(int, 1, 3)(array(iota(3)));
     assert([ar.nrows, ar.ncols] == [1, 3]);
+    assert(cast(int[]) ar == [0, 1, 2]);
     auto ac = Matrix!(int, 4, 1)(array(iota(4)));
     assert([ac.nrows, ac.ncols] == [4, 1]);
+    assert(cast(int[]) ac == [0, 1, 2, 3]);
 }
 
 unittest // Dynamic
@@ -198,8 +203,16 @@ unittest // Dynamic
     }
     else debug mixin(debugSilentScope);
     auto b = Matrix!(int, dynamicSize, dynamicSize)(array(iota(12)), 3, 4);
+    assert([b.nrows, b.ncols] == [3, 4]);
+    assert(cast(int[][]) b == [[0, 1, 2, 3],
+                               [4, 5, 6, 7],
+                               [8, 9, 10, 11]]);
     auto br = Matrix!(int, 1, dynamicSize)(array(iota(3)));
+    assert([br.nrows, br.ncols] == [1, 3]);
+    assert(cast(int[]) br == [0, 1, 2]);
     auto bc = Matrix!(int, dynamicSize, 1)(array(iota(4)));
+    assert([bc.nrows, bc.ncols] == [4, 1]);
+    assert(cast(int[]) bc == [0, 1, 2, 3]);
 }
 
 
