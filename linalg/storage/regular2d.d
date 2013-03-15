@@ -327,6 +327,11 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         return linalg.storage.iterators.ByElement!(ElementType, false)(
             container, dim, stride);
     }
+
+    @property auto data() pure inout
+    {
+        return container[];
+    }
 }
 
 template isStorageRegular2D(T)
@@ -351,23 +356,33 @@ unittest // Static
     assert(cast(int[][]) b == [[0, 1, 2, 3],
                                [4, 5, 6, 7],
                                [8, 9, 10, 11]]);
+    assert(b.data == [0, 1, 2, 3,
+                      4, 5, 6, 7,
+                      8, 9, 10, 11]);
+
     immutable auto ib = StorageRegular2D!(int, defaultStorageOrder,
-                               3, 4)(
-                                   array(iota(12)));
+                                          3, 4)(
+                                              array(iota(12)));
     assert([ib.nrows, ib.ncols] == [3, 4]);
     assert(cast(int[][]) ib == [[0, 1, 2, 3],
                                 [4, 5, 6, 7],
                                 [8, 9, 10, 11]]);
+    assert(ib.data == [0, 1, 2, 3,
+                       4, 5, 6, 7,
+                       8, 9, 10, 11]);
 
     //.dup
     auto d = b.dup;
     assert(cast(int[][]) d == [[0, 1, 2, 3],
                                [4, 5, 6, 7],
                                [8, 9, 10, 11]]);
+    assert(d.data !is b.data);
+
     auto d1 = ib.dup;
     assert(cast(int[][]) d1 == [[0, 1, 2, 3],
                                 [4, 5, 6, 7],
                                 [8, 9, 10, 11]]);
+    assert(d1.data !is ib.data);
 
     // Iterator
     int[] tmp = [];
@@ -411,6 +426,10 @@ unittest // Dynamic
     assert(cast(int[][]) a == [[int.init, int.init, int.init, int.init],
                                [int.init, int.init, int.init, int.init],
                                [int.init, int.init, int.init, int.init]]);
+    assert(a.data == [int.init, int.init, int.init, int.init,
+                      int.init, int.init, int.init, int.init,
+                      int.init, int.init, int.init, int.init]);
+
     auto b = StorageRegular2D!(int, defaultStorageOrder,
                                dynamicSize, dynamicSize)(
                                    array(iota(12)), [3, 4]);
@@ -418,18 +437,30 @@ unittest // Dynamic
     assert(cast(int[][]) b == [[0, 1, 2, 3],
                                [4, 5, 6, 7],
                                [8, 9, 10, 11]]);
+    assert(b.data == [0, 1, 2, 3,
+                      4, 5, 6, 7,
+                      8, 9, 10, 11]);
+
     auto c = StorageRegular2D!(int, defaultStorageOrder,
                                dynamicSize, dynamicSize)(
                                    array(iota(12)), [2, 2], [8, 3]);
     assert([c.nrows, c.ncols] == [2, 2]);
     assert(cast(int[][]) c == [[0, 3],
                                [8, 11]]);
+    assert(c.data == [0, 1, 2, 3,
+                      4, 5, 6, 7,
+                      8, 9, 10, 11]);
+
     immutable auto ia = StorageRegular2D!(int, defaultStorageOrder,
                                           dynamicSize, dynamicSize)([3, 4]);
     assert([ia.nrows, ia.ncols] == [3, 4]);
     assert(cast(int[][]) ia == [[int.init, int.init, int.init, int.init],
                                 [int.init, int.init, int.init, int.init],
                                 [int.init, int.init, int.init, int.init]]);
+    assert(ia.data == [int.init, int.init, int.init, int.init,
+                       int.init, int.init, int.init, int.init,
+                       int.init, int.init, int.init, int.init]);
+
     immutable auto ib = StorageRegular2D!(int, defaultStorageOrder,
                                           dynamicSize, dynamicSize)(
                                               array(iota(12)), [3, 4]);
@@ -437,21 +468,31 @@ unittest // Dynamic
     assert(cast(int[][]) ib == [[0, 1, 2, 3],
                                 [4, 5, 6, 7],
                                 [8, 9, 10, 11]]);
+    assert(ib.data == [0, 1, 2, 3,
+                       4, 5, 6, 7,
+                       8, 9, 10, 11]);
+
     immutable auto ic = StorageRegular2D!(int, defaultStorageOrder,
                                           dynamicSize, dynamicSize)(
                                               array(iota(12)), [2, 2], [8, 3]);
     assert([ic.nrows, ic.ncols] == [2, 2]);
     assert(cast(int[][]) ic == [[0, 3],
                                 [8, 11]]);
+    assert(ic.data == [0, 1, 2, 3,
+                       4, 5, 6, 7,
+                       8, 9, 10, 11]);
 
     //.dup
     auto d = b.dup;
     assert(cast(int[][]) d == [[0, 1, 2, 3],
                                [4, 5, 6, 7],
                                [8, 9, 10, 11]]);
+    assert(d.data !is b.data);
+
     auto d1 = ic.dup;
     assert(cast(int[][]) d1 == [[0, 3],
                                 [8, 11]]);
+    assert(d1.data !is ib.data);
 
     // Iterator
     int[] tmp = [];
