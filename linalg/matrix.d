@@ -327,6 +327,25 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         copy(source.storage, this.storage);
         return this;
     }
+
+    ref auto opOpAssign(string op, Tsource)(auto ref const Tsource source) pure
+        if(isMatrix!Tsource && (op == "+" || op == "-"))
+    {
+        linalg.storage.operations.zip!("a"~op~"b")(
+            this.storage, source.storage, this.storage);
+        return this;
+    }
+
+    ref auto opUnary(string op)() pure
+        if(op == "+" || op == "-")
+    {
+        static if(isStatic)
+            Matrix dest;
+        else
+            auto dest = Matrix!(nrows, ncols);
+        linalg.storage.operations.map!(op~"a")(this.storage, dest.storage);
+        return dest;
+    }
 }
 
 template isMatrix(T)
@@ -421,6 +440,45 @@ unittest // Assignment
     A1 c1;
     assert(cast(int[][])(c1 = a) == test);
     assert(cast(int[][])c1 == test);
+}
+
+unittest // opOpAssign
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: opOpAssign");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    alias Matrix!(int, 3, 4) A;
+    A a, b;
+    a = A(array(iota(12)));
+    b = A(array(iota(12, 24)));
+    a += b;
+    assert(cast(int[][]) a == [[12, 14, 16, 18],
+                               [20, 22, 24, 26],
+                               [28, 30, 32, 34]]);
+}
+
+unittest // opUnary
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: opUnary");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    alias Matrix!(int, 3, 4) A;
+    A a;
+    a = A(array(iota(12)));
+    assert(cast(int[][]) (+a) == [[0, 1, 2, 3],
+                                  [4, 5, 6, 7],
+                                  [8, 9, 10, 11]]);
+    assert(cast(int[][]) (-a) == [[-0, -1, -2, -3],
+                                  [-4, -5, -6, -7],
+                                  [-8, -9, -10, -11]]);
 }
 
 unittest // Regular indices
