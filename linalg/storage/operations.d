@@ -42,14 +42,14 @@ private template safeUnaryFun(alias fun)
 {
     static if (is(typeof(fun) : string))
     {
-        auto unaryFun(ElementType)(auto ref const ElementType a) pure
+        auto safeUnaryFun(ElementType)(auto ref const ElementType a) pure
         {
             mixin("return (" ~ fun ~ ");");
         }
     }
     else
     {
-        alias fun unaryFun;
+        alias fun safeUnaryFun;
     }
 }
 
@@ -83,5 +83,65 @@ body
     {
         d = funToApply(isource.front);
         isource.popFront();
+    }
+}
+
+private template safeBinaryFun(alias fun)
+{
+    static if (is(typeof(fun) : string))
+    {
+        auto safeBinaryFun(ElementTypeA, ElementTypeB)(
+            auto ref const ElementTypeA a,
+            auto ref const ElementTypeB b) pure
+        {
+            mixin("return (" ~ fun ~ ");");
+        }
+    }
+    else
+    {
+        alias fun safeBinaryFun;
+    }
+}
+
+void zip(alias fun, TsourceA, TsourceB, Tdest)(
+    const ref TsourceA sourceA,
+    const ref TsourceB sourceB,
+    ref Tdest dest) pure
+    if((isStorageRegular2D!TsourceA && isStorageRegular2D!TsourceB
+        && isStorageRegular2D!Tdest)
+       || (isStorageRegular1D!TsourceA && isStorageRegular1D!TsourceB
+           && isStorageRegular1D!Tdest))
+    in
+    {
+        assert(dest.isCompatDim(sourceA.dim));
+        assert(sourceA.dim == sourceB.dim);
+    }
+body
+{
+    debug(operations)
+    {
+        debugOP.writefln("operations.zip()");
+        mixin(debugIndentScope);
+        debugOP.writefln("from <%X>, %d",
+                        sourceA.container.ptr,
+                        sourceA.container.length);
+        debugOP.writefln("from <%X>, %d",
+                        sourceB.container.ptr,
+                        sourceB.container.length);
+        debugOP.writefln("to   <%X>, %d",
+                        dest.container.ptr,
+                        dest.container.length);
+        debugOP.writeln("...");
+        mixin(debugIndentScope);
+    }
+    alias safeBinaryFun!fun funToApply;
+    auto isourceA = sourceA.byElement;
+    auto isourceB = sourceB.byElement;
+    auto idest = dest.byElement;
+    foreach(ref d; idest)
+    {
+        d = funToApply(isourceA.front, isourceB.front);
+        isourceA.popFront();
+        isourceB.popFront();
     }
 }
