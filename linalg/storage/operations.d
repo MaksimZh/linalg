@@ -37,3 +37,51 @@ body
         isource.popFront();
     }
 }
+
+private template safeUnaryFun(alias fun)
+{
+    static if (is(typeof(fun) : string))
+    {
+        auto unaryFun(ElementType)(auto ref const ElementType a) pure
+        {
+            mixin("return (" ~ fun ~ ");");
+        }
+    }
+    else
+    {
+        alias fun unaryFun;
+    }
+}
+
+void map(alias fun, Tsource, Tdest)(
+    const ref Tsource source, ref Tdest dest) pure
+    if((isStorageRegular2D!Tsource && isStorageRegular2D!Tdest)
+        || (isStorageRegular1D!Tsource && isStorageRegular1D!Tdest))
+    in
+    {
+        assert(dest.isCompatDim(source.dim));
+    }
+body
+{
+    debug(operations)
+    {
+        debugOP.writefln("operations.map()");
+        mixin(debugIndentScope);
+        debugOP.writefln("from <%X>, %d",
+                        source.container.ptr,
+                        source.container.length);
+        debugOP.writefln("to   <%X>, %d",
+                        dest.container.ptr,
+                        dest.container.length);
+        debugOP.writeln("...");
+        mixin(debugIndentScope);
+    }
+    alias safeUnaryFun!fun funToApply;
+    auto isource = source.byElement;
+    auto idest = dest.byElement;
+    foreach(ref d; idest)
+    {
+        d = funToApply(isource.front);
+        isource.popFront();
+    }
+}
