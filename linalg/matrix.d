@@ -63,23 +63,6 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 
     /* Storage of matrix data */
     private StorageType storage;
-    /* Forward storage parameters */
-    static if(shape == MatrixShape.matrix)
-    {
-        @property size_t nrows() pure const { return storage.nrows; }
-        @property size_t ncols() pure const { return storage.ncols; }
-    }
-    else static if(shape == MatrixShape.row)
-    {
-        enum size_t nrows = 1;
-        @property size_t ncols() pure const { return storage.length; }
-    }
-    else static if(shape == MatrixShape.col)
-    {
-        @property size_t nrows() pure const { return storage.length; }
-        enum size_t ncols = 1;
-    }
-    else static assert(false);
 
     /* Constructors */
     private inout this(inout StorageType storage) pure
@@ -158,6 +141,61 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                     mixin(debugIndentScope);
                 }
                 this(StorageType(array, [nrows, ncols]));
+            }
+        }
+    }
+
+    public // Dimensions
+    {
+        static if(shape == MatrixShape.matrix)
+        {
+            @property size_t nrows() pure const { return storage.nrows; }
+            @property size_t ncols() pure const { return storage.ncols; }
+        }
+        else static if(shape == MatrixShape.row)
+        {
+            enum size_t nrows = 1;
+            @property size_t ncols() pure const { return storage.length; }
+        }
+        else static if(shape == MatrixShape.col)
+        {
+            @property size_t nrows() pure const { return storage.length; }
+            enum size_t ncols = 1;
+        }
+        else static assert(false);
+
+        /* Test dimensions for compatibility */
+        bool isCompatDim(in size_t[] dim) pure
+        {
+            static if(shape == MatrixShape.matrix)
+                return storage.isCompatDim(dim);
+            else static if(shape == MatrixShape.row)
+                return dim[0] == 1 && storage.isCompatDim(dim[1]);
+            else static if(shape == MatrixShape.col)
+                return dim[1] == 1 && storage.isCompatDim(dim[0]);
+        }
+
+        static if(!isStatic)
+        {
+            static if(isVector)
+                void setDim(size_t dim) pure
+                {
+                    storage.setDim(dim);
+                }
+
+            void setDim(in size_t[2] dim) pure
+                in
+                {
+                    assert(isCompatDim(dim));
+                }
+            body
+            {
+                static if(shape == MatrixShape.matrix)
+                    storage.setDim(dim);
+                else static if(shape == MatrixShape.row)
+                    setDim(dim[1]);
+                else static if(shape == MatrixShape.col)
+                    setDim(dim[0]);
             }
         }
     }
@@ -262,6 +300,14 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         {
             return cast(typeof(return)) storage;
         }
+    }
+
+    ref auto opAssign(Tsource)(ref const Tsource source) pure
+        if(isMatrix!Tsource)
+    {
+        static if(!isStatic && canRealloc)
+            setDim([source.nrows, source.ncols]);
+        copy(source.storage, this.storage);
     }
 }
 

@@ -1,0 +1,5 @@
+* matrix constructor taking dimensions
+* dimension control for dynamic matrices
+* dim -> nrows, ncols everywherer in 2d
+* remove _ from function parameters
+* 
