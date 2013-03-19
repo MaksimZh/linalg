@@ -342,6 +342,7 @@ unittest // Static
         mixin(debugIndentScope);
     }
     else debug mixin(debugSilentScope);
+
     auto a = Matrix!(int, 3, 4)(array(iota(12)));
     assert([a.nrows, a.ncols] == [3, 4]);
     assert(cast(int[][]) a == [[0, 1, 2, 3],
@@ -368,6 +369,7 @@ unittest // Dynamic
         mixin(debugIndentScope);
     }
     else debug mixin(debugSilentScope);
+
     auto b = Matrix!(int, dynamicSize, dynamicSize)(array(iota(12)), 3, 4);
     assert([b.nrows, b.ncols] == [3, 4]);
     assert(cast(int[][]) b == [[0, 1, 2, 3],
@@ -394,6 +396,7 @@ unittest // Assignment
         mixin(debugIndentScope);
     }
     else debug mixin(debugSilentScope);
+
     debug debugOP.writeln("static -> static");
     alias Matrix!(int, 3, 4) A;
     A a, b;
@@ -420,14 +423,15 @@ unittest // Assignment
     assert(cast(int[][])c1 == test);
 }
 
-version(none){
 unittest // Regular indices
 {
-    debug(matrix)
+    debug(unittests)
     {
         debugOP.writeln("linalg.matrix unittest: Regular indices");
         mixin(debugIndentScope);
     }
+    else debug mixin(debugSilentScope);
+
     auto a = Matrix!(int, 4, 6)(array(iota(24)));
     assert(a[1, 2] == 8);
     assert((a[1, 2] = 80) == 80);
@@ -437,6 +441,8 @@ unittest // Regular indices
     a[1, 2] += 3;
     assert(a[1, 2] == 84);
 }
+
+version(none){
 
 unittest // Regular indices through slices
 {
