@@ -1,3 +1,2 @@
-* matrix constructor taking dimensions
 * dim -> nrows, ncols everywhere in 2d
 * 

@@ -97,7 +97,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         }
     }
 
-    /* Constructors and destructor */
+    /* Constructors */
     static if(isStatic)
     {
         inout this()(inout ElementType[] array) pure

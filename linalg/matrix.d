@@ -124,6 +124,22 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         }
         else
         {
+            this(size_t nrows, size_t ncols) pure
+            {
+                debug(matrix)
+                {
+                    debugOP.writefln("Matrix<%X>.this()", &this);
+                    mixin(debugIndentScope);
+                    debugOP.writeln("nrwos = ", nrows);
+                    debugOP.writeln("ncols = ", ncols);
+                    debugOP.writeln("...");
+                    scope(exit) debug debugOP.writefln(
+                        "storage<%X>", &(this.storage));
+                    mixin(debugIndentScope);
+                }
+                this(StorageType([nrows, ncols]));
+            }
+
             inout this(inout ElementType[] array,
                        size_t nrows, size_t ncols) pure
             {
