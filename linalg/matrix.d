@@ -161,9 +161,9 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         }
     }
 
-    /* Slices and indices support */
-    static if(isVector)
+    public // Slices and indices support
     {
+        //NOTE: depends on DMD pull-request 443
         mixin sliceOverload;
 
         size_t opDollar(size_t dimIndex)() pure const
@@ -171,42 +171,67 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             return storage.opDollar!dimIndex;
         }
 
-        ref inout auto opIndex(size_t i) pure inout
+        static if(isVector)
         {
-            return storage[i];
-        }
+            ref inout auto opIndex() pure inout
+            {
+                return Matrix!(ElementType,
+                               nrows_ == 1 ? 1 : dynamicSize,
+                               ncols_ == 1 ? 1 : dynamicSize,
+                               storageOrder)(storage.opIndex());
+            }
 
-        ref inout auto opIndex(Slice s) pure inout
-        {
-            return Matrix!(ElementType,
-                           nrows_ == 1 ? 1 : dynamicSize,
-                           ncols_ == 1 ? 1 : dynamicSize,
-                           storageOrder)(storage.opIndex(s));
-        }
-    }
-    else
-    {
-        ref inout auto opIndex(size_t irow, size_t icol) pure inout
-        {
-            return storage[irow, icol];
-        }
+            ref inout auto opIndex(size_t i) pure inout
+            {
+                return storage[i];
+            }
 
-        ref inout auto opIndex(Slice srow, size_t icol) pure inout
-        {
-            return Matrix!(ElementType, dynamicSize, 1, storageOrder)(
-                storage.opIndex(srow, icol));
+            ref inout auto opIndex(Slice s) pure inout
+            {
+                return Matrix!(ElementType,
+                               nrows_ == 1 ? 1 : dynamicSize,
+                               ncols_ == 1 ? 1 : dynamicSize,
+                               storageOrder)(storage.opIndex(s));
+            }
         }
-
-        ref inout auto opIndex(size_t irow, Slice scol) pure inout
+        else
         {
-            return Matrix!(ElementType, 1, dynamicSize, storageOrder)(
-                storage.opIndex(irow, scol));
-        }
+            ref inout auto opIndex() pure inout
+            {
+                return Matrix!(ElementType,
+                               nrows_ == 1 ? 1 : dynamicSize,
+                               ncols_ == 1 ? 1 : dynamicSize,
+                               storageOrder)(storage.opIndex());
+            }
 
-        ref inout auto opIndex(Slice srow, Slice scol) pure inout
-        {
-            return Matrix!(ElementType, dynamicSize, dynamicSize, storageOrder)(
-                storage.opIndex(srow, scol));
+            ref inout auto opIndex(size_t irow, size_t icol) pure inout
+            {
+                return storage[irow, icol];
+            }
+
+            ref inout auto opIndex(Slice srow, size_t icol) pure inout
+            {
+                return Matrix!(ElementType,
+                               dynamicSize, 1,
+                               storageOrder)(
+                    storage.opIndex(srow, icol));
+            }
+
+            ref inout auto opIndex(size_t irow, Slice scol) pure inout
+            {
+                return Matrix!(ElementType,
+                               1, dynamicSize,
+                               storageOrder)(
+                    storage.opIndex(irow, scol));
+            }
+
+            ref inout auto opIndex(Slice srow, Slice scol) pure inout
+            {
+                return Matrix!(ElementType,
+                               dynamicSize, dynamicSize,
+                               storageOrder)(
+                    storage.opIndex(srow, scol));
+            }
         }
     }
 
@@ -246,7 +271,7 @@ template isMatrix(T)
 
 unittest // Static
 {
-    debug//(unittests)
+    debug(unittests)
     {
         debugOP.writeln("linalg.matrix unittest: Static");
         mixin(debugIndentScope);
@@ -272,7 +297,7 @@ unittest // Static
 
 unittest // Dynamic
 {
-    debug//(unittests)
+    debug(unittests)
     {
         debugOP.writeln("linalg.matrix unittest: Dynamic");
         mixin(debugIndentScope);

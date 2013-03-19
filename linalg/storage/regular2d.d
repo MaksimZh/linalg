@@ -279,6 +279,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
     public // Slices and indices support
     {
+        //NOTE: depends on DMD pull-request 443
         package size_t mapIndex(size_t irow, size_t icol) pure const
         {
             return irow * stride[0] + icol * stride[1];
@@ -289,6 +290,14 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         size_t opDollar(size_t dimIndex)() pure const
         {
             return dim[dimIndex];
+        }
+
+        ref inout auto opIndex() pure inout
+        {
+            debug(slice) debugOP.writeln("slice");
+            return StorageRegular2D!(ElementType, storageOrder,
+                                     dynamicSize, dynamicSize)(
+                                         container[], dim, stride);
         }
 
         ref inout auto opIndex(size_t irow, size_t icol) pure inout
@@ -317,10 +326,10 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             debug(slice) debugOP.writeln("slice ", srow, ", ", scol);
             return StorageRegular2D!(ElementType, storageOrder,
                                      dynamicSize, dynamicSize)(
-                container[mapIndex(srow.lo, scol.lo)
-                          ..
-                          mapIndex(srow.up, scol.up)],
-                [srow.length, scol.length], stride);
+                                         container[mapIndex(srow.lo, scol.lo)
+                                                   ..
+                                                   mapIndex(srow.up, scol.up)],
+                                         [srow.length, scol.length], stride);
         }
     }
 

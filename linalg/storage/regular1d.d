@@ -211,6 +211,7 @@ struct StorageRegular1D(T, size_t dim_)
 
     public // Slices and indices support
     {
+        //NOTE: depends on DMD pull-request 443
         package size_t mapIndex(size_t i) pure const
         {
             return i * stride;
@@ -222,6 +223,13 @@ struct StorageRegular1D(T, size_t dim_)
         {
             static assert(dimIndex == 0);
             return dim;
+        }
+
+        ref inout auto opIndex() pure inout
+        {
+            debug(slice) debugOP.writeln("slice");
+            return StorageRegular1D!(ElementType, dynamicSize)(
+                container[], length, stride);
         }
 
         ref inout auto opIndex(size_t i) pure inout
