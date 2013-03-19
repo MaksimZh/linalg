@@ -5,7 +5,10 @@ SOURCE=$(shell find ./linalg/ -name "*.d")
 DEBUGFLAGS=operations slice storage container cow copy matrix
 
 test: test.d $(SOURCE)
-	$(DMD) $^ $(LIBS) -debug $(addprefix -debug=, $(DEBUGFLAGS)) -unittest -version=backend_lapack
+	$(DMD) $^ $(LIBS) -debug $(addprefix -debug=, $(DEBUGFLAGS)) -unittest -version=linalg_backend_lapack
+
+unittest: test.d $(SOURCE)
+	$(DMD) $^ $(LIBS) -debug $(addprefix -debug=, $(DEBUGFLAGS)) -debug=unittests -unittest -version=linalg_backend_lapack
 
 backup:
 	git bundle create ~/Dropbox/linalg.bundle --all

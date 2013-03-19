@@ -324,6 +324,16 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         ref auto opAssign(Tsource)(auto ref const Tsource source) pure
             if(isMatrix!Tsource)
         {
+            debug(matrix)
+            {
+                debugOP.writefln("Matrix<%X>.opAssign()", &this);
+                mixin(debugIndentScope);
+                debugOP.writefln("source = <%X>", &source);
+                debugOP.writeln("...");
+                scope(exit) debug debugOP.writefln(
+                    "storage<%X>", &(this.storage));
+                mixin(debugIndentScope);
+            }
             static if(!isStatic && canRealloc)
                 setDim([source.nrows, source.ncols]);
             copy(source.storage, this.storage);
@@ -334,6 +344,14 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             auto ref const Tsource source) pure
             if(isMatrix!Tsource && (op == "+" || op == "-"))
         {
+            debug(matrix)
+            {
+                debugOP.writefln("Matrix<%X>.opOpAssign("~op~")", &this);
+                mixin(debugIndentScope);
+                debugOP.writefln("source = <%X>", &source);
+                debugOP.writeln("...");
+                mixin(debugIndentScope);
+            }
             linalg.storage.operations.zip!("a"~op~"b")(
                 this.storage, source.storage, this.storage);
             return this;
@@ -344,6 +362,14 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             if(!(isMatrix!Tsource) && (op == "*" || op == "/")
                && is(TypeOfOp!(ElementType, op, Tsource) == ElementType))
         {
+            debug(matrix)
+            {
+                debugOP.writefln("Matrix<%X>.opOpAssign("~op~")", &this);
+                mixin(debugIndentScope);
+                debugOP.writefln("source = ", source);
+                debugOP.writeln("...");
+                mixin(debugIndentScope);
+            }
             linalg.storage.operations.map!(
                 (ElementType a) => mixin("a"~op~"source"))(
                     this.storage, this.storage);
@@ -353,6 +379,13 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         ref auto opUnary(string op)() pure
             if(op == "+" || op == "-")
         {
+            debug(matrix)
+            {
+                debugOP.writefln("Matrix<%X>.opUnary("~op~")", &this);
+                mixin(debugIndentScope);
+                debugOP.writeln("...");
+                mixin(debugIndentScope);
+            }
             static if(isStatic)
                 Matrix dest;
             else
