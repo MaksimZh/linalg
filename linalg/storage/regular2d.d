@@ -224,17 +224,17 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         @property size_t ncols() pure const { return dim[1]; }
 
         /* Test dimensions for compatibility */
-        bool isCompatDim(in size_t[] dim_) pure
+        bool isCompatDim(in size_t[] dim) pure
         {
             static if(isStatic)
             {
-                return dim == dim_;
+                return this.dim == dim;
             }
             else
             {
                 if(dim.length != rank)
                     return false;
-                foreach(i, d; dim_)
+                foreach(i, d; dim)
                     if((d != dimPattern[i]) && (dimPattern[i] != dynamicSize))
                         return false;
                 return true;
@@ -264,14 +264,14 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                 container = new ElementType[calcContainerSize(dim)];
             }
 
-            void setDim(in size_t[2] dim_) pure
+            void setDim(in size_t[2] dim) pure
                 in
                 {
                     assert(isCompatDim(dim));
                 }
             body
             {
-                dim = dim_;
+                this.dim = dim;
                 _reallocate();
             }
         }
