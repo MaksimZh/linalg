@@ -19,3 +19,12 @@ struct Slice
         return up - lo;
     }
 }
+
+    mixin template sliceOverload()
+{
+    Slice opSlice(size_t dimIndex)(size_t lo, size_t up) pure const
+    {
+        static assert(dimIndex == 0);
+        return Slice(lo, up);
+    }
+}

@@ -16,6 +16,7 @@ public import linalg.types;
 
 import linalg.storage.regular1d;
 import linalg.storage.regular2d;
+import linalg.storage.slice;
 
 template MatrixStorageType(T, StorageOrder storageOrder,
                            size_t nrows, size_t ncols)
@@ -52,6 +53,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     alias MatrixStorageType!(T, storageOrder_, nrows_, ncols_) StorageType;
     enum auto shape = shapeForDim(nrows_, ncols_);
     enum bool isVector = shape != MatrixShape.matrix;
+    enum StorageOrder storageOrder = storageOrder_;
     public // Forward type parameters
     {
         alias StorageType.ElementType ElementType;
@@ -79,6 +81,23 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     else static assert(false);
 
     /* Constructors */
+    private inout this(inout StorageType storage) pure
+    {
+        debug(matrix)
+        {
+            debugOP.writefln("Matrix<%X>.this()", &this);
+            mixin(debugIndentScope);
+            debugOP.writefln("storage.data = <%X>, %d",
+                             storage.data.ptr,
+                             storage.data.length);
+            debugOP.writeln("...");
+            scope(exit) debug debugOP.writefln(
+                "storage<%X>", &(this.storage));
+            mixin(debugIndentScope);
+        }
+        this.storage = storage;
+    }
+
     static if(isStatic)
     {
         inout this(inout ElementType[] array) pure
@@ -116,10 +135,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                         "storage<%X>", &(this.storage));
                     mixin(debugIndentScope);
                 }
-                //HACK
-                auto tmp = StorageType(array);
-                *cast(StorageType*)&storage =
-                    *cast(StorageType*)&tmp;
+                this(StorageType(array));
             }
         }
         else
@@ -140,16 +156,58 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                         "storage<%X>", &(this.storage));
                     mixin(debugIndentScope);
                 }
-                //HACK
-                auto tmp = StorageType(array, [nrows, ncols]);
-                *cast(StorageType*)&storage =
-                    *cast(StorageType*)&tmp;
+                this(StorageType(array, [nrows, ncols]));
             }
         }
     }
 
-    public // Slices and indices support
+    /* Slices and indices support */
+    static if(isVector)
     {
+        mixin sliceOverload;
+
+        size_t opDollar(size_t dimIndex)() pure const
+        {
+            return storage.opDollar!dimIndex;
+        }
+
+        ref inout auto opIndex(size_t i) pure inout
+        {
+            return storage[i];
+        }
+
+        ref inout auto opIndex(Slice s) pure inout
+        {
+            return Matrix!(ElementType,
+                           nrows_ == 1 ? 1 : dynamicSize,
+                           ncols_ == 1 ? 1 : dynamicSize,
+                           storageOrder)(storage.opIndex(s));
+        }
+    }
+    else
+    {
+        ref inout auto opIndex(size_t irow, size_t icol) pure inout
+        {
+            return storage[irow, icol];
+        }
+
+        ref inout auto opIndex(Slice srow, size_t icol) pure inout
+        {
+            return Matrix!(ElementType, dynamicSize, 1, storageOrder)(
+                storage.opIndex(srow, icol));
+        }
+
+        ref inout auto opIndex(size_t irow, Slice scol) pure inout
+        {
+            return Matrix!(ElementType, 1, dynamicSize, storageOrder)(
+                storage.opIndex(irow, scol));
+        }
+
+        ref inout auto opIndex(Slice srow, Slice scol) pure inout
+        {
+            return Matrix!(ElementType, dynamicSize, dynamicSize, storageOrder)(
+                storage.opIndex(srow, scol));
+        }
     }
 
     /* Cast to built-in array */

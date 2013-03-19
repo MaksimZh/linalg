@@ -284,10 +284,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             return irow * stride[0] + icol * stride[1];
         }
 
-        Slice opSlice(size_t dimIndex)(size_t lo, size_t up) pure const
-        {
-            return Slice(lo, up);
-        }
+        mixin sliceOverload;
 
         size_t opDollar(size_t dimIndex)() pure const
         {

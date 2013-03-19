@@ -216,11 +216,7 @@ struct StorageRegular1D(T, size_t dim_)
             return i * stride;
         }
 
-        Slice opSlice(size_t dimIndex)(size_t lo, size_t up) pure const
-        {
-            static assert(dimIndex == 0);
-            return Slice(lo, up);
-        }
+        mixin sliceOverload;
 
         size_t opDollar(size_t dimIndex)() pure const
         {

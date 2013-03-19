@@ -1,0 +1,2 @@
+* Add [] slice for storage
+* matrix constructor taking storage
