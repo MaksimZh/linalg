@@ -48,7 +48,8 @@ auto shapeForDim(size_t nrows, size_t ncols)
 }
 
 struct Matrix(T, size_t nrows_, size_t ncols_,
-              StorageOrder storageOrder_ = defaultStorageOrder)
+              StorageOrder storageOrder_ = defaultStorageOrder,
+              bool canRealloc = true)
 {
     alias MatrixStorageType!(T, storageOrder_, nrows_, ncols_) StorageType;
     enum auto shape = shapeForDim(nrows_, ncols_);
@@ -178,7 +179,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 return Matrix!(ElementType,
                                nrows_ == 1 ? 1 : dynamicSize,
                                ncols_ == 1 ? 1 : dynamicSize,
-                               storageOrder)(storage.opIndex());
+                               storageOrder, false)(storage.opIndex());
             }
 
             ref inout auto opIndex(size_t i) pure inout
@@ -191,7 +192,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 return Matrix!(ElementType,
                                nrows_ == 1 ? 1 : dynamicSize,
                                ncols_ == 1 ? 1 : dynamicSize,
-                               storageOrder)(storage.opIndex(s));
+                               storageOrder, false)(storage.opIndex(s));
             }
         }
         else
@@ -201,7 +202,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 return Matrix!(ElementType,
                                nrows_ == 1 ? 1 : dynamicSize,
                                ncols_ == 1 ? 1 : dynamicSize,
-                               storageOrder)(storage.opIndex());
+                               storageOrder, false)(storage.opIndex());
             }
 
             ref inout auto opIndex(size_t irow, size_t icol) pure inout
@@ -213,7 +214,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             {
                 return Matrix!(ElementType,
                                dynamicSize, 1,
-                               storageOrder)(
+                               storageOrder, false)(
                     storage.opIndex(srow, icol));
             }
 
@@ -221,7 +222,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             {
                 return Matrix!(ElementType,
                                1, dynamicSize,
-                               storageOrder)(
+                               storageOrder, false)(
                     storage.opIndex(irow, scol));
             }
 
@@ -229,7 +230,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             {
                 return Matrix!(ElementType,
                                dynamicSize, dynamicSize,
-                               storageOrder)(
+                               storageOrder, false)(
                     storage.opIndex(srow, scol));
             }
         }
