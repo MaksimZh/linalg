@@ -319,32 +319,47 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         }
     }
 
-    ref auto opAssign(Tsource)(auto ref const Tsource source) pure
-        if(isMatrix!Tsource)
+    public // Operations
     {
-        static if(!isStatic && canRealloc)
-            setDim([source.nrows, source.ncols]);
-        copy(source.storage, this.storage);
-        return this;
-    }
+        ref auto opAssign(Tsource)(auto ref const Tsource source) pure
+            if(isMatrix!Tsource)
+        {
+            static if(!isStatic && canRealloc)
+                setDim([source.nrows, source.ncols]);
+            copy(source.storage, this.storage);
+            return this;
+        }
 
-    ref auto opOpAssign(string op, Tsource)(auto ref const Tsource source) pure
-        if(isMatrix!Tsource && (op == "+" || op == "-"))
-    {
-        linalg.storage.operations.zip!("a"~op~"b")(
-            this.storage, source.storage, this.storage);
-        return this;
-    }
+        ref auto opOpAssign(string op, Tsource)(
+            auto ref const Tsource source) pure
+            if(isMatrix!Tsource && (op == "+" || op == "-"))
+        {
+            linalg.storage.operations.zip!("a"~op~"b")(
+                this.storage, source.storage, this.storage);
+            return this;
+        }
 
-    ref auto opUnary(string op)() pure
-        if(op == "+" || op == "-")
-    {
-        static if(isStatic)
-            Matrix dest;
-        else
-            auto dest = Matrix!(nrows, ncols);
-        linalg.storage.operations.map!(op~"a")(this.storage, dest.storage);
-        return dest;
+        ref auto opOpAssign(string op, Tsource)(
+            auto ref const Tsource source) pure
+            if(!(isMatrix!Tsource) && (op == "*" || op == "/")
+               && is(TypeOfOp!(ElementType, op, Tsource) == ElementType))
+        {
+            linalg.storage.operations.map!(
+                (ElementType a) => mixin("a"~op~"source"))(
+                    this.storage, this.storage);
+            return this;
+        }
+
+        ref auto opUnary(string op)() pure
+            if(op == "+" || op == "-")
+        {
+            static if(isStatic)
+                Matrix dest;
+            else
+                auto dest = Matrix!(nrows, ncols);
+            linalg.storage.operations.map!(op~"a")(this.storage, dest.storage);
+            return dest;
+        }
     }
 }
 
@@ -459,6 +474,12 @@ unittest // opOpAssign
     assert(cast(int[][]) a == [[12, 14, 16, 18],
                                [20, 22, 24, 26],
                                [28, 30, 32, 34]]);
+
+    a = A(array(iota(12)));
+    a *= 2;
+    assert(cast(int[][]) a == [[0, 2, 4, 6],
+                               [8, 10, 12, 14],
+                               [16, 18, 20, 22]]);
 }
 
 unittest // opUnary

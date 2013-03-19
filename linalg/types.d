@@ -2,6 +2,8 @@
 
 module linalg.types;
 
+import std.traits;
+
 /** Value to denote not fixed dimension of the array */
 enum size_t dynamicSize = 0;
 
@@ -13,3 +15,9 @@ enum StorageOrder
 }
 
 enum StorageOrder defaultStorageOrder = StorageOrder.rowMajor;
+
+template TypeOfOp(Tlhs, string op, Trhs)
+{
+    alias ReturnType!((Tlhs lhs, Trhs rhs) => mixin("lhs"~op~"rhs"))
+        TypeOfOp;
+}
