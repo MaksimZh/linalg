@@ -17,6 +17,7 @@ public import linalg.types;
 import linalg.storage.regular1d;
 import linalg.storage.regular2d;
 import linalg.storage.slice;
+import linalg.storage.operations;
 
 template MatrixStorageType(T, StorageOrder storageOrder,
                            size_t nrows, size_t ncols)
@@ -318,12 +319,13 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         }
     }
 
-    ref auto opAssign(Tsource)(ref const Tsource source) pure
+    ref auto opAssign(Tsource)(auto ref const Tsource source) pure
         if(isMatrix!Tsource)
     {
         static if(!isStatic && canRealloc)
             setDim([source.nrows, source.ncols]);
         copy(source.storage, this.storage);
+        return this;
     }
 }
 
@@ -384,6 +386,39 @@ unittest // Dynamic
                                 [3]]);
 }
 
+unittest // Assignment
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Assignment");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+    debug debugOP.writeln("static -> static");
+    alias Matrix!(int, 3, 4) A;
+    A a, b;
+    a = A(array(iota(12)));
+    auto test = [[0, 1, 2, 3],
+                 [4, 5, 6, 7],
+                 [8, 9, 10, 11]];
+    assert(cast(int[][])a == test);
+    assert(cast(int[][])(b = a) == test);
+    assert(cast(int[][])b == test);
+    debug debugOP.writeln("dynamic -> dynamic");
+    alias Matrix!(int, dynamicSize, dynamicSize) A1;
+    A1 a1, b1;
+    a1 = A1(array(iota(12)), 3, 4);
+    assert(cast(int[][])(b1 = a1) == test);
+    assert(cast(int[][])b1 == test);
+    debug debugOP.writeln("dynamic -> static");
+    A c;
+    assert(cast(int[][])(c = a1) == test);
+    assert(cast(int[][])c == test);
+    debug debugOP.writeln("static -> dynamic");
+    A1 c1;
+    assert(cast(int[][])(c1 = a) == test);
+    assert(cast(int[][])c1 == test);
+}
 
 version(none){
 unittest // Regular indices
@@ -446,45 +481,6 @@ unittest // Slicing
     assert(cast(int[][]) a[1..3][1..3]
            == [[5, 6],
                [9, 10]]);
-    debug writeln("matrix-unittest-end");
-}
-
-unittest // Assignment
-{
-    debug writeln("matrix-unittest-begin");
-    debug writeln("static -> static");
-    alias Matrix!(int, 3, 4) A;
-    A a, b;
-    debug writeln("a ", &(a.storage));
-    debug writeln("a = A()");
-    a = A(array(iota(12)));
-    auto test = [[0, 1, 2, 3],
-                 [4, 5, 6, 7],
-                 [8, 9, 10, 11]];
-    assert(cast(int[][])a == test);
-    debug writeln("b = a");
-    debug writeln(cast(int[][])(a));
-    debug writeln(cast(int[][])(b = a));
-    assert(cast(int[][])(b = a) == test);
-    assert(cast(int[][])b == test);
-    debug writeln("dynamic -> dynamic");
-    alias Matrix!(int, dynamicSize, dynamicSize) A1;
-    A1 a1, b1;
-    debug writeln("a1 = A1()");
-    a1 = A1(array(iota(12)), 3, 4);
-    debug writeln("b1 = a1");
-    assert(cast(int[][])(b1 = a1) == test);
-    assert(cast(int[][])b1 == test);
-    debug writeln("dynamic -> static");
-    A c;
-    debug writeln("c = a1");
-    assert(cast(int[][])(c = a1) == test);
-    assert(cast(int[][])c == test);
-    debug writeln("static -> dynamic");
-    A1 c1;
-    debug writeln("c1 = a");
-    assert(cast(int[][])(c1 = a) == test);
-    assert(cast(int[][])c1 == test);
     debug writeln("matrix-unittest-end");
 }
 
