@@ -17,6 +17,7 @@ import linalg.types;
 import linalg.storage.mdarray;
 import linalg.storage.operations;
 import linalg.storage.slice;
+import linalg.storage.iterators;
 
 private // Auxiliary functions
 {
@@ -269,16 +270,16 @@ struct StorageRegular1D(T, size_t dim_)
 
     @property auto byElement() pure
     {
-        return ByElement!(ElementType, true)(container,
-                                             dim,
-                                             stride);
+        return ByElement!(ElementType, 1, true)(container,
+                                                dim,
+                                                stride);
     }
 
     @property auto byElement() pure const
     {
-        return ByElement!(ElementType, false)(container,
-                                              dim,
-                                              stride);
+        return ByElement!(ElementType, 1, false)(container,
+                                                 dim,
+                                                 stride);
     }
 
     @property auto data() pure inout
@@ -290,56 +291,6 @@ struct StorageRegular1D(T, size_t dim_)
 template isStorageRegular1D(T)
 {
     enum bool isStorageRegular1D = isInstanceOf!(StorageRegular1D, T);
-}
-
-/* Iterator */
-struct ByElement(ElementType, bool mutable = true)
-{
-    private
-    {
-        static if(mutable)
-            ElementType[] _data;
-        else
-            const ElementType[] _data;
-        const size_t _dim;
-        const size_t _stride;
-
-        static if(mutable)
-            ElementType* _ptr;
-        else
-            const(ElementType)* _ptr;
-        const ElementType* _ptrFin;
-    }
-
-    static if(mutable)
-    {
-        this(ElementType[] data, size_t dim, size_t stride) pure
-        {
-            _data = data;
-            _dim = dim;
-            _stride = stride;
-            _ptr = _data.ptr;
-            _ptrFin = _data.ptr + dim;
-        }
-    }
-    else
-    {
-        this(in ElementType[] data, size_t dim, size_t stride) pure
-        {
-            _data = data;
-            _dim = dim;
-            _stride = stride;
-            _ptr = _data.ptr;
-            _ptrFin = _data.ptr + dim;
-        }
-    }
-
-    @property bool empty() pure const { return _ptr >= _ptrFin; }
-    static if(mutable)
-        @property ref ElementType front() pure { return *_ptr; }
-    else
-        @property ElementType front() pure { return *_ptr; }
-    void popFront() pure { _ptr += _stride; }
 }
 
 unittest // Static

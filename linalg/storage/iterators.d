@@ -2,7 +2,58 @@
 
 module linalg.storage.iterators;
 
-struct ByElement(ElementType, bool mutable = true)
+struct ByElement(ElementType, size_t rank, bool mutable = true)
+    if(rank == 1)
+{
+    private
+    {
+        static if(mutable)
+            ElementType[] _data;
+        else
+            const ElementType[] _data;
+        const size_t _dim;
+        const size_t _stride;
+
+        static if(mutable)
+            ElementType* _ptr;
+        else
+            const(ElementType)* _ptr;
+        const ElementType* _ptrFin;
+    }
+
+    static if(mutable)
+    {
+        this(ElementType[] data, size_t dim, size_t stride) pure
+        {
+            _data = data;
+            _dim = dim;
+            _stride = stride;
+            _ptr = _data.ptr;
+            _ptrFin = _data.ptr + dim;
+        }
+    }
+    else
+    {
+        this(in ElementType[] data, size_t dim, size_t stride) pure
+        {
+            _data = data;
+            _dim = dim;
+            _stride = stride;
+            _ptr = _data.ptr;
+            _ptrFin = _data.ptr + dim;
+        }
+    }
+
+    @property bool empty() pure const { return _ptr >= _ptrFin; }
+    static if(mutable)
+        @property ref ElementType front() pure { return *_ptr; }
+    else
+        @property ElementType front() pure { return *_ptr; }
+    void popFront() pure { _ptr += _stride; }
+}
+
+struct ByElement(ElementType, size_t rank, bool mutable = true)
+    if(rank > 1)
 {
     //TODO: optimize for 2d
     private

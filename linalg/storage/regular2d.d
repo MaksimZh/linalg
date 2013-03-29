@@ -362,13 +362,13 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
     @property auto byElement() pure
     {
-        return linalg.storage.iterators.ByElement!(ElementType, true)(
+        return linalg.storage.iterators.ByElement!(ElementType, 2, true)(
             container, dim, stride);
     }
 
     @property auto byElement() pure const
     {
-        return linalg.storage.iterators.ByElement!(ElementType, false)(
+        return linalg.storage.iterators.ByElement!(ElementType, 2, false)(
             container, dim, stride);
     }
 
