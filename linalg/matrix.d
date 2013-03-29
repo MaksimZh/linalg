@@ -554,68 +554,30 @@ unittest // Regular indices
     assert(a[1, 2] == 84);
 }
 
-unittest // Slicing
+unittest // Slices
 {
     debug(unittests)
     {
-        debugOP.writeln("linalg.matrix unittest: Slicing");
+        debugOP.writeln("linalg.matrix unittest: Slices");
         mixin(debugIndentScope);
     }
     else debug mixin(debugSilentScope);
 
-    auto a = Matrix!(int, 3, 4)(array(iota(12)));
-    assert(cast(int[][]) a[Slice(1, 3), 1]
-           == [[5],
-               [9]]);
-    assert(cast(int[][]) a[Slice(1, 3), Slice(1, 3)]
-           == [[5, 6],
-               [9, 10]]);
-}
-
-unittest // Assignment for slices
-{
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Assignment for slices");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
-
-    auto a = Matrix!(int, 3, 4)(array(iota(12)));
-    auto b = Matrix!(int, 2, 2)(array(iota(12, 16)));
-    auto c = a[Slice(1, 3), Slice(1, 3)];
-    auto test = [[0, 1, 2, 3],
-                 [4, 12, 13, 7],
-                 [8, 14, 15, 11]];
-    assert(cast(int[][]) (c = b) == cast(int[][]) b);
-    assert(cast(int[][]) a == test);
-}
-
-version(none){
-unittest // Regular indices through slices
-{
-    debug writeln("matrix-unittest-begin");
     auto a = Matrix!(int, 4, 6)(array(iota(24)));
-    assert(a[1][2] == 8);
-    assert((a[1][2] = 80) == 80);
-    assert((++a[1][2]) == 81);
-    assert((a[1][2] += 3) == 84);
-    debug writeln("matrix-unittest-end");
-}
+    assert(cast(int[][]) a[1, Slice(1, 5, 3)]
+           == [[7, 10]]);
+    assert(cast(int[][]) a[Slice(1, 4, 2), 1]
+           == [[7],
+               [19]]);
+    assert(cast(int[][]) a[Slice(1, 4, 2), Slice(1, 5, 3)]
+           == [[7, 10],
+               [19, 22]]);
 
-unittest // Assignment for slices
-{
-    auto a = Matrix!(int, 3, 4)(array(iota(12)));
-    auto b = Matrix!(int, 2, 2)(array(iota(12, 16)));
-    debug writeln("c = a[][]");
-    auto c = a[1..3][1..3];
-    auto test = [[0, 1, 2, 3],
-                 [4, 12, 13, 7],
-                 [8, 14, 15, 11]];
-    debug writeln("c = b");
-    assert(cast(int[][]) (c = b) == cast(int[][]) b);
-    assert(cast(int[][]) a == test);
-    a[1][1] = 100;
-    assert(a[1][1] == 100);
-}
+    a[Slice(1, 4, 2), Slice(1, 5, 3)] =
+        Matrix!(int, 2, 2)(array(iota(101, 105)));
+    assert(cast(int[][]) a
+           == [[0, 1, 2, 3, 4, 5],
+               [6, 101, 8, 9, 102, 11],
+               [12, 13, 14, 15, 16, 17],
+               [18, 103, 20, 21, 104, 23]]);
 }
