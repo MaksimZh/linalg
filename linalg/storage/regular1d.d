@@ -242,7 +242,8 @@ struct StorageRegular1D(T, size_t dim_)
         {
             debug(slice) debugOP.writeln("slice ", s);
             return StorageRegular1D!(ElementType, dynamicSize)(
-                container[mapIndex(s.lo)..mapIndex(s.up)], s.length, stride);
+                container[mapIndex(s.lo)..mapIndex(s.upReal)],
+                s.length, stride);
         }
     }
 

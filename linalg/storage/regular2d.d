@@ -311,7 +311,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             return StorageRegular1D!(ElementType, dynamicSize)(
                 container[mapIndex(srow.lo, icol)
                           ..
-                          mapIndex(srow.up - 1, icol) + 1],
+                          mapIndex(srow.upReal - 1, icol) + 1],
                 srow.length, stride[0] * srow.stride);
         }
 
@@ -321,7 +321,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             return StorageRegular1D!(ElementType, dynamicSize)(
                 container[mapIndex(irow, scol.lo)
                           ..
-                          mapIndex(irow, scol.up - 1) + 1],
+                          mapIndex(irow, scol.upReal - 1) + 1],
                 scol.length, stride[1] * scol.stride);
         }
 
@@ -332,8 +332,9 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                                      dynamicSize, dynamicSize)(
                                          container[mapIndex(srow.lo, scol.lo)
                                                    ..
-                                                   mapIndex(srow.up - 1,
-                                                            scol.up - 1) + 1],
+                                                   mapIndex(srow.upReal - 1,
+                                                            scol.upReal - 1)
+                                                   + 1],
                                          [srow.length, scol.length],
                                          [stride[0] * srow.stride,
                                           stride[1] * scol.stride]);

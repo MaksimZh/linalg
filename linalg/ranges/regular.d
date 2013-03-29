@@ -2,7 +2,7 @@
 
 module linalg.ranges.regular;
 
-
+import linalg.storage.regular1d;
 
 struct ByElement(ElementType, size_t rank, bool mutable = true)
     if(rank == 1)
@@ -136,3 +136,39 @@ struct ByElement(ElementType, size_t rank, bool mutable = true)
             _empty = true;
     }
 }
+/+
+struct ByLine(ElementType, ResultType, bool mutable = true)
+{
+    private
+    {
+        ElementType[] _data;
+        const size_t _dimExt;
+        const size_t _strideExt;
+        const size_t _dimInt;
+        const size_t _strideInt;
+
+        ElementType* _ptr;
+        const ElementType* _ptrFin;
+    }
+
+    this(ElementType[] data,
+         size_t dimExt, size_t strideExt,
+         size_t dimInt, size_t strideInt) pure
+    {
+        _data = data;
+        _dimExt = dimExt;
+        _strideExt = strideExt;
+        _dimInt = dimInt;
+        _strideInt = strideInt;
+        _ptr = _data.ptr;
+        _ptrFin = _data.ptr + dimExt * strideExt;
+    }
+
+    @property bool empty() pure const { return _ptr >= _ptrFin; }
+    static if(mutable)
+        @property ref ElementType front() pure { return *_ptr; }
+    else
+        @property ElementType front() pure { return *_ptr; }
+    void popFront() pure { _ptr += _stride; }
+}
++/

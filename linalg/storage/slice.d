@@ -19,6 +19,11 @@ struct Slice
     {
         return (up - lo - 1) / stride + 1;
     }
+
+    @property size_t upReal() pure const
+    {
+        return lo + (length - 1) * stride + 1;
+    }
 }
 
 mixin template sliceOverload()
