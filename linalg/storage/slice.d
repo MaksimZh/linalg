@@ -6,21 +6,22 @@ struct Slice
 {
     const size_t lo;
     const size_t up;
-    //const size_t stride; //TODO: when strides become part of D
+    const size_t stride;
 
-    this(size_t lo, size_t up)
+    this(size_t lo, size_t up, size_t stride = 1)
     {
         this.lo = lo;
         this.up = up;
+        this.stride = stride;
     }
 
     @property size_t length() pure const
     {
-        return up - lo;
+        return (up - lo - 1) / stride + 1;
     }
 }
 
-    mixin template sliceOverload()
+mixin template sliceOverload()
 {
     Slice opSlice(size_t dimIndex)(size_t lo, size_t up) pure const
     {

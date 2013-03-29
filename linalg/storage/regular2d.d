@@ -309,16 +309,20 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         {
             debug(slice) debugOP.writeln("slice ", srow, ", ", icol);
             return StorageRegular1D!(ElementType, dynamicSize)(
-                container[mapIndex(srow.lo, icol)..mapIndex(srow.up, icol)],
-                srow.length, stride[1]);
+                container[mapIndex(srow.lo, icol)
+                          ..
+                          mapIndex(srow.up - 1, icol) + 1],
+                srow.length, stride[0] * srow.stride);
         }
 
         ref inout auto opIndex(size_t irow, Slice scol) pure inout
         {
             debug(slice) debugOP.writeln("slice ", irow, ", ", scol);
             return StorageRegular1D!(ElementType, dynamicSize)(
-                container[mapIndex(irow, scol.lo)..mapIndex(irow, scol.up)],
-                scol.length, stride[0]);
+                container[mapIndex(irow, scol.lo)
+                          ..
+                          mapIndex(irow, scol.up - 1) + 1],
+                scol.length, stride[1] * scol.stride);
         }
 
         ref inout auto opIndex(Slice srow, Slice scol) pure inout
@@ -328,8 +332,11 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                                      dynamicSize, dynamicSize)(
                                          container[mapIndex(srow.lo, scol.lo)
                                                    ..
-                                                   mapIndex(srow.up, scol.up)],
-                                         [srow.length, scol.length], stride);
+                                                   mapIndex(srow.up - 1,
+                                                            scol.up - 1) + 1],
+                                         [srow.length, scol.length],
+                                         [stride[0] * srow.stride,
+                                          stride[1] * scol.stride]);
         }
     }
 

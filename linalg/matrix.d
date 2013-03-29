@@ -554,8 +554,44 @@ unittest // Regular indices
     assert(a[1, 2] == 84);
 }
 
-version(none){
+unittest // Slicing
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Slicing");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
 
+    auto a = Matrix!(int, 3, 4)(array(iota(12)));
+    assert(cast(int[][]) a[Slice(1, 3), 1]
+           == [[5],
+               [9]]);
+    assert(cast(int[][]) a[Slice(1, 3), Slice(1, 3)]
+           == [[5, 6],
+               [9, 10]]);
+}
+
+unittest // Assignment for slices
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Assignment for slices");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    auto a = Matrix!(int, 3, 4)(array(iota(12)));
+    auto b = Matrix!(int, 2, 2)(array(iota(12, 16)));
+    auto c = a[Slice(1, 3), Slice(1, 3)];
+    auto test = [[0, 1, 2, 3],
+                 [4, 12, 13, 7],
+                 [8, 14, 15, 11]];
+    assert(cast(int[][]) (c = b) == cast(int[][]) b);
+    assert(cast(int[][]) a == test);
+}
+
+version(none){
 unittest // Regular indices through slices
 {
     debug writeln("matrix-unittest-begin");
@@ -564,41 +600,6 @@ unittest // Regular indices through slices
     assert((a[1][2] = 80) == 80);
     assert((++a[1][2]) == 81);
     assert((a[1][2] += 3) == 84);
-    debug writeln("matrix-unittest-end");
-}
-
-unittest // Slicing
-{
-    debug writeln("matrix-unittest-begin");
-    auto a = Matrix!(int, 3, 4)(array(iota(12)));
-    assert(cast(int[][]) a
-           == [[0, 1, 2, 3],
-               [4, 5, 6, 7],
-               [8, 9, 10, 11]]);
-    assert(cast(int[][]) a[][]
-           == [[0, 1, 2, 3],
-               [4, 5, 6, 7],
-               [8, 9, 10, 11]]);
-    assert(cast(int[][]) a[][1]
-           == [[1],
-               [5],
-               [9]]);
-    assert(cast(int[][]) a[][1..3]
-           == [[1, 2],
-               [5, 6],
-               [9, 10]]);
-    assert(cast(int[][]) a[1][]
-           == [[4, 5, 6, 7]]);
-    assert(a[1][1] == 5);
-    assert(cast(int[][]) a[1..3][]
-           == [[4, 5, 6, 7],
-               [8, 9, 10, 11]]);
-    assert(cast(int[][]) a[1..3][1]
-           == [[5],
-               [9]]);
-    assert(cast(int[][]) a[1..3][1..3]
-           == [[5, 6],
-               [9, 10]]);
     debug writeln("matrix-unittest-end");
 }
 
