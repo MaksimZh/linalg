@@ -17,7 +17,7 @@ import linalg.types;
 import linalg.storage.mdarray;
 import linalg.storage.operations;
 import linalg.storage.slice;
-import linalg.storage.iterators;
+import linalg.ranges.regular;
 import linalg.storage.regular1d;
 
 private // Auxiliary functions
@@ -362,13 +362,13 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
     @property auto byElement() pure
     {
-        return linalg.storage.iterators.ByElement!(ElementType, 2, true)(
+        return ByElement!(ElementType, 2, true)(
             container, dim, stride);
     }
 
     @property auto byElement() pure const
     {
-        return linalg.storage.iterators.ByElement!(ElementType, 2, false)(
+        return ByElement!(ElementType, 2, false)(
             container, dim, stride);
     }
 
@@ -428,7 +428,7 @@ unittest // Static
                                 [8, 9, 10, 11]]);
     assert(d1.data !is ib.data);
 
-    // Iterator
+    // Range
     int[] tmp = [];
     foreach(t; b.byElement)
         tmp ~= t;
@@ -538,7 +538,7 @@ unittest // Dynamic
                                 [8, 11]]);
     assert(d1.data !is ib.data);
 
-    // Iterator
+    // Range
     int[] tmp = [];
     foreach(t; b.byElement)
         tmp ~= t;

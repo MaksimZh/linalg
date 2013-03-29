@@ -17,7 +17,7 @@ import linalg.types;
 import linalg.storage.mdarray;
 import linalg.storage.operations;
 import linalg.storage.slice;
-import linalg.storage.iterators;
+import linalg.ranges.regular;
 
 private // Auxiliary functions
 {
@@ -270,16 +270,14 @@ struct StorageRegular1D(T, size_t dim_)
 
     @property auto byElement() pure
     {
-        return ByElement!(ElementType, 1, true)(container,
-                                                dim,
-                                                stride);
+        return ByElement!(ElementType, 1, true)(
+            container, dim, stride);
     }
 
     @property auto byElement() pure const
     {
-        return ByElement!(ElementType, 1, false)(container,
-                                                 dim,
-                                                 stride);
+        return ByElement!(ElementType, 1, false)(
+            container, dim, stride);
     }
 
     @property auto data() pure inout
@@ -321,7 +319,7 @@ unittest // Static
     assert(cast(int[]) d1 == [0, 1, 2, 3]);
     assert(d1.data !is ib.data);
 
-    // Iterator
+    // Range
     int[] tmp = [];
     foreach(t; b.byElement)
         tmp ~= t;
@@ -391,7 +389,7 @@ unittest // Dynamic
     assert(cast(int[]) d1 == [0, 3]);
     assert(d1.data !is ic.data);
 
-    // Iterator
+    // Range
     int[] tmp = [];
     foreach(t; b.byElement)
         tmp ~= t;

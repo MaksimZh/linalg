@@ -1,6 +1,8 @@
 // Written in the D programming language.
 
-module linalg.storage.iterators;
+module linalg.ranges.regular;
+
+
 
 struct ByElement(ElementType, size_t rank, bool mutable = true)
     if(rank == 1)
