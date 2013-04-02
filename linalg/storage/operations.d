@@ -145,3 +145,72 @@ body
         isourceB.popFront();
     }
 }
+
+auto mulAsMatrices(alias fun, TsourceA, TsourceB)(
+    const ref TsourceA sourceA,
+    const ref TsourceB sourceB) pure
+    if(isStorageRegular1D!TsourceA && isStorageRegular1D!TsourceB)
+{
+    debug(operations)
+    {
+        debugOP.writefln("operations.mulAsMatrices()");
+        mixin(debugIndentScope);
+        debugOP.writefln("from <%X>, %d",
+                        sourceA.container.ptr,
+                        sourceA.container.length);
+        debugOP.writefln("from <%X>, %d",
+                        sourceB.container.ptr,
+                        sourceB.container.length);
+        debugOP.writefln("to   <%X>, %d",
+                        dest.container.ptr,
+                        dest.container.length);
+        debugOP.writeln("...");
+        mixin(debugIndentScope);
+    }
+
+    auto isourceA = sourceA.byElement;
+    auto isourceB = sourceB.byElement;
+    auto result = isourceA.front * isourceB.front;
+    isourceA.popFront();
+    isourceB.popFront();
+    while(!(isourceA.empty))
+    {
+        result += isourceA.front * isourceB.front;
+        isourceA.popFront();
+        isourceB.popFront();
+    }
+    return result;
+}
+
+void mulAsMatrices(alias fun, TsourceA, TsourceB, Tdest)(
+    const ref TsourceA sourceA,
+    const ref TsourceB sourceB,
+    ref Tdest dest) pure
+    if(isStorageRegular2D!TsourceA && isStorageRegular2D!TsourceB
+       && isStorageRegular2D!Tdest)
+{
+    debug(operations)
+    {
+        debugOP.writefln("operations.mulAsMatrices()");
+        mixin(debugIndentScope);
+        debugOP.writefln("from <%X>, %d",
+                        sourceA.container.ptr,
+                        sourceA.container.length);
+        debugOP.writefln("from <%X>, %d",
+                        sourceB.container.ptr,
+                        sourceB.container.length);
+        debugOP.writefln("to   <%X>, %d",
+                        dest.container.ptr,
+                        dest.container.length);
+        debugOP.writeln("...");
+        mixin(debugIndentScope);
+    }
+
+    auto idest = dest.byElement;
+    foreach(rowA; sourceA.byRow)
+        foreach(colB; sourceB.byCol)
+        {
+            idest.front = mulAsMatrices(rowA, colB);
+            idest.popFront;
+        }
+}
