@@ -196,20 +196,41 @@ struct ByLine(ElementType, ResultType, bool mutable = true)
         }
 
     @property bool empty() pure const { return _ptr >= _ptrFin; }
-    static if(mutable)
-        @property ResultType front() pure
-        {
-            return ResultType(StorageRegular1D!(ElementType, dynamicSize)(
-                                  _ptr[0..((_dimInt - 1) * _strideInt + 1)],
-                                  _dimInt, _strideInt));
-        }
+    static if(!is(ResultType == void))
+    {
+        static if(mutable)
+            @property ResultType front() pure
+            {
+                return ResultType(StorageRegular1D!(ElementType, dynamicSize)(
+                                      _ptr[0..((_dimInt - 1) * _strideInt + 1)],
+                                      _dimInt, _strideInt));
+            }
+        else
+            @property const(ResultType) front() pure const
+            {
+                return ResultType(StorageRegular1D!(ElementType, dynamicSize)(
+                                      _ptr[0..((_dimInt - 1) * _strideInt + 1)],
+                                      _dimInt, _strideInt));
+            }
+    }
     else
-        @property const(ResultType) front() pure const
-        {
-            return ResultType(StorageRegular1D!(ElementType, dynamicSize)(
-                                  _ptr[0..((_dimInt - 1) * _strideInt + 1)],
-                                  _dimInt, _strideInt));
-        }
+    {
+        static if(mutable)
+            @property auto front() pure
+            {
+                return StorageRegular1D!(ElementType, dynamicSize)(
+                    _ptr[0..((_dimInt - 1) * _strideInt + 1)],
+                    _dimInt, _strideInt);
+            }
+        else
+            @property const(StorageRegular1D!(ElementType, dynamicSize)) front()
+                pure const
+            {
+                return StorageRegular1D!(ElementType, dynamicSize)(
+                    _ptr[0..((_dimInt - 1) * _strideInt + 1)],
+                    _dimInt, _strideInt);
+            }
+    }
     void popFront() pure { _ptr += _strideExt; }
 }
 
