@@ -122,6 +122,21 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 }
                 this(StorageType(array));
             }
+
+            this(size_t dim) pure
+            {
+                debug(matrix)
+                {
+                    debugOP.writefln("Matrix<%X>.this()", &this);
+                    mixin(debugIndentScope);
+                    debugOP.writeln("dim = ", dim);
+                    debugOP.writeln("...");
+                    scope(exit) debug debugOP.writefln(
+                        "storage<%X>", &(this.storage));
+                    mixin(debugIndentScope);
+                }
+                this(StorageType(dim));
+            }
         }
         else
         {
@@ -407,34 +422,49 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 debugOP.writeln("...");
                 mixin(debugIndentScope);
             }
-            static if(this.shape == MatrixShape.row)
+
+            static if(this.shape == MatrixShape.row
+                      && rhs.shape == MatrixShape.col)
             {
-                static if(rhs.shape == MatrixShape.col)
-                {
-                    return linalg.storage.operations.mulAsMatrices(
-                        this.storage, rhs.storage);
-                }
-                else
-                    assert(false, "not implemented");
+                return linalg.storage.operations.mulAsMatrices(
+                    this.storage, rhs.storage);
             }
-            static if(this.shape == MatrixShape.matrix)
+            else static if(this.shape == MatrixShape.row
+                          && rhs.shape == MatrixShape.matrix)
             {
-                static if(rhs.shape == MatrixShape.matrix)
-                {
-                    auto dest = Matrix!(TypeOfOp!(this.ElementType,
-                                                  "*", rhs.ElementType),
-                                        dynamicSize, dynamicSize,
-                                        this.storageOrder)(this.nrows,
-                                                           rhs.ncols);
-                    linalg.storage.operations.mulAsMatrices(
-                        this.storage, rhs.storage, dest.storage);
-                    return dest;
-                }
-                else
-                    assert(false, "not implemented");
+                auto dest = Matrix!(TypeOfOp!(this.ElementType,
+                                              "*", rhs.ElementType),
+                                    1, dynamicSize,
+                                    this.storageOrder)(rhs.ncols);
+                linalg.storage.operations.mulAsMatrices(
+                    this.storage, rhs.storage, dest.storage);
+                return dest;
+            }
+            else static if(this.shape == MatrixShape.matrix
+                          && rhs.shape == MatrixShape.col)
+            {
+                auto dest = Matrix!(TypeOfOp!(this.ElementType,
+                                              "*", rhs.ElementType),
+                                    dynamicSize, 1,
+                                    this.storageOrder)(this.nrows);
+                linalg.storage.operations.mulAsMatrices(
+                    this.storage, rhs.storage, dest.storage);
+                return dest;
+            }
+            else static if(this.shape == MatrixShape.matrix
+                           && rhs.shape == MatrixShape.matrix)
+            {
+                auto dest = Matrix!(TypeOfOp!(this.ElementType,
+                                              "*", rhs.ElementType),
+                                    dynamicSize, dynamicSize,
+                                    this.storageOrder)(this.nrows,
+                                                       rhs.ncols);
+                linalg.storage.operations.mulAsMatrices(
+                    this.storage, rhs.storage, dest.storage);
+                return dest;
             }
             else
-                assert(false, "not implemented");
+                static assert(false, "not implemented");
         }
     }
 }
@@ -627,7 +657,7 @@ unittest // Slices
 
 unittest // Matrix multiplication
 {
-    debug//(unittests)
+    debug(unittests)
     {
         debugOP.writeln("linalg.matrix unittest: Matrix multiplication");
         mixin(debugIndentScope);
@@ -638,6 +668,17 @@ unittest // Matrix multiplication
         auto a = Matrix!(int, 1, 3)([1, 2, 3]);
         auto b = Matrix!(int, 3, 1)([4, 5, 6]);
         assert(a * b == 32);
+    }
+    {
+        auto a = Matrix!(int, 1, 3)([1, 2, 3]);
+        auto b = Matrix!(int, 3, 2)([6, 7, 8, 9, 10, 11]);
+        assert(cast(int[][]) (a * b) == [[52, 58]]);
+    }
+    {
+        auto a = Matrix!(int, 2, 3)([1, 2, 3, 4, 5, 6]);
+        auto b = Matrix!(int, 3, 1)([6, 7, 8]);
+        assert(cast(int[][]) (a * b) == [[44],
+                                         [107]]);
     }
     {
         auto a = Matrix!(int, 2, 3)([1, 2, 3, 4, 5, 6]);
