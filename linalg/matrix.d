@@ -389,30 +389,46 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             static if(isStatic)
                 Matrix dest;
             else
-                auto dest = Matrix!(nrows, ncols);
+                auto dest = Matrix!(nrows, ncols); //FIXME
             linalg.storage.operations.map!(op~"a")(this.storage, dest.storage);
             return dest;
         }
 
         /* Matrix multiplication */
-        ref auto opBinary(string op, Tsource)(
-            auto ref const Tsource source) pure
-            if(isMatrix!Tsource && op == "*")
+        ref auto opBinary(string op, Trhs)(
+            auto ref const Trhs rhs) pure
+            if(isMatrix!Trhs && op == "*")
         {
             debug(matrix)
             {
                 debugOP.writefln("Matrix<%X>.opBinary("~op~")", &this);
                 mixin(debugIndentScope);
-                debugOP.writefln("source = <%X>", &source);
+                debugOP.writefln("rhs = <%X>", &rhs);
                 debugOP.writeln("...");
                 mixin(debugIndentScope);
             }
             static if(this.shape == MatrixShape.row)
             {
-                static if(source.shape == MatrixShape.col)
+                static if(rhs.shape == MatrixShape.col)
                 {
                     return linalg.storage.operations.mulAsMatrices(
-                        this.storage, source.storage);
+                        this.storage, rhs.storage);
+                }
+                else
+                    assert(false, "not implemented");
+            }
+            static if(this.shape == MatrixShape.matrix)
+            {
+                static if(rhs.shape == MatrixShape.matrix)
+                {
+                    auto dest = Matrix!(TypeOfOp!(this.ElementType,
+                                                  "*", rhs.ElementType),
+                                        dynamicSize, dynamicSize,
+                                        this.storageOrder)(this.nrows,
+                                                           rhs.ncols);
+                    linalg.storage.operations.mulAsMatrices(
+                        this.storage, rhs.storage, dest.storage);
+                    return dest;
                 }
                 else
                     assert(false, "not implemented");
@@ -618,7 +634,15 @@ unittest // Matrix multiplication
     }
     else debug mixin(debugSilentScope);
 
-    auto a = Matrix!(int, 1, 3)([1, 2, 3]);
-    auto b = Matrix!(int, 3, 1)([4, 5, 6]);
-    assert(a * b == 32);
+    {
+        auto a = Matrix!(int, 1, 3)([1, 2, 3]);
+        auto b = Matrix!(int, 3, 1)([4, 5, 6]);
+        assert(a * b == 32);
+    }
+    {
+        auto a = Matrix!(int, 2, 3)([1, 2, 3, 4, 5, 6]);
+        auto b = Matrix!(int, 3, 2)([6, 7, 8, 9, 10, 11]);
+        assert(cast(int[][]) (a * b) == [[52, 58],
+                                         [124, 139]]);
+    }
 }
