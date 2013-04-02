@@ -2,7 +2,18 @@
 
 module linalg.ranges.regular;
 
+import linalg.types;
 import linalg.storage.regular1d;
+
+debug import linalg.debugging;
+debug import std.stdio;
+
+version(unittest)
+{
+    import std.conv;
+    import std.range;
+    import std.array;
+}
 
 struct ByElement(ElementType, size_t rank, bool mutable = true)
     if(rank == 1)
@@ -172,4 +183,67 @@ struct ByLine(ElementType, ResultType, bool mutable = true)
                               _dimInt, _strideInt));
     }
     void popFront() pure { _ptr += _strideExt; }
+}
+
+version(unittest)
+{
+    struct Foo(T)
+    {
+        StorageRegular1D!(T, dynamicSize) storage;
+
+        this(StorageRegular1D!(T, dynamicSize) storage)
+        {
+            this.storage = storage;
+        }
+
+        auto eval()
+        {
+            return cast(T[]) storage;
+        }
+
+        string toString()
+        {
+            return to!string(cast(T[]) storage);
+        }
+    }
+}
+
+unittest
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: ByLine");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    auto rng = ByLine!(int, Foo!int)(array(iota(24)), 6, 4, 4, 1);
+    int[][] result = [];
+    foreach(r; rng)
+        result ~= [r.eval()];
+    assert(result == [[0, 1, 2, 3],
+                      [4, 5, 6, 7],
+                      [8, 9, 10, 11],
+                      [12, 13, 14, 15],
+                      [16, 17, 18, 19],
+                      [20, 21, 22, 23]]);
+}
+
+unittest
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: ByLine");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    auto rng = ByLine!(int, Foo!int)(array(iota(24)), 4, 1, 6, 4);
+    int[][] result = [];
+    foreach(r; rng)
+        result ~= [r.eval()];
+    assert(result == [[0, 4, 8, 12, 16, 20],
+                      [1, 5, 9, 13, 17, 21],
+                      [2, 6, 10, 14, 18, 22],
+                      [3, 7, 11, 15, 19, 23]]);
 }
