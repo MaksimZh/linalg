@@ -393,6 +393,33 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             linalg.storage.operations.map!(op~"a")(this.storage, dest.storage);
             return dest;
         }
+
+        /* Matrix multiplication */
+        ref auto opBinary(string op, Tsource)(
+            auto ref const Tsource source) pure
+            if(isMatrix!Tsource && op == "*")
+        {
+            debug(matrix)
+            {
+                debugOP.writefln("Matrix<%X>.opBinary("~op~")", &this);
+                mixin(debugIndentScope);
+                debugOP.writefln("source = <%X>", &source);
+                debugOP.writeln("...");
+                mixin(debugIndentScope);
+            }
+            static if(this.shape == MatrixShape.row)
+            {
+                static if(source.shape == MatrixShape.col)
+                {
+                    return linalg.storage.operations.mulAsMatrices(
+                        this.storage, source.storage);
+                }
+                else
+                    assert(false, "not implemented");
+            }
+            else
+                assert(false, "not implemented");
+        }
     }
 }
 
@@ -580,4 +607,18 @@ unittest // Slices
                [6, 101, 8, 9, 102, 11],
                [12, 13, 14, 15, 16, 17],
                [18, 103, 20, 21, 104, 23]]);
+}
+
+unittest // Matrix multiplication
+{
+    debug//(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Matrix multiplication");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    auto a = Matrix!(int, 1, 3)([1, 2, 3]);
+    auto b = Matrix!(int, 3, 1)([4, 5, 6]);
+    assert(a * b == 32);
 }

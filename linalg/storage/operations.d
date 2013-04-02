@@ -146,7 +146,7 @@ body
     }
 }
 
-auto mulAsMatrices(alias fun, TsourceA, TsourceB)(
+auto mulAsMatrices(TsourceA, TsourceB)(
     const ref TsourceA sourceA,
     const ref TsourceB sourceB) pure
     if(isStorageRegular1D!TsourceA && isStorageRegular1D!TsourceB)
@@ -161,9 +161,7 @@ auto mulAsMatrices(alias fun, TsourceA, TsourceB)(
         debugOP.writefln("from <%X>, %d",
                         sourceB.container.ptr,
                         sourceB.container.length);
-        debugOP.writefln("to   <%X>, %d",
-                        dest.container.ptr,
-                        dest.container.length);
+        debugOP.writefln("to   return");
         debugOP.writeln("...");
         mixin(debugIndentScope);
     }
@@ -182,7 +180,7 @@ auto mulAsMatrices(alias fun, TsourceA, TsourceB)(
     return result;
 }
 
-void mulAsMatrices(alias fun, TsourceA, TsourceB, Tdest)(
+void mulAsMatrices(TsourceA, TsourceB, Tdest)(
     const ref TsourceA sourceA,
     const ref TsourceB sourceB,
     ref Tdest dest) pure
