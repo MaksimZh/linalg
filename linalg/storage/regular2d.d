@@ -361,16 +361,51 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         return toArray(container, dim, stride);
     }
 
-    @property auto byElement() pure
+    public // Ranges
     {
-        return ByElement!(ElementType, 2, true)(
-            container, dim, stride);
-    }
+        @property auto byElement() pure
+        {
+            return ByElement!(ElementType, 2, true)(
+                container, dim, stride);
+        }
 
-    @property auto byElement() pure const
-    {
-        return ByElement!(ElementType, 2, false)(
-            container, dim, stride);
+        @property auto byElement() pure const
+        {
+            return ByElement!(ElementType, 2, false)(
+                container, dim, stride);
+        }
+
+        @property auto byRow(ResultType)() pure
+        {
+            return ByLine!(ElementType, ResultType, true)(
+                container,
+                dim[0], stride[0],
+                dim[1], stride[1]);
+        }
+
+        @property auto byRow(ResultType)() pure const
+        {
+            return ByLine!(ElementType, ResultType, false)(
+                container,
+                dim[0], stride[0],
+                dim[1], stride[1]);
+        }
+
+        @property auto byCol(ResultType)() pure
+        {
+            return ByLine!(ElementType, ResultType, true)(
+                container,
+                dim[1], stride[1],
+                dim[0], stride[0]);
+        }
+
+        @property auto byCol(ResultType)() pure const
+        {
+            return ByLine!(ElementType, ResultType, false)(
+                container,
+                dim[1], stride[1],
+                dim[0], stride[0]);
+        }
     }
 
     @property auto data() pure inout
