@@ -136,7 +136,7 @@ struct ByElement(ElementType, size_t rank, bool mutable = true)
             _empty = true;
     }
 }
-/+
+
 struct ByLine(ElementType, ResultType, bool mutable = true)
 {
     private
@@ -165,10 +165,11 @@ struct ByLine(ElementType, ResultType, bool mutable = true)
     }
 
     @property bool empty() pure const { return _ptr >= _ptrFin; }
-    static if(mutable)
-        @property ref ElementType front() pure { return *_ptr; }
-    else
-        @property ElementType front() pure { return *_ptr; }
-    void popFront() pure { _ptr += _stride; }
+    @property ResultType front() pure
+    {
+        return ResultType(StorageRegular1D!(ElementType, dynamicSize)(
+                              _ptr[0..((_dimInt - 1) * _strideInt + 1)],
+                              _dimInt, _strideInt));
+    }
+    void popFront() pure { _ptr += _strideExt; }
 }
-+/
