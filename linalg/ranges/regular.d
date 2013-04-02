@@ -152,36 +152,64 @@ struct ByLine(ElementType, ResultType, bool mutable = true)
 {
     private
     {
-        ElementType[] _data;
+        static if(mutable)
+            ElementType[] _data;
+        else
+            const ElementType[] _data;
         const size_t _dimExt;
         const size_t _strideExt;
         const size_t _dimInt;
         const size_t _strideInt;
 
-        ElementType* _ptr;
+        static if(mutable)
+            ElementType* _ptr;
+        else
+            const(ElementType)* _ptr;
         const ElementType* _ptrFin;
     }
 
-    this(ElementType[] data,
-         size_t dimExt, size_t strideExt,
-         size_t dimInt, size_t strideInt) pure
-    {
-        _data = data;
-        _dimExt = dimExt;
-        _strideExt = strideExt;
-        _dimInt = dimInt;
-        _strideInt = strideInt;
-        _ptr = _data.ptr;
-        _ptrFin = _data.ptr + dimExt * strideExt;
-    }
+    static if(mutable)
+        this(ElementType[] data,
+             size_t dimExt, size_t strideExt,
+             size_t dimInt, size_t strideInt) pure
+        {
+            _data = data;
+            _dimExt = dimExt;
+            _strideExt = strideExt;
+            _dimInt = dimInt;
+            _strideInt = strideInt;
+            _ptr = _data.ptr;
+            _ptrFin = _data.ptr + dimExt * strideExt;
+        }
+    else
+        this(in ElementType[] data,
+             size_t dimExt, size_t strideExt,
+             size_t dimInt, size_t strideInt) pure
+        {
+            _data = data;
+            _dimExt = dimExt;
+            _strideExt = strideExt;
+            _dimInt = dimInt;
+            _strideInt = strideInt;
+            _ptr = _data.ptr;
+            _ptrFin = _data.ptr + dimExt * strideExt;
+        }
 
     @property bool empty() pure const { return _ptr >= _ptrFin; }
-    @property ResultType front() pure
-    {
-        return ResultType(StorageRegular1D!(ElementType, dynamicSize)(
-                              _ptr[0..((_dimInt - 1) * _strideInt + 1)],
-                              _dimInt, _strideInt));
-    }
+    static if(mutable)
+        @property ResultType front() pure
+        {
+            return ResultType(StorageRegular1D!(ElementType, dynamicSize)(
+                                  _ptr[0..((_dimInt - 1) * _strideInt + 1)],
+                                  _dimInt, _strideInt));
+        }
+    else
+        @property const(ResultType) front() pure const
+        {
+            return ResultType(StorageRegular1D!(ElementType, dynamicSize)(
+                                  _ptr[0..((_dimInt - 1) * _strideInt + 1)],
+                                  _dimInt, _strideInt));
+        }
     void popFront() pure { _ptr += _strideExt; }
 }
 
@@ -189,19 +217,19 @@ version(unittest)
 {
     struct Foo(T)
     {
-        StorageRegular1D!(T, dynamicSize) storage;
+        const StorageRegular1D!(T, dynamicSize) storage;
 
-        this(StorageRegular1D!(T, dynamicSize) storage)
+        this(const StorageRegular1D!(T, dynamicSize) storage) const
         {
             this.storage = storage;
         }
 
-        auto eval()
+        auto eval() pure const
         {
             return cast(T[]) storage;
         }
 
-        string toString()
+        string toString() const
         {
             return to!string(cast(T[]) storage);
         }
@@ -217,7 +245,7 @@ unittest
     }
     else debug mixin(debugSilentScope);
 
-    auto rng = ByLine!(int, Foo!int)(array(iota(24)), 6, 4, 4, 1);
+    auto rng = ByLine!(int, Foo!int, false)(array(iota(24)), 6, 4, 4, 1);
     int[][] result = [];
     foreach(r; rng)
         result ~= [r.eval()];
@@ -238,7 +266,7 @@ unittest
     }
     else debug mixin(debugSilentScope);
 
-    auto rng = ByLine!(int, Foo!int)(array(iota(24)), 4, 1, 6, 4);
+    auto rng = ByLine!(int, Foo!int, false)(array(iota(24)), 4, 1, 6, 4);
     int[][] result = [];
     foreach(r; rng)
         result ~= [r.eval()];
