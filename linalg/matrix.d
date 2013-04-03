@@ -382,7 +382,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 
     public // Operations
     {
-        ref auto opAssign(Tsource)(auto ref const Tsource source) pure
+        ref auto opAssign(Tsource)(auto ref Tsource source) pure
             if(isMatrix!Tsource)
         {
             debug(matrix)
@@ -396,8 +396,9 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 mixin(debugIndentScope);
             }
             static if(!isStatic && canRealloc)
-                setDim([source.nrows, source.ncols]);
-            copy(source.storage, this.storage);
+                this.storage = typeof(this.storage)(source.storage);
+            else
+                copy(source.storage, this.storage);
             return this;
         }
 
