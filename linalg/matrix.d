@@ -533,6 +533,11 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             }
         }
     }
+
+    @property auto data() pure inout
+    {
+        return storage.data;
+    }
 }
 
 template isMatrix(T)
