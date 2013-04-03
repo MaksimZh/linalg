@@ -52,8 +52,12 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
               StorageOrder storageOrder_ = defaultStorageOrder,
               bool canRealloc = true)
 {
-    alias MatrixStorageType!(T, storageOrder_, nrows_, ncols_) StorageType;
-    enum auto shape = shapeForDim(nrows_, ncols_);
+    /* Dimensions patterns */
+    enum size_t nrowsPat = nrows_;
+    enum size_t ncolsPat = ncols_;
+
+    alias MatrixStorageType!(T, storageOrder_, nrowsPat, ncolsPat) StorageType;
+    enum auto shape = shapeForDim(nrowsPat, ncolsPat);
     enum bool isVector = shape != MatrixShape.matrix;
     enum StorageOrder storageOrder = storageOrder_;
     public // Forward type parameters
@@ -136,6 +140,34 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                     mixin(debugIndentScope);
                 }
                 this(StorageType(dim));
+            }
+
+            /* This constructor allows avoid matrix shape check
+               if sure that dimensions are correct for a vector
+            */
+            this(size_t nrows, size_t ncols) pure
+            {
+                debug(matrix)
+                {
+                    debugOP.writefln("Matrix<%X>.this()", &this);
+                    mixin(debugIndentScope);
+                    debugOP.writeln("nrwos = ", nrows);
+                    debugOP.writeln("ncols = ", ncols);
+                    debugOP.writeln("...");
+                    scope(exit) debug debugOP.writefln(
+                        "storage<%X>", &(this.storage));
+                    mixin(debugIndentScope);
+                }
+                static if(shape == MatrixShape.row)
+                {
+                    assert(nrows == 1);
+                    this(ncols);
+                }
+                else
+                {
+                    assert(ncols == 1);
+                    this(nrows);
+                }
             }
         }
         else
@@ -247,8 +279,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             ref inout auto opIndex() pure inout
             {
                 return Matrix!(ElementType,
-                               nrows_ == 1 ? 1 : dynamicSize,
-                               ncols_ == 1 ? 1 : dynamicSize,
+                               nrowsPat == 1 ? 1 : dynamicSize,
+                               ncolsPat == 1 ? 1 : dynamicSize,
                                storageOrder, false)(storage.opIndex());
             }
 
@@ -260,8 +292,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             ref inout auto opIndex(Slice s) pure inout
             {
                 return Matrix!(ElementType,
-                               nrows_ == 1 ? 1 : dynamicSize,
-                               ncols_ == 1 ? 1 : dynamicSize,
+                               nrowsPat == 1 ? 1 : dynamicSize,
+                               ncolsPat == 1 ? 1 : dynamicSize,
                                storageOrder, false)(storage.opIndex(s));
             }
         }
@@ -270,8 +302,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             ref inout auto opIndex() pure inout
             {
                 return Matrix!(ElementType,
-                               nrows_ == 1 ? 1 : dynamicSize,
-                               ncols_ == 1 ? 1 : dynamicSize,
+                               nrowsPat == 1 ? 1 : dynamicSize,
+                               ncolsPat == 1 ? 1 : dynamicSize,
                                storageOrder, false)(storage.opIndex());
             }
 
@@ -355,6 +387,45 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             return this;
         }
 
+        /* Unary operations
+         */
+
+        ref auto opUnary(string op)() pure
+            if(op == "+")
+        {
+            debug(matrix)
+            {
+                debugOP.writefln("Matrix<%X>.opUnary("~op~")", &this);
+                mixin(debugIndentScope);
+                debugOP.writeln("...");
+                mixin(debugIndentScope);
+            }
+            return this;
+        }
+
+        ref auto opUnary(string op)() pure
+            if(op == "-")
+        {
+            debug(matrix)
+            {
+                debugOP.writefln("Matrix<%X>.opUnary("~op~")", &this);
+                mixin(debugIndentScope);
+                debugOP.writeln("...");
+                mixin(debugIndentScope);
+            }
+            static if(isStatic)
+                Matrix dest;
+            else
+                auto dest = Matrix!(ElementType,
+                                    nrowsPat, ncolsPat,
+                                    storageOrder)(nrows, ncols);
+            linalg.storage.operations.map!("-a")(this.storage, dest.storage);
+            return dest;
+        }
+
+        /* Matrix addition and subtraction
+         */
+
         ref auto opOpAssign(string op, Tsource)(
             auto ref const Tsource source) pure
             if(isMatrix!Tsource && (op == "+" || op == "-"))
@@ -371,6 +442,29 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 this.storage, source.storage, this.storage);
             return this;
         }
+
+        ref auto opBinary(string op, Trhs)(
+            auto ref const Trhs rhs) pure
+            if(isMatrix!Trhs && (op == "+" || op == "-"))
+        {
+            debug(matrix)
+            {
+                debugOP.writefln("Matrix<%X>.opBinary("~op~")", &this);
+                mixin(debugIndentScope);
+                debugOP.writefln("rhs = <%X>", &rhs);
+                debugOP.writeln("...");
+                mixin(debugIndentScope);
+            }
+            TypeOfResultMatrix!(typeof(this), op, Tsource) dest;
+            static if(!(typeof(dest).isStatic))
+                dest.setDim([this.nrows, this.ncols]);
+            linalg.storage.operations.zip!("a"~op~"b")(
+                this.storage, source.storage, dest.storage);
+            return dest;
+        }
+
+        /* Multiplication and division by scalar
+         */
 
         ref auto opOpAssign(string op, Tsource)(
             auto ref const Tsource source) pure
@@ -391,25 +485,9 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             return this;
         }
 
-        ref auto opUnary(string op)() pure
-            if(op == "+" || op == "-")
-        {
-            debug(matrix)
-            {
-                debugOP.writefln("Matrix<%X>.opUnary("~op~")", &this);
-                mixin(debugIndentScope);
-                debugOP.writeln("...");
-                mixin(debugIndentScope);
-            }
-            static if(isStatic)
-                Matrix dest;
-            else
-                auto dest = Matrix!(nrows, ncols); //FIXME
-            linalg.storage.operations.map!(op~"a")(this.storage, dest.storage);
-            return dest;
-        }
+        /* Matrix multiplication
+         */
 
-        /* Matrix multiplication */
         ref auto opBinary(string op, Trhs)(
             auto ref const Trhs rhs) pure
             if(isMatrix!Trhs && op == "*")
@@ -429,42 +507,15 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 return linalg.storage.operations.mulAsMatrices(
                     this.storage, rhs.storage);
             }
-            else static if(this.shape == MatrixShape.row
-                          && rhs.shape == MatrixShape.matrix)
-            {
-                auto dest = Matrix!(TypeOfOp!(this.ElementType,
-                                              "*", rhs.ElementType),
-                                    1, dynamicSize,
-                                    this.storageOrder)(rhs.ncols);
-                linalg.storage.operations.mulAsMatrices(
-                    this.storage, rhs.storage, dest.storage);
-                return dest;
-            }
-            else static if(this.shape == MatrixShape.matrix
-                          && rhs.shape == MatrixShape.col)
-            {
-                auto dest = Matrix!(TypeOfOp!(this.ElementType,
-                                              "*", rhs.ElementType),
-                                    dynamicSize, 1,
-                                    this.storageOrder)(this.nrows);
-                linalg.storage.operations.mulAsMatrices(
-                    this.storage, rhs.storage, dest.storage);
-                return dest;
-            }
-            else static if(this.shape == MatrixShape.matrix
-                           && rhs.shape == MatrixShape.matrix)
-            {
-                auto dest = Matrix!(TypeOfOp!(this.ElementType,
-                                              "*", rhs.ElementType),
-                                    dynamicSize, dynamicSize,
-                                    this.storageOrder)(this.nrows,
-                                                       rhs.ncols);
-                linalg.storage.operations.mulAsMatrices(
-                    this.storage, rhs.storage, dest.storage);
-                return dest;
-            }
             else
-                static assert(false, "not implemented");
+            {
+                TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
+                static if(!(typeof(dest).isStatic))
+                    dest.setDim([this.nrows, rhs.ncols]);
+                linalg.storage.operations.mulAsMatrices(
+                    this.storage, rhs.storage, dest.storage);
+                return dest;
+            }
         }
     }
 }
@@ -472,6 +523,31 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 template isMatrix(T)
 {
     enum bool isMatrix = isInstanceOf!(Matrix, T);
+}
+
+template TypeOfResultMatrix(Tlhs, string op, Trhs)
+{
+    static if(isMatrix!Tlhs && isMatrix!Trhs)
+        static if(op == "+" || op == "-")
+            alias Matrix!(TypeOfOp!(Tlhs.ElementType,
+                                    op, Trhs.ElementType),
+                          Tlhs.nrowsPat, Tlhs.ncolsPat,
+                          Tlhs.storageOrder) TypeOfResultMatrix;
+        else static if(op == "*")
+            alias Matrix!(TypeOfOp!(Tlhs.ElementType,
+                                    op, Trhs.ElementType),
+                          Tlhs.nrowsPat, Trhs.ncolsPat,
+                          Tlhs.storageOrder) TypeOfResultMatrix;
+    else static if(isMatrix!Tlhs && (op == "*" || op == "/"))
+         alias Matrix!(TypeOfOp!(Tlhs.ElementType, op, Trhs),
+                       Tlhs.nrowsPat, Tlhs.ncolsPat,
+                       Tlhs.storageOrder) TypeOfResultMatrix;
+    else static if(isMatrix!Trhs && (op == "*"))
+         alias Matrix!(TypeOfOp!(Tlhs, op, Trhs.ElementType),
+                       Trhs.nrowsPat, Trhs.ncolsPat,
+                       Trhs.storageOrder) TypeOfResultMatrix;
+    else
+        alias void TypeOfResultMatrix;
 }
 
 unittest // Static
