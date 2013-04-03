@@ -455,7 +455,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 debugOP.writeln("...");
                 mixin(debugIndentScope);
             }
-            TypeOfResultMatrix!(typeof(this), op, Tsource) dest;
+            TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
             static if(!(typeof(dest).isStatic))
                 dest.setDim([this.nrows, this.ncols]);
             linalg.storage.operations.zip!("a"~op~"b")(
@@ -463,7 +463,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             return dest;
         }
 
-        /* Multiplication and division by scalar
+        /* Multiplication by scalar
          */
 
         ref auto opOpAssign(string op, Tsource)(
@@ -483,6 +483,48 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 (ElementType a) => mixin("a"~op~"source"))(
                     this.storage, this.storage);
             return this;
+        }
+
+        ref auto opBinary(string op, Trhs)(
+            auto ref const Trhs rhs) pure
+            if(!(isMatrix!Trhs) && (op == "*" || op == "/"))
+        {
+            debug(matrix)
+            {
+                debugOP.writefln("Matrix<%X>.opBinary("~op~")", &this);
+                mixin(debugIndentScope);
+                debugOP.writefln("rhs = <%X>", &rhs);
+                debugOP.writeln("...");
+                mixin(debugIndentScope);
+            }
+            TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
+            static if(!(typeof(dest).isStatic))
+                dest.setDim([this.nrows, this.ncols]);
+            linalg.storage.operations.map!(
+                (ElementType a) => mixin("a"~op~"rhs"))(
+                    this.storage, dest.storage);
+            return dest;
+        }
+
+        ref auto opBinaryRight(string op, Tlhs)(
+            auto ref const Tlhs lhs) pure
+            if(!(isMatrix!Tlhs) && op == "*")
+        {
+            debug(matrix)
+            {
+                debugOP.writefln("Matrix<%X>.opBinaryRight("~op~")", &this);
+                mixin(debugIndentScope);
+                debugOP.writefln("lhs = <%X>", &lhs);
+                debugOP.writeln("...");
+                mixin(debugIndentScope);
+            }
+            TypeOfResultMatrix!(typeof(this), op, Tlhs) dest;
+            static if(!(typeof(dest).isStatic))
+                dest.setDim([this.nrows, this.ncols]);
+            linalg.storage.operations.map!(
+                (ElementType a) => mixin("lhs"~op~"a"))(
+                    this.storage, dest.storage);
+            return dest;
         }
 
         /* Matrix multiplication
