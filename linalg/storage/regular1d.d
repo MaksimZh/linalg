@@ -250,7 +250,7 @@ struct StorageRegular1D(T, size_t dim_)
     /* Makes copy of the data and returns new storage referring to it.
        The storage returned is always dynamic.
     */
-    @property auto dup() pure const
+    @property ref auto dup() pure const
     {
         debug(storage)
         {
@@ -259,7 +259,9 @@ struct StorageRegular1D(T, size_t dim_)
             debugOP.writeln("...");
             mixin(debugIndentScope);
         }
-        auto result = StorageRegular1D!(ElementType, dynamicSize)(this.dim);
+        StorageRegular1D!(ElementType, dimPattern) result;
+        static if(!(result.isStatic))
+            result.setDim(this.dim);
         copy(this, result);
         return result;
     }

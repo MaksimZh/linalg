@@ -366,6 +366,20 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         }
     }
 
+    @property auto dup() pure const
+    {
+        debug(storage)
+        {
+            debugOP.writefln("Matrix<%X>.dup()", &this);
+            mixin(debugIndentScope);
+            debugOP.writeln("...");
+            mixin(debugIndentScope);
+        }
+        return Matrix!(ElementType,
+                       nrowsPat, ncolsPat,
+                       storageOrder, true)(this.storage.dup);
+    }
+
     public // Operations
     {
         ref auto opAssign(Tsource)(auto ref const Tsource source) pure
