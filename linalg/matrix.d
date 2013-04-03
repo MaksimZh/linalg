@@ -488,6 +488,21 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         /* Matrix multiplication
          */
 
+        ref auto opOpAssign(string op, Tsource)(
+            auto ref const Tsource source) pure
+            if(isMatrix!Tsource && op == "*")
+        {
+            debug(matrix)
+            {
+                debugOP.writefln("Matrix<%X>.opOpAssign("~op~")", &this);
+                mixin(debugIndentScope);
+                debugOP.writefln("source = <%X>", &source);
+                debugOP.writeln("...");
+                mixin(debugIndentScope);
+            }
+            return (this = this * source);
+        }
+
         ref auto opBinary(string op, Trhs)(
             auto ref const Trhs rhs) pure
             if(isMatrix!Trhs && op == "*")
@@ -761,5 +776,12 @@ unittest // Matrix multiplication
         auto b = Matrix!(int, 3, 2)([6, 7, 8, 9, 10, 11]);
         assert(cast(int[][]) (a * b) == [[52, 58],
                                          [124, 139]]);
+    }
+    {
+        auto a = Matrix!(int, 0, 0)([1, 2, 3, 4, 5, 6], 2, 3);
+        auto b = Matrix!(int, 3, 2)([6, 7, 8, 9, 10, 11]);
+        a *= b;
+        assert(cast(int[][]) a == [[52, 58],
+                                   [124, 139]]);
     }
 }
