@@ -382,25 +382,43 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 
     public // Operations
     {
-        ref auto opAssign(Tsource)(auto ref Tsource source) pure
-            if(isMatrix!Tsource)
-        {
-            debug(matrix)
+        static if(isStatic)
+            ref auto opAssign(Tsource)(auto ref const Tsource source) pure
+                if(isMatrix!Tsource)
             {
-                debugOP.writefln("Matrix<%X>.opAssign()", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("source = <%X>", &source);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "storage<%X>", &(this.storage));
-                mixin(debugIndentScope);
-            }
-            static if(!isStatic && canRealloc)
-                this.storage = typeof(this.storage)(source.storage);
-            else
+                debug(matrix)
+                {
+                    debugOP.writefln("Matrix<%X>.opAssign()", &this);
+                    mixin(debugIndentScope);
+                    debugOP.writefln("source = <%X>", &source);
+                    debugOP.writeln("...");
+                    scope(exit) debug debugOP.writefln(
+                        "storage<%X>", &(this.storage));
+                    mixin(debugIndentScope);
+                }
                 copy(source.storage, this.storage);
-            return this;
-        }
+                return this;
+            }
+        else
+            ref auto opAssign(Tsource)(auto ref Tsource source) pure
+                if(isMatrix!Tsource)
+            {
+                debug(matrix)
+                {
+                    debugOP.writefln("Matrix<%X>.opAssign()", &this);
+                    mixin(debugIndentScope);
+                    debugOP.writefln("source = <%X>", &source);
+                    debugOP.writeln("...");
+                    scope(exit) debug debugOP.writefln(
+                        "storage<%X>", &(this.storage));
+                    mixin(debugIndentScope);
+                }
+                static if(!isStatic && canRealloc)
+                    this.storage = typeof(this.storage)(source.storage);
+                else
+                    copy(source.storage, this.storage);
+                return this;
+            }
 
         /* Unary operations
          */
