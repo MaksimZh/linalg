@@ -186,6 +186,11 @@ void mulAsMatrices(TsourceA, TsourceB, Tdest)(
     ref Tdest dest) pure
     if(isStorageRegular2D!TsourceA && isStorageRegular1D!TsourceB
        && isStorageRegular1D!Tdest)
+        in
+        {
+            assert(sourceA.ncols == sourceB.length);
+        }
+body
 {
     debug(operations)
     {
@@ -218,6 +223,11 @@ void mulAsMatrices(TsourceA, TsourceB, Tdest)(
     ref Tdest dest) pure
     if(isStorageRegular1D!TsourceA && isStorageRegular2D!TsourceB
        && isStorageRegular1D!Tdest)
+        in
+        {
+            assert(sourceA.length == sourceB.nrows);
+        }
+body
 {
     debug(operations)
     {
@@ -250,6 +260,11 @@ void mulAsMatrices(TsourceA, TsourceB, Tdest)(
     ref Tdest dest) pure
     if(isStorageRegular2D!TsourceA && isStorageRegular2D!TsourceB
        && isStorageRegular2D!Tdest)
+        in
+        {
+            assert(sourceA.ncols == sourceB.nrows);
+        }
+body
 {
     debug(operations)
     {
