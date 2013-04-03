@@ -17,7 +17,7 @@ import linalg.types;
 import linalg.storage.mdarray;
 import linalg.storage.operations;
 import linalg.storage.slice;
-import linalg.storage.iterators;
+import linalg.ranges.regular;
 import linalg.storage.regular1d;
 
 private // Auxiliary functions
@@ -311,7 +311,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             return StorageRegular1D!(ElementType, dynamicSize)(
                 container[mapIndex(srow.lo, icol)
                           ..
-                          mapIndex(srow.up - 1, icol) + 1],
+                          mapIndex(srow.upReal - 1, icol) + 1],
                 srow.length, stride[0] * srow.stride);
         }
 
@@ -321,7 +321,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             return StorageRegular1D!(ElementType, dynamicSize)(
                 container[mapIndex(irow, scol.lo)
                           ..
-                          mapIndex(irow, scol.up - 1) + 1],
+                          mapIndex(irow, scol.upReal - 1) + 1],
                 scol.length, stride[1] * scol.stride);
         }
 
@@ -332,8 +332,9 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                                      dynamicSize, dynamicSize)(
                                          container[mapIndex(srow.lo, scol.lo)
                                                    ..
-                                                   mapIndex(srow.up - 1,
-                                                            scol.up - 1) + 1],
+                                                   mapIndex(srow.upReal - 1,
+                                                            scol.upReal - 1)
+                                                   + 1],
                                          [srow.length, scol.length],
                                          [stride[0] * srow.stride,
                                           stride[1] * scol.stride]);
@@ -360,16 +361,83 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         return toArray(container, dim, stride);
     }
 
-    @property auto byElement() pure
+    public // Ranges
     {
-        return linalg.storage.iterators.ByElement!(ElementType, true)(
-            container, dim, stride);
-    }
+        @property auto byElement() pure
+        {
+            return ByElement!(ElementType, 2, true)(
+                container, dim, stride);
+        }
 
-    @property auto byElement() pure const
-    {
-        return linalg.storage.iterators.ByElement!(ElementType, false)(
-            container, dim, stride);
+        @property auto byElement() pure const
+        {
+            return ByElement!(ElementType, 2, false)(
+                container, dim, stride);
+        }
+
+        @property auto byRow()() pure
+        {
+            return ByLine!(ElementType, void, true)(
+                container,
+                dim[0], stride[0],
+                dim[1], stride[1]);
+        }
+
+        @property auto byRow()() pure const
+        {
+            return ByLine!(ElementType, void, false)(
+                container,
+                dim[0], stride[0],
+                dim[1], stride[1]);
+        }
+
+        @property auto byCol()() pure
+        {
+            return ByLine!(ElementType, void, true)(
+                container,
+                dim[1], stride[1],
+                dim[0], stride[0]);
+        }
+
+        @property auto byCol()() pure const
+        {
+            return ByLine!(ElementType, void, false)(
+                container,
+                dim[1], stride[1],
+                dim[0], stride[0]);
+        }
+
+        @property auto byRow(ResultType)() pure
+        {
+            return ByLine!(ElementType, void, true)(
+                container,
+                dim[0], stride[0],
+                dim[1], stride[1]);
+        }
+
+        @property auto byRow(ResultType)() pure const
+        {
+            return ByLine!(ElementType, ResultType, false)(
+                container,
+                dim[0], stride[0],
+                dim[1], stride[1]);
+        }
+
+        @property auto byCol(ResultType)() pure
+        {
+            return ByLine!(ElementType, ResultType, true)(
+                container,
+                dim[1], stride[1],
+                dim[0], stride[0]);
+        }
+
+        @property auto byCol(ResultType)() pure const
+        {
+            return ByLine!(ElementType, ResultType, false)(
+                container,
+                dim[1], stride[1],
+                dim[0], stride[0]);
+        }
     }
 
     @property auto data() pure inout
@@ -428,7 +496,7 @@ unittest // Static
                                 [8, 9, 10, 11]]);
     assert(d1.data !is ib.data);
 
-    // Iterator
+    // Range
     int[] tmp = [];
     foreach(t; b.byElement)
         tmp ~= t;
@@ -538,7 +606,7 @@ unittest // Dynamic
                                 [8, 11]]);
     assert(d1.data !is ib.data);
 
-    // Iterator
+    // Range
     int[] tmp = [];
     foreach(t; b.byElement)
         tmp ~= t;
