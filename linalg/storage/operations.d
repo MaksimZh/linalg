@@ -4,6 +4,7 @@ module linalg.storage.operations;
 
 debug import linalg.debugging;
 
+import linalg.types;
 import linalg.storage.regular1d;
 import linalg.storage.regular2d;
 
@@ -38,21 +39,6 @@ body
     }
 }
 
-private template safeUnaryFun(alias fun)
-{
-    static if (is(typeof(fun) : string))
-    {
-        auto safeUnaryFun(ElementType)(auto ref const ElementType a) pure
-        {
-            mixin("return (" ~ fun ~ ");");
-        }
-    }
-    else
-    {
-        alias fun safeUnaryFun;
-    }
-}
-
 void map(alias fun, Tsource, Tdest)(
     const ref Tsource source, ref Tdest dest) pure
     if((isStorageRegular2D!Tsource && isStorageRegular2D!Tdest)
@@ -83,23 +69,6 @@ body
     {
         d = funToApply(isource.front);
         isource.popFront();
-    }
-}
-
-private template safeBinaryFun(alias fun)
-{
-    static if (is(typeof(fun) : string))
-    {
-        auto safeBinaryFun(ElementTypeA, ElementTypeB)(
-            auto ref const ElementTypeA a,
-            auto ref const ElementTypeB b) pure
-        {
-            mixin("return (" ~ fun ~ ");");
-        }
-    }
-    else
-    {
-        alias fun safeBinaryFun;
     }
 }
 

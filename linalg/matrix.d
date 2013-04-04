@@ -632,6 +632,24 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 this.storage, ilo, iup);
         }
     }
+
+    ref auto map(alias fun)() pure const
+    {
+        debug(matrix)
+        {
+            debugOP.writefln("Matrix<%X>.map()", &this);
+            mixin(debugIndentScope);
+            debugOP.writeln("...");
+            mixin(debugIndentScope);
+        }
+
+        Matrix!(ReturnTypeOfUnaryFun!(fun, ElementType),
+                nrowsPat, ncolsPat, storageOrder) dest;
+        static if(!(typeof(dest).isStatic))
+            dest.setDim([this.nrows, this.ncols]);
+        linalg.storage.operations.map!(fun)(this.storage, dest.storage);
+        return dest;
+    }
 }
 
 template isMatrix(T)
@@ -905,4 +923,19 @@ unittest // Diagonalization
         double[] val;
         assert(a.symmEigenval(1, 2) == [2, 3]); //FIXME: may fail for low precision
     }
+}
+
+unittest // Map function
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Map function");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    assert(cast(int[][]) (Matrix!(int, 3, 4)(array(iota(12))).map!("a*2")())
+           == [[0, 2, 4, 6],
+               [8, 10, 12, 14],
+               [16, 18, 20, 22]]);
 }

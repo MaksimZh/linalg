@@ -21,3 +21,43 @@ template TypeOfOp(Tlhs, string op, Trhs)
     alias ReturnType!((Tlhs lhs, Trhs rhs) => mixin("lhs"~op~"rhs"))
         TypeOfOp;
 }
+
+/* Unary pure function with const argument */
+template safeUnaryFun(alias fun)
+{
+    static if (is(typeof(fun) : string))
+    {
+        auto safeUnaryFun(ElementType)(auto ref const ElementType a) pure
+        {
+            mixin("return (" ~ fun ~ ");");
+        }
+    }
+    else
+    {
+        alias fun safeUnaryFun;
+    }
+}
+
+/* Binary pure function with const arguments */
+template safeBinaryFun(alias fun)
+{
+    static if (is(typeof(fun) : string))
+    {
+        auto safeBinaryFun(ElementTypeA, ElementTypeB)(
+            auto ref const ElementTypeA a,
+            auto ref const ElementTypeB b) pure
+        {
+            mixin("return (" ~ fun ~ ");");
+        }
+    }
+    else
+    {
+        alias fun safeBinaryFun;
+    }
+}
+
+template ReturnTypeOfUnaryFun(alias fun, ArgumentType)
+{
+    alias ReturnType!((ArgumentType a) => safeUnaryFun!fun(a))
+        ReturnTypeOfUnaryFun;
+}
