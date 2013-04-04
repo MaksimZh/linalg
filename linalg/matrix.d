@@ -940,14 +940,14 @@ unittest // Diagonalization
 
     version(linalg_backend_lapack)
     {
-        import std.complex;
         alias Complex!double C;
         auto a = Matrix!(C, 3, 3)(
             [C(1, 0), C(0, 0), C(0, 0),
              C(0, 0), C(2, 0), C(0, 0),
              C(0, 0), C(0, 0), C(3, 0)]);
         double[] val;
-        assert(a.symmEigenval(1, 2) == [2, 3]); //FIXME: may fail for low precision
+        //FIXME: may fail for low precision
+        assert(a.symmEigenval(1, 2) == [2, 3]);
     }
 }
 
@@ -980,4 +980,13 @@ unittest // Hermitian conjugation
                [1, 5, 9],
                [2, 6, 10],
                [3, 7, 11]]);
+
+    alias Complex!double C;
+    //FIXME: may fail for low precision
+    assert(cast(C[][]) (Matrix!(C, 2, 3)(
+                            [C(1, 1), C(1, 2), C(1, 3),
+                             C(2, 1), C(2, 2), C(2, 3)]).conj())
+           == [[C(1, -1), C(2, -1)],
+               [C(1, -2), C(2, -2)],
+               [C(1, -3), C(2, -3)]]);
 }
