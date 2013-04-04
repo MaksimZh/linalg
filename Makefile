@@ -1,5 +1,4 @@
-DMD=~/programming/dlang/dmd/src/dmd
-#DMD=dmd
+DMD=~/programming/dlang/dmd/src/dmd -I../dlang/phobos -I../dlang/druntime/import -L"-L../dlang"
 LIBS=../../Applications/lapack-3.4.1/liblapack.a ../../Applications/lapack-3.4.1/librefblas.a -L-lgfortran
 SOURCE=$(shell find ./linalg/ -name "*.d")
 DEBUGFLAGS=operations slice storage container cow copy matrix

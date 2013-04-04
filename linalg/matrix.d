@@ -16,7 +16,7 @@ public import linalg.types;
 
 import linalg.storage.regular1d;
 import linalg.storage.regular2d;
-import linalg.storage.slice;
+public import linalg.storage.slice; //NOTE: waiting for proper slice support
 import linalg.storage.operations;
 
 template MatrixStorageType(T, StorageOrder storageOrder,
@@ -616,39 +616,65 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         return storage.data;
     }
 
-    static if(!isVector)
+    public // Diagonalization
     {
-        double[] symmEigenval()(size_t ilo, size_t iup) pure
+        static if(!isVector)
+        {
+            double[] symmEigenval()(size_t ilo, size_t iup) pure
+            {
+                debug(matrix)
+                {
+                    debugOP.writefln("Matrix<%X>.symmEigenval()", &this);
+                    mixin(debugIndentScope);
+                    debugOP.writeln("...");
+                    mixin(debugIndentScope);
+                }
+
+                return linalg.storage.operations.matrixSymmEigenval(
+                    this.storage, ilo, iup);
+            }
+        }
+    }
+
+    public // Other operations
+    {
+        ref auto map(alias fun)() pure const
         {
             debug(matrix)
             {
-                debugOP.writefln("Matrix<%X>.symmEigenval()", &this);
+                debugOP.writefln("Matrix<%X>.map()", &this);
                 mixin(debugIndentScope);
                 debugOP.writeln("...");
                 mixin(debugIndentScope);
             }
 
-            return linalg.storage.operations.matrixSymmEigenval(
-                this.storage, ilo, iup);
+            Matrix!(ReturnTypeOfUnaryFun!(fun, ElementType),
+                    nrowsPat, ncolsPat, storageOrder) dest;
+            static if(!(typeof(dest).isStatic))
+                dest.setDim([this.nrows, this.ncols]);
+            linalg.storage.operations.map!(fun)(this.storage, dest.storage);
+            return dest;
         }
-    }
 
-    ref auto map(alias fun)() pure const
-    {
-        debug(matrix)
+        ref auto conj() pure const
         {
-            debugOP.writefln("Matrix<%X>.map()", &this);
-            mixin(debugIndentScope);
-            debugOP.writeln("...");
-            mixin(debugIndentScope);
-        }
+            debug(matrix)
+            {
+                debugOP.writefln("Matrix<%X>.conj()", &this);
+                mixin(debugIndentScope);
+                debugOP.writeln("...");
+                mixin(debugIndentScope);
+            }
 
-        Matrix!(ReturnTypeOfUnaryFun!(fun, ElementType),
-                nrowsPat, ncolsPat, storageOrder) dest;
-        static if(!(typeof(dest).isStatic))
-            dest.setDim([this.nrows, this.ncols]);
-        linalg.storage.operations.map!(fun)(this.storage, dest.storage);
-        return dest;
+            Matrix!(ElementType, ncolsPat, nrowsPat, storageOrder) dest;
+            static if(!(typeof(dest).isStatic))
+                dest.setDim([this.ncols, this.nrows]);
+            static if(isVector) {}
+            else
+                linalg.storage.operations.conjMatrix(
+                    this.storage, dest.storage);
+            return dest;
+        }
     }
 }
 
@@ -938,4 +964,16 @@ unittest // Map function
            == [[0, 2, 4, 6],
                [8, 10, 12, 14],
                [16, 18, 20, 22]]);
+}
+
+unittest // Hermitian conjugation
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Hermitian conjugation");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    debug writeln(cast(int[][]) (Matrix!(int, 3, 4)(array(iota(12))).conj()));
 }

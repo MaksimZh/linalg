@@ -8,7 +8,8 @@ import linalg.types;
 import linalg.storage.regular1d;
 import linalg.storage.regular2d;
 
-void copy(Tsource, Tdest)(const ref Tsource source, ref Tdest dest) pure
+void copy(Tsource, Tdest)(const auto ref Tsource source,
+                          auto ref Tdest dest) pure
     if((isStorageRegular2D!Tsource && isStorageRegular2D!Tdest)
         || (isStorageRegular1D!Tsource && isStorageRegular1D!Tdest))
     in
@@ -39,8 +40,8 @@ body
     }
 }
 
-void map(alias fun, Tsource, Tdest)(
-    const ref Tsource source, ref Tdest dest) pure
+void map(alias fun, Tsource, Tdest)(const auto ref Tsource source,
+                                    auto ref Tdest dest) pure
     if((isStorageRegular2D!Tsource && isStorageRegular2D!Tdest)
         || (isStorageRegular1D!Tsource && isStorageRegular1D!Tdest))
     in
@@ -112,6 +113,42 @@ body
         d = funToApply(isourceA.front, isourceB.front);
         isourceA.popFront();
         isourceB.popFront();
+    }
+}
+
+void conjMatrix(Tsource, Tdest)(
+    const ref Tsource source, ref Tdest dest) pure
+    if(isStorageRegular2D!Tsource && isStorageRegular2D!Tdest)
+    in
+    {
+        assert(dest.nrows == source.ncols && dest.ncols == source.nrows);
+    }
+body
+{
+    debug(operations)
+    {
+        debugOP.writefln("operations.conjMatrix()");
+        mixin(debugIndentScope);
+        debugOP.writefln("from <%X>, %d",
+                        source.container.ptr,
+                        source.container.length);
+        debugOP.writefln("to   <%X>, %d",
+                        dest.container.ptr,
+                        dest.container.length);
+        debugOP.writeln("...");
+        mixin(debugIndentScope);
+    }
+
+    auto isource = source.byRow;
+    auto idest = dest.byCol;
+    while(!(isource.empty))
+    {
+        static if(isComplex!(Tsource.ElementType))
+            map!("a.conj")(isource.front, idest.front);
+        else
+            copy(isource.front, idest.front);
+        isource.popFront();
+        idest.popFront();
     }
 }
 

@@ -61,3 +61,21 @@ template ReturnTypeOfUnaryFun(alias fun, ArgumentType)
     alias ReturnType!((ArgumentType a) => safeUnaryFun!fun(a))
         ReturnTypeOfUnaryFun;
 }
+
+template isComplex(T)
+{
+    enum bool isComplex = is(typeof((T a) => a.conj));
+}
+
+unittest
+{
+    static assert(isComplex!(Complex!double));
+    static assert(!(isComplex!int));
+}
+
+//HACK: needed to get .conj property
+public import std.complex;
+@property auto conj(T)(Complex!T z) @safe pure nothrow
+{
+    return std.complex.conj(z);
+}
