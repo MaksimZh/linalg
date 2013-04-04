@@ -975,5 +975,9 @@ unittest // Hermitian conjugation
     }
     else debug mixin(debugSilentScope);
 
-    debug writeln(cast(int[][]) (Matrix!(int, 3, 4)(array(iota(12))).conj()));
+    assert(cast(int[][]) (Matrix!(int, 3, 4)(array(iota(12))).conj())
+           == [[0, 4, 8],
+               [1, 5, 9],
+               [2, 6, 10],
+               [3, 7, 11]]);
 }

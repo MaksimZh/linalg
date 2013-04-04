@@ -33,10 +33,11 @@ body
     }
     auto isource = source.byElement;
     auto idest = dest.byElement;
-    foreach(ref d; idest)
+    while(!(isource.empty))
     {
-        d = isource.front;
+        idest.front = isource.front;
         isource.popFront();
+        idest.popFront();
     }
 }
 

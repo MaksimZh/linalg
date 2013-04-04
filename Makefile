@@ -1,7 +1,7 @@
 DMD=~/programming/dlang/dmd/src/dmd -I../dlang/phobos -I../dlang/druntime/import -L"-L../dlang"
 LIBS=../../Applications/lapack-3.4.1/liblapack.a ../../Applications/lapack-3.4.1/librefblas.a -L-lgfortran
 SOURCE=$(shell find ./linalg/ -name "*.d")
-DEBUGFLAGS=operations slice storage container cow copy matrix
+DEBUGFLAGS=operations slice storage container cow copy matrix range
 
 test: test.d $(SOURCE)
 	$(DMD) $^ $(LIBS) -debug $(addprefix -debug=, $(DEBUGFLAGS)) -unittest -version=linalg_backend_lapack
