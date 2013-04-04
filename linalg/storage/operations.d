@@ -291,3 +291,33 @@ body
             idest.popFront;
         }
 }
+
+private version(linalg_backend_lapack)
+{
+    import linalg.backends.lapack;
+
+    alias linalg.backends.lapack.symmEigenval symmEigenval;
+}
+
+auto matrixSymmEigenval(Tsource)(ref Tsource source,
+                                 size_t ilo, size_t iup) pure
+    if(isStorageRegular2D!Tsource)
+        in
+        {
+            assert(source.nrows == source.ncols);
+        }
+body
+{
+    debug(operations)
+    {
+        debugOP.writefln("operations.matrixSymmEigenval()");
+        mixin(debugIndentScope);
+        debugOP.writefln("from <%X>, %d",
+                         source.container.ptr,
+                         source.container.length);
+        debugOP.writeln("...");
+        mixin(debugIndentScope);
+    }
+
+    return symmEigenval(source.data, source.nrows, ilo, iup);
+}

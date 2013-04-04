@@ -84,7 +84,9 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 "storage<%X>", &(this.storage));
             mixin(debugIndentScope);
         }
-        this.storage = storage;
+        //HACK
+        *cast(StorageType*)&(this.storage) =
+            *cast(StorageType*)&storage;
     }
 
     static if(isStatic)
@@ -613,6 +615,23 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     {
         return storage.data;
     }
+
+    static if(!isVector)
+    {
+        double[] symmEigenval()(size_t ilo, size_t iup) pure
+        {
+            debug(matrix)
+            {
+                debugOP.writefln("Matrix<%X>.symmEigenval()", &this);
+                mixin(debugIndentScope);
+                debugOP.writeln("...");
+                mixin(debugIndentScope);
+            }
+
+            return linalg.storage.operations.matrixSymmEigenval(
+                this.storage, ilo, iup);
+        }
+    }
 }
 
 template isMatrix(T)
@@ -863,5 +882,27 @@ unittest // Matrix multiplication
         a *= b;
         assert(cast(int[][]) a == [[52, 58],
                                    [124, 139]]);
+    }
+}
+
+unittest // Diagonalization
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Diagonalization");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    version(linalg_backend_lapack)
+    {
+        import std.complex;
+        alias Complex!double C;
+        auto a = Matrix!(C, 3, 3)(
+            [C(1, 0), C(0, 0), C(0, 0),
+             C(0, 0), C(2, 0), C(0, 0),
+             C(0, 0), C(0, 0), C(3, 0)]);
+        double[] val;
+        assert(a.symmEigenval(1, 2) == [2, 3]); //FIXME: may fail for low precision
     }
 }
