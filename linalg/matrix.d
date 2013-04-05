@@ -16,8 +16,10 @@ public import linalg.types;
 
 import linalg.storage.regular1d;
 import linalg.storage.regular2d;
-public import linalg.storage.slice; //NOTE: waiting for proper slice support
+import linalg.storage.slice;
 import linalg.storage.operations;
+
+alias linalg.storage.slice.Slice Slice; //NOTE: waiting for proper slice support
 
 template MatrixStorageType(T, StorageOrder storageOrder,
                            size_t nrows, size_t ncols)
