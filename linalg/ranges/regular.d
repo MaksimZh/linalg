@@ -34,19 +34,18 @@ struct ByElement(ElementType, size_t rank, bool mutable = true)
         const ElementType* _ptrFin;
     }
 
-    static if(mutable)
-    {
-        this(ElementType[] data, size_t dim, size_t stride) pure
+    mixin("this(" ~ (mutable ? "" : "in ")
+          ~ "ElementType[] data, size_t dim, size_t stride) pure
         {
             debug(range)
             {
-                debugOP.writeln("ByElement!(1).this()");
+                debugOP.writeln(\"ByElement!(1).this()\");
                 mixin(debugIndentScope);
-                debugOP.writefln("data = <%X>, %d",
+                debugOP.writefln(\"data = <%%X>, %%d\",
                                  data.ptr, data.length);
-                debugOP.writeln("dim = ", dim);
-                debugOP.writeln("stride = ", stride);
-                debugOP.writeln("...");
+                debugOP.writeln(\"dim = \", dim);
+                debugOP.writeln(\"stride = \", stride);
+                debugOP.writeln(\"...\");
                 mixin(debugIndentScope);
             }
 
@@ -56,36 +55,11 @@ struct ByElement(ElementType, size_t rank, bool mutable = true)
             _ptr = _data.ptr;
             _ptrFin = _data.ptr + dim * stride;
         }
-    }
-    else
-    {
-        this(in ElementType[] data, size_t dim, size_t stride) pure
-        {
-            debug(range)
-            {
-                debugOP.writeln("ByElement!(1).this(const)");
-                mixin(debugIndentScope);
-                debugOP.writefln("data = <%X>, %d",
-                                 data.ptr, data.length);
-                debugOP.writeln("dim = ", dim);
-                debugOP.writeln("stride = ", stride);
-                debugOP.writeln("...");
-                mixin(debugIndentScope);
-            }
-
-            _data = data;
-            _dim = dim;
-            _stride = stride;
-            _ptr = _data.ptr;
-            _ptrFin = _data.ptr + dim * stride;
-        }
-    }
+    ");
 
     @property bool empty() pure const { return _ptr >= _ptrFin; }
-    static if(mutable)
-        @property ref ElementType front() pure { return *_ptr; }
-    else
-        @property ElementType front() pure { return *_ptr; }
+    mixin("@property " ~ (mutable ? "ref " : "")
+          ~ "ElementType front() pure { return *_ptr; }");
     void popFront() pure { _ptr += _stride; }
 }
 
