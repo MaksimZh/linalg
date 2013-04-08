@@ -2,6 +2,8 @@
 
 module linalg.ranges.regular;
 
+import std.string;
+
 import linalg.types;
 import linalg.storage.regular1d;
 
@@ -85,15 +87,26 @@ struct ByElement(ElementType, size_t rank, bool mutable = true)
         bool _empty;
     }
 
-    static if(mutable)
-    {
-        this(ElementType[] data, in size_t[] dim, in size_t[] stride) pure
+    mixin("this(" ~ (mutable ? "" : "in ")
+          ~ "ElementType[] data, in size_t[] dim, in size_t[] stride) pure
             in
             {
                 assert(stride.length == dim.length);
             }
         body
         {
+            debug(range)
+            {
+                debugOP.writefln(\"ByElement!(%%d).this()\", rank);
+                mixin(debugIndentScope);
+                debugOP.writefln(\"data = <%%X>, %%d\",
+                                 data.ptr, data.length);
+                debugOP.writeln(\"dim = \", dim);
+                debugOP.writeln(\"stride = \", stride);
+                debugOP.writeln(\"...\");
+                mixin(debugIndentScope);
+            }
+
             _dim = dim;
             _stride = stride;
             _data = data;
@@ -102,31 +115,12 @@ struct ByElement(ElementType, size_t rank, bool mutable = true)
             _index = new size_t[_rank];
             _empty = false;
         }
-    }
-    else
-    {
-        this(in ElementType[] data, in size_t[] dim, in size_t[] stride) pure
-            in
-            {
-                assert(stride.length == dim.length);
-            }
-        body
-        {
-            _dim = dim;
-            _stride = stride;
-            _data = data;
-            _rank = cast(uint) dim.length;
-            _ptr = _data.ptr;
-            _index = new size_t[_rank];
-            _empty = false;
-        }
-    }
+    ");
 
     @property bool empty() pure const { return _empty; }
-    static if(mutable)
-        @property ref ElementType front() pure { return *_ptr; }
-    else
-        @property ElementType front() pure { return *_ptr; }
+    mixin("@property " ~ (mutable ? "ref " : "")
+          ~ "ElementType front() pure { return *_ptr; }");
+
     void popFront() pure
     {
         int i = _rank - 1;
@@ -166,8 +160,8 @@ struct ByLine(ElementType, ResultType, bool mutable = true)
         const ElementType* _ptrFin;
     }
 
-    static if(mutable)
-        this(ElementType[] data,
+    mixin("this(" ~ (mutable ? "" : "in ")
+          ~ "ElementType[] data,
              size_t dimExt, size_t strideExt,
              size_t dimInt, size_t strideInt) pure
         {
@@ -179,56 +173,23 @@ struct ByLine(ElementType, ResultType, bool mutable = true)
             _ptr = _data.ptr;
             _ptrFin = _data.ptr + dimExt * strideExt;
         }
-    else
-        this(in ElementType[] data,
-             size_t dimExt, size_t strideExt,
-             size_t dimInt, size_t strideInt) pure
-        {
-            _data = data;
-            _dimExt = dimExt;
-            _strideExt = strideExt;
-            _dimInt = dimInt;
-            _strideInt = strideInt;
-            _ptr = _data.ptr;
-            _ptrFin = _data.ptr + dimExt * strideExt;
-        }
+    ");
 
     @property bool empty() pure const { return _ptr >= _ptrFin; }
-    static if(!is(ResultType == void))
-    {
-        static if(mutable)
-            @property ResultType front() pure
-            {
-                return ResultType(StorageRegular1D!(ElementType, dynamicSize)(
-                                      _ptr[0..((_dimInt - 1) * _strideInt + 1)],
-                                      _dimInt, _strideInt));
-            }
-        else
-            @property const(ResultType) front() pure const
-            {
-                return ResultType(StorageRegular1D!(ElementType, dynamicSize)(
-                                      _ptr[0..((_dimInt - 1) * _strideInt + 1)],
-                                      _dimInt, _strideInt));
-            }
-    }
-    else
-    {
-        static if(mutable)
-            @property auto front() pure
-            {
-                return StorageRegular1D!(ElementType, dynamicSize)(
-                    _ptr[0..((_dimInt - 1) * _strideInt + 1)],
-                    _dimInt, _strideInt);
-            }
-        else
-            @property const(StorageRegular1D!(ElementType, dynamicSize)) front()
-                pure const
-            {
-                return StorageRegular1D!(ElementType, dynamicSize)(
-                    _ptr[0..((_dimInt - 1) * _strideInt + 1)],
-                    _dimInt, _strideInt);
-            }
-    }
+    mixin(format("@property %s%s%s front() pure
+                  {
+                      return %s(StorageRegular1D!(ElementType, dynamicSize)(
+                                    _ptr[0..((_dimInt - 1) * _strideInt + 1)],
+                                    _dimInt, _strideInt));
+                  }",
+                 mutable ? "" : "const(",
+                 is(ResultType == void)
+                 ? "StorageRegular1D!(ElementType, dynamicSize)"
+                 : "ResultType",
+                 mutable ? "" : ")",
+                 is(ResultType == void)
+                 ? ""
+                 : "ResultType"));
     void popFront() pure { _ptr += _strideExt; }
 }
 
