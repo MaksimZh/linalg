@@ -66,7 +66,84 @@ struct ByElement(ElementType, size_t rank, bool mutable = true)
 }
 
 struct ByElement(ElementType, size_t rank, bool mutable = true)
-    if(rank > 1)
+    if(rank == 2)
+{
+    private
+    {
+        const size_t[2] _dim;
+        const size_t[2] _stride;
+        static if(mutable)
+            ElementType[] _data;
+        else
+            const ElementType[] _data;
+
+        static if(mutable)
+            ElementType* _ptr;
+        else
+            const(ElementType)* _ptr;
+        size_t _i, _j;
+        bool _empty;
+    }
+
+    mixin("this(" ~ (mutable ? "" : "in ")
+          ~ "ElementType[] data, size_t[2] dim, size_t[2] stride) pure
+            in
+            {
+                assert(stride.length == dim.length);
+            }
+        body
+        {
+            debug(range)
+            {
+                debugOP.writeln(\"ByElement!(2).this()\");
+                mixin(debugIndentScope);
+                debugOP.writefln(\"data = <%%X>, %%d\",
+                                 data.ptr, data.length);
+                debugOP.writeln(\"dim = \", dim);
+                debugOP.writeln(\"stride = \", stride);
+                debugOP.writeln(\"...\");
+                mixin(debugIndentScope);
+            }
+
+            _dim = dim;
+            _stride = stride;
+            _data = data;
+            _ptr = _data.ptr;
+            _i = 0;
+            _j = 0;
+            _empty = false;
+        }
+    ");
+
+    @property bool empty() pure const { return _empty; }
+    mixin("@property " ~ (mutable ? "ref " : "")
+          ~ "ElementType front() pure { return *_ptr; }");
+    void popFront() pure
+    {
+        if(_j == _dim[1] - 1)
+        {
+            _ptr -= _stride[1] * _j;
+            _j = 0;
+            if(_i == _dim[0] - 1)
+            {
+                _empty = true;
+            }
+            else
+            {
+                _ptr += _stride[0];
+                ++_i;
+            }
+        }
+        else
+        {
+            _ptr += _stride[1];
+            ++_j;
+        }
+    }
+}
+
+struct ByElement(ElementType, size_t rank, bool mutable = true)
+    if(rank > 2)
 {
     //TODO: optimize for 2d
     private
