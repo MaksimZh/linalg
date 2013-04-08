@@ -1,5 +1,14 @@
 // Written in the D programming language.
 
+/**
+ * This module contains types and constants used by all parts of the library.
+ *
+ * Some of this staff should probably be moved somewhere else.
+ *
+ *  Authors:    Maksim Sergeevich Zholudev
+ *  Copyright:  Copyright (c) 2013, Maksim Zholudev
+ *  License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ */
 module linalg.types;
 
 import std.traits;
@@ -14,8 +23,10 @@ enum StorageOrder
     colMajor  /// 000, 100, 200, ..., 010, 110, ...
 }
 
+/** Storage order that is set by default */
 enum StorageOrder defaultStorageOrder = StorageOrder.rowMajor;
 
+/** Derive type of the result of binary operation */
 template TypeOfOp(Tlhs, string op, Trhs)
 {
     alias ReturnType!((Tlhs lhs, Trhs rhs) => mixin("lhs"~op~"rhs"))
@@ -56,12 +67,16 @@ template safeBinaryFun(alias fun)
     }
 }
 
+/* Derive return type of unary function even if it given by string */
 template ReturnTypeOfUnaryFun(alias fun, ArgumentType)
 {
     alias ReturnType!((ArgumentType a) => safeUnaryFun!fun(a))
         ReturnTypeOfUnaryFun;
 }
 
+/* Detect whether T is a complex type
+ * i.e. whether it has conj property
+ */
 template isComplex(T)
 {
     enum bool isComplex = is(typeof((T a) => a.conj));

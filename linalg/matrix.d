@@ -1,5 +1,12 @@
 // Written in the D programming language.
 
+/**
+ * Matrices.
+ *
+ * Authors:    Maksim Sergeevich Zholudev
+ * Copyright:  Copyright (c) 2013, Maksim Zholudev
+ * License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ */
 module linalg.matrix;
 
 import std.traits;
@@ -16,11 +23,15 @@ public import linalg.types;
 
 import linalg.storage.regular1d;
 import linalg.storage.regular2d;
-public import linalg.storage.slice; //NOTE: waiting for proper slice support
+import linalg.storage.slice;
 import linalg.storage.operations;
 
-template MatrixStorageType(T, StorageOrder storageOrder,
-                           size_t nrows, size_t ncols)
+alias linalg.storage.slice.Slice Slice; //NOTE: waiting for proper slice support
+
+
+/* Derive storage type for given matrix parameters */
+private template MatrixStorageType(T, StorageOrder storageOrder,
+                                   size_t nrows, size_t ncols)
 {
     static if(nrows == 1)
         alias StorageRegular1D!(T, ncols) MatrixStorageType;
@@ -31,6 +42,9 @@ template MatrixStorageType(T, StorageOrder storageOrder,
             MatrixStorageType;
 }
 
+/**
+ * Shape of matrix or vector
+ */
 enum MatrixShape
 {
     row,
@@ -38,7 +52,8 @@ enum MatrixShape
     matrix
 }
 
-auto shapeForDim(size_t nrows, size_t ncols)
+/* Returns shape of matrix with given dimensions */
+private auto shapeForDim(size_t nrows, size_t ncols)
 {
     if(nrows == 1)
         return MatrixShape.row;
@@ -48,28 +63,43 @@ auto shapeForDim(size_t nrows, size_t ncols)
         return MatrixShape.matrix;
 }
 
+/**
+ * Matrix or vector.
+ */
 struct Matrix(T, size_t nrows_, size_t ncols_,
               StorageOrder storageOrder_ = defaultStorageOrder,
               bool canRealloc = true)
 {
-    /* Dimensions patterns */
+    /** Dimensions patterns */
     enum size_t nrowsPat = nrows_;
-    enum size_t ncolsPat = ncols_;
+    enum size_t ncolsPat = ncols_; ///ditto
 
+    /* Select storage type.
+     * Note: vectors use 1d storage (mainly for optimization)
+     */
     alias MatrixStorageType!(T, storageOrder_, nrowsPat, ncolsPat) StorageType;
+
+    /** Shape of the matrix or vector */
     enum auto shape = shapeForDim(nrowsPat, ncolsPat);
+    /** Whether this is vector */
     enum bool isVector = shape != MatrixShape.matrix;
+    /** Storage order */
     enum StorageOrder storageOrder = storageOrder_;
     public // Forward type parameters
     {
+        /** Type of matrix elements */
         alias StorageType.ElementType ElementType;
+        /** Whether wraps static array or use dynamic allocation */
         alias StorageType.isStatic isStatic;
     }
 
     /* Storage of matrix data */
     private StorageType storage;
 
-    /* Constructors */
+    /* Constructors
+     */
+
+    /* Creates matrix for storage. For internal use only. */
     private inout this(inout StorageType storage) pure
     {
         debug(matrix)
@@ -84,13 +114,14 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 "storage<%X>", &(this.storage));
             mixin(debugIndentScope);
         }
-        //HACK
+        //HACK: workaround for DMD issue 9665
         *cast(StorageType*)&(this.storage) =
             *cast(StorageType*)&storage;
     }
 
     static if(isStatic)
     {
+        /** Create static shallow copy of array and wrap it. */
         inout this(inout ElementType[] array) pure
         {
             debug(matrix)
@@ -103,7 +134,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                     "storage<%X>", &(this.storage));
                 mixin(debugIndentScope);
             }
-            //HACK
+            //HACK: workaround for DMD issue 9665
             auto tmp = StorageType(array);
             *cast(StorageType*)&storage =
                 *cast(StorageType*)&tmp;
@@ -113,6 +144,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     {
         static if(isVector)
         {
+            /** Create vector wrapping array */
             inout this(inout ElementType[] array) pure
             {
                 debug(matrix)
@@ -129,6 +161,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 this(StorageType(array));
             }
 
+            /** Allocate new vector of given length */
             this(size_t dim) pure
             {
                 debug(matrix)
@@ -144,9 +177,10 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 this(StorageType(dim));
             }
 
-            /* This constructor allows avoid matrix shape check
-               if sure that dimensions are correct for a vector
-            */
+            /** Allocate new vector with given dimensions */
+            /* This constructor allows set vector and matrix dimensions
+             * uniformly to avoid spawning shape tests.
+             */
             this(size_t nrows, size_t ncols) pure
             {
                 debug(matrix)
@@ -174,6 +208,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         }
         else
         {
+            /** Allocate new matrix with given dimensions */
             this(size_t nrows, size_t ncols) pure
             {
                 debug(matrix)
@@ -190,6 +225,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 this(StorageType([nrows, ncols]));
             }
 
+            /** Wrap array with a matrix with given dimensions */
             inout this(inout ElementType[] array,
                        size_t nrows, size_t ncols) pure
             {
@@ -213,10 +249,14 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 
     public // Dimensions
     {
+        /* Vector also has rows and columns since we distinguish
+         * row and column vectors
+         */
         static if(shape == MatrixShape.matrix)
         {
+            /** Dimensions of matrix */
             @property size_t nrows() pure const { return storage.nrows; }
-            @property size_t ncols() pure const { return storage.ncols; }
+            @property size_t ncols() pure const { return storage.ncols; } //ditto
         }
         else static if(shape == MatrixShape.row)
         {
@@ -230,7 +270,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         }
         else static assert(false);
 
-        /* Test dimensions for compatibility */
+        /** Test dimensions for compatibility */
         bool isCompatDim(in size_t[] dim) pure
         {
             static if(shape == MatrixShape.matrix)
@@ -244,11 +284,13 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         static if(!isStatic)
         {
             static if(isVector)
+                /** Set length of vector */
                 void setDim(size_t dim) pure
                 {
                     storage.setDim(dim);
                 }
 
+            /** Set dimensions of matrix or vector */
             void setDim(in size_t[2] dim) pure
                 in
                 {
@@ -368,6 +410,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         }
     }
 
+    /** Create shallow copy of matrix */
     @property auto dup() pure const
     {
         debug(storage)
@@ -541,6 +584,9 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             return dest;
         }
 
+        /* Multiplication between matrix elements and scalar
+         * can be non-commutative
+         */
         ref auto opBinaryRight(string op, Tlhs)(
             auto ref const Tlhs lhs) pure
             if(!(isMatrix!Tlhs) && op == "*")
@@ -611,6 +657,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         }
     }
 
+    /** Return dynamic array referring matrix elements */
     @property auto data() pure inout
     {
         return storage.data;
@@ -620,6 +667,13 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     {
         static if(!isVector)
         {
+            /**
+             * Return eigenvalues in given range
+             * (ascending order, starts from 0, includes borders).
+             *
+             * Only upper-triangle part is used.
+             * Contents of matrix will be changed.
+             */
             double[] symmEigenval()(size_t ilo, size_t iup) pure
             {
                 debug(matrix)
@@ -638,6 +692,9 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 
     public // Other operations
     {
+        /**
+         * Map function over matrix.
+         */
         ref auto map(alias fun)() pure const
         {
             debug(matrix)
@@ -656,6 +713,10 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             return dest;
         }
 
+        /**
+         * Return transposed matrix for real matrix or
+         * conjugated and transposed matrix for complex matrix.
+         */
         ref auto conj() pure const
         {
             debug(matrix)
@@ -678,12 +739,14 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     }
 }
 
+/** Detect whether $(D T) is matrix */
 template isMatrix(T)
 {
     enum bool isMatrix = isInstanceOf!(Matrix, T);
 }
 
-template TypeOfResultMatrix(Tlhs, string op, Trhs)
+/* Derive result type for matrix operations */
+private template TypeOfResultMatrix(Tlhs, string op, Trhs)
 {
     static if(isMatrix!Tlhs && isMatrix!Trhs)
         static if(op == "+" || op == "-")
