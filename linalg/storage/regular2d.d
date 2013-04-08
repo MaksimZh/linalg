@@ -466,25 +466,25 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
         @property auto byBlock()(size_t[2] subdim) pure
         {
-            return ByBlock!(ElementType, void, stroageOrder, true)(
+            return ByBlock!(ElementType, void, storageOrder, true)(
                 container, dim, stride, subdim);
         }
 
         @property auto byBlock()(size_t[2] subdim) pure const
         {
-            return ByBlock!(ElementType, void, stroageOrder, false)(
+            return ByBlock!(ElementType, void, storageOrder, false)(
                 container, dim, stride, subdim);
         }
 
         @property auto byBlock(ResultType)(size_t[2] subdim) pure
         {
-            return ByBlock!(ElementType, ResultType, stroageOrder, true)(
+            return ByBlock!(ElementType, ResultType, storageOrder, true)(
                 container, dim, stride, subdim);
         }
 
         @property auto byBlock(ResultType)(size_t[2] subdim) pure const
         {
-            return ByBlock!(ElementType, ResultType, stroageOrder, false)(
+            return ByBlock!(ElementType, ResultType, storageOrder, false)(
                 container, dim, stride, subdim);
         }
     }
