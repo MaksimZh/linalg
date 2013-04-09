@@ -1,7 +1,18 @@
 // Written in the D programming language.
 
+/**
+ * Wrappers for LAPACK functions used in linalg.storage.operations
+ *
+ * Authors:    Maksim Sergeevich Zholudev
+ * Copyright:  Copyright (c) 2013, Maksim Zholudev
+ * License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ */
 module linalg.backends.lapack;
 
+/*
+ * If corresponding backend is not specified then the following code
+ * will not be compiled and there will be no linker errors.
+ */
 version(linalg_backend_lapack):
 
 import std.complex;
