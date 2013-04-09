@@ -1,5 +1,12 @@
 // Written in the D programming language.
 
+/**
+ * Low level implementation of matrix operations.
+ *
+ * Authors:    Maksim Sergeevich Zholudev
+ * Copyright:  Copyright (c) 2013, Maksim Zholudev
+ * License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ */
 module linalg.storage.operations;
 
 debug import linalg.debugging;
@@ -8,6 +15,7 @@ import linalg.types;
 import linalg.storage.regular1d;
 import linalg.storage.regular2d;
 
+/* Copy data between storages */
 void copy(Tsource, Tdest)(const auto ref Tsource source,
                           auto ref Tdest dest) pure
     if((isStorageRegular2D!Tsource && isStorageRegular2D!Tdest)
@@ -41,6 +49,7 @@ body
     }
 }
 
+/* Copy data between storages applying function */
 void map(alias fun, Tsource, Tdest)(const auto ref Tsource source,
                                     auto ref Tdest dest) pure
     if((isStorageRegular2D!Tsource && isStorageRegular2D!Tdest)
@@ -74,6 +83,10 @@ body
     }
 }
 
+/*
+ * Merge data from two storages using binary function
+ * and copy it to the third storage
+ */
 void zip(alias fun, TsourceA, TsourceB, Tdest)(
     const ref TsourceA sourceA,
     const ref TsourceB sourceB,
@@ -117,6 +130,7 @@ body
     }
 }
 
+/* Hermitian conjugation */
 void conjMatrix(Tsource, Tdest)(
     const ref Tsource source, ref Tdest dest) pure
     if(isStorageRegular2D!Tsource && isStorageRegular2D!Tdest)
@@ -153,6 +167,10 @@ body
     }
 }
 
+/*
+ * Matrix multiplication
+ * row * column
+ */
 auto mulAsMatrices(TsourceA, TsourceB)(
     const ref TsourceA sourceA,
     const ref TsourceB sourceB) pure
@@ -187,6 +205,10 @@ auto mulAsMatrices(TsourceA, TsourceB)(
     return result;
 }
 
+/*
+ * Matrix multiplication
+ * matrix * column
+ */
 void mulAsMatrices(TsourceA, TsourceB, Tdest)(
     const ref TsourceA sourceA,
     const ref TsourceB sourceB,
@@ -224,6 +246,10 @@ body
     }
 }
 
+/*
+ * Matrix multiplication
+ * row * matrix
+ */
 void mulAsMatrices(TsourceA, TsourceB, Tdest)(
     const ref TsourceA sourceA,
     const ref TsourceB sourceB,
@@ -261,6 +287,10 @@ body
     }
 }
 
+/*
+ * Matrix multiplication
+ * matrix * matrix
+ */
 void mulAsMatrices(TsourceA, TsourceB, Tdest)(
     const ref TsourceA sourceA,
     const ref TsourceB sourceB,
@@ -299,6 +329,9 @@ body
         }
 }
 
+/*
+ * Bindings for eigenproblems
+ */
 private version(linalg_backend_lapack)
 {
     import linalg.backends.lapack;
@@ -306,6 +339,13 @@ private version(linalg_backend_lapack)
     alias linalg.backends.lapack.symmEigenval symmEigenval;
 }
 
+/*
+ * Return eigenvalues in given range
+ * (ascending order, starts from 0, includes borders).
+ *
+ * Only upper-triangle part is used.
+ * Contents of storage will be modified.
+ */
 auto matrixSymmEigenval(Tsource)(ref Tsource source,
                                  size_t ilo, size_t iup) pure
     if(isStorageRegular2D!Tsource)
