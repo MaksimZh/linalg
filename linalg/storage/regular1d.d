@@ -21,7 +21,6 @@ version(unittest)
 }
 
 import linalg.types;
-import linalg.storage.mdarray;
 import linalg.storage.operations;
 import linalg.storage.slice;
 import linalg.ranges.regular;
