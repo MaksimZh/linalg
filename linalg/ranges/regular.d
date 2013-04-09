@@ -136,6 +136,27 @@ struct ByElement(ElementType, size_t rank, bool mutable = true)
             ++_j;
         }
     }
+
+    version(none) //DMD issue 9909
+    {
+        int opApply(int delegate(size_t, size_t, ref ElementType)
+                    loopBody)
+        {
+            ElementType* ptrOut = _data.ptr;
+            foreach(i; 0.._dim[0])
+            {
+                ElementType* ptrIn = ptrOut;
+                foreach(j; 0.._dim[1])
+                {
+                    if(!loopBody(i, j, *ptrIn))
+                        return 0;
+                    ptrIn += _stride[1];
+                }
+                ptrOut += _stride[0];
+            }
+            return 0;
+        }
+    }
 }
 
 struct ByElement(ElementType, size_t rank, bool mutable = true)
