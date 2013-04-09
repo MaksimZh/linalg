@@ -674,7 +674,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
              * (ascending order, starts from 0, includes borders).
              *
              * Only upper-triangle part is used.
-             * Contents of matrix will be changed.
+             * Contents of matrix will be modified.
              */
             double[] symmEigenval()(size_t ilo, size_t iup) pure
             {
