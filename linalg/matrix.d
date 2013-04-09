@@ -99,8 +99,10 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     /* Constructors
      */
 
-    /* Creates matrix for storage. For internal use only. */
-    private inout this(inout StorageType storage) pure
+    /* Creates matrix for storage. For internal use only.
+     * Public because used by ranges.
+     */
+    inout this(inout StorageType storage) pure
     {
         debug(matrix)
         {
@@ -735,6 +737,36 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 linalg.storage.operations.conjMatrix(
                     this.storage, dest.storage);
             return dest;
+        }
+    }
+
+    public // Ranges
+    {
+        @property auto byElement() pure inout
+        {
+            return storage.byElement();
+        }
+
+        static if(!isVector)
+        {
+            @property auto byRow() pure inout
+            {
+                return storage.byRow!(Matrix!(ElementType, 1, dynamicSize,
+                                              storageOrder, false))();
+            }
+
+            @property auto byCol() pure
+            {
+                return storage.byCol!(Matrix!(ElementType, dynamicSize, 1,
+                                              storageOrder, false))();
+            }
+
+            @property auto byBlock(size_t[2] subdim) pure inout
+            {
+                return storage.byBlock!(Matrix!(ElementType,
+                                                dynamicSize, dynamicSize,
+                                                storageOrder, false))(subdim);
+            }
         }
     }
 }
