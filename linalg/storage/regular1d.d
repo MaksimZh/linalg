@@ -1,5 +1,12 @@
 // Written in the D programming language.
 
+/**
+ * Regular one-dimensional storage.
+ *
+ * Authors:    Maksim Sergeevich Zholudev
+ * Copyright:  Copyright (c) 2013, Maksim Zholudev
+ * License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ */
 module linalg.storage.regular1d;
 
 import std.algorithm;
@@ -33,7 +40,7 @@ private // Auxiliary functions
     }
 }
 
-/* Regular multidimensional storage */
+/* Regular one-dimensional storage */
 struct StorageRegular1D(T, size_t dim_)
 {
     public // Check and process parameters
@@ -266,29 +273,35 @@ struct StorageRegular1D(T, size_t dim_)
         return result;
     }
 
+    /* Convert to built-in array */
     ElementType[] opCast() pure const
     {
         return toArray(container, dim, stride);
     }
 
-    @property auto byElement() pure
+    public // Ranges
     {
-        return ByElement!(ElementType, 1, true)(
-            container, dim, stride);
+        @property auto byElement() pure
+        {
+            return ByElement!(ElementType, 1, true)(
+                container, dim, stride);
+        }
+
+        @property auto byElement() pure const
+        {
+            return ByElement!(ElementType, 1, false)(
+                container, dim, stride);
+        }
     }
 
-    @property auto byElement() pure const
-    {
-        return ByElement!(ElementType, 1, false)(
-            container, dim, stride);
-    }
-
+    /* Return dynamic array referring storage elements */
     @property auto data() pure inout
     {
         return container[];
     }
 }
 
+/* Detect whether $(D T) is one-dimensional regular storage */
 template isStorageRegular1D(T)
 {
     enum bool isStorageRegular1D = isInstanceOf!(StorageRegular1D, T);

@@ -1,5 +1,12 @@
 // Written in the D programming language.
 
+/**
+ * Regular two-dimensional storage.
+ *
+ * Authors:    Maksim Sergeevich Zholudev
+ * Copyright:  Copyright (c) 2013, Maksim Zholudev
+ * License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ */
 module linalg.storage.regular2d;
 
 import std.algorithm;
@@ -60,7 +67,7 @@ private // Auxiliary functions
     }
 }
 
-/* Regular multidimensional storage */
+/* Regular two-dimensional storage */
 struct StorageRegular2D(T, StorageOrder storageOrder_,
                         size_t nrows_, size_t ncols_)
 {
@@ -381,6 +388,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         return result;
     }
 
+    /* Convert to built-in array */
     ElementType[][] opCast() pure const
     {
         return toArray(container, dim, stride);
@@ -495,6 +503,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
     }
 }
 
+/* Detect whether $(D T) is two-dimensional regular storage */
 template isStorageRegular2D(T)
 {
     enum bool isStorageRegular2D = isInstanceOf!(StorageRegular2D, T);
