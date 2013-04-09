@@ -1,5 +1,12 @@
 // Written in the D programming language.
 
+/**
+ * Implementation of ranges for regular storage.
+ *
+ * Authors:    Maksim Sergeevich Zholudev
+ * Copyright:  Copyright (c) 2013, Maksim Zholudev
+ * License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ */
 module linalg.ranges.regular;
 
 import std.string;
@@ -18,6 +25,10 @@ version(unittest)
     import std.array;
 }
 
+/*
+ * By-element iteration that goes like in folded loops:
+ * foreach(i0; 0..dim0){ foreach(i1; 0..dim1){ ... }}
+ */
 struct ByElement(ElementType, size_t rank, bool mutable = true)
     if(rank == 1)
 {
@@ -66,6 +77,7 @@ struct ByElement(ElementType, size_t rank, bool mutable = true)
     void popFront() pure { _ptr += _stride; }
 }
 
+//ditto
 struct ByElement(ElementType, size_t rank, bool mutable = true)
     if(rank == 2)
 {
@@ -138,6 +150,7 @@ struct ByElement(ElementType, size_t rank, bool mutable = true)
     }
 }
 
+//ditto
 struct ByElement(ElementType, size_t rank, bool mutable = true)
     if(rank > 2)
 {
@@ -213,6 +226,9 @@ struct ByElement(ElementType, size_t rank, bool mutable = true)
     }
 }
 
+/*
+ * Iteration by row or column (depending on strides)
+ */
 struct ByLine(ElementType, ResultType, bool mutable = true)
 {
     private
@@ -329,6 +345,9 @@ unittest
                       [3, 7, 11, 15, 19, 23]]);
 }
 
+/*
+ * Iteration by matrix block
+ */
 struct ByBlock(ElementType, ResultType, StorageOrder storageOrder,
                bool mutable = true)
 {
