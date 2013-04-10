@@ -1,4 +1,0 @@
-* dim -> nrows, ncols everywhere in 2d (?)
-* unittests for all matrix features
-* check storage overlap in matrix multiplication
-* 
