@@ -572,9 +572,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 debugOP.writeln("...");
                 mixin(debugIndentScope);
             }
-            linalg.storage.operations.map!(
-                (ElementType a) => mixin("a"~op~"source"))(
-                    this.storage, this.storage);
+            linalg.storage.operations.mapArg!("a"~op~"b")(
+                this.storage, source, this.storage);
             return this;
         }
 
@@ -593,9 +592,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
             static if(!(typeof(dest).isStatic))
                 dest.setDim([this.nrows, this.ncols]);
-            linalg.storage.operations.map!(
-                (ElementType a) => mixin("a"~op~"rhs"))(
-                    this.storage, dest.storage);
+            linalg.storage.operations.mapArg!("a"~op~"b")(
+                this.storage, rhs, dest.storage);
             return dest;
         }
 
@@ -617,9 +615,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             TypeOfResultMatrix!(Tlhs, op, typeof(this)) dest;
             static if(!(typeof(dest).isStatic))
                 dest.setDim([this.nrows, this.ncols]);
-            linalg.storage.operations.map!(
-                (ElementType a) => mixin("lhs"~op~"a"))(
-                    this.storage, dest.storage);
+            linalg.storage.operations.mapArg!("b"~op~"a")(
+                this.storage, lhs, dest.storage);
             return dest;
         }
 

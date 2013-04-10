@@ -84,6 +84,44 @@ body
 }
 
 /*
+ * Copy data between storages applying binary function
+ * with additional argument
+ */
+void mapArg(alias fun, Tsource, Targ, Tdest)(const auto ref Tsource source,
+                                             const auto ref Targ arg,
+                                             auto ref Tdest dest) pure
+    if((isStorageRegular2D!Tsource && isStorageRegular2D!Tdest)
+        || (isStorageRegular1D!Tsource && isStorageRegular1D!Tdest))
+    in
+    {
+        assert(dest.isCompatDim(source.dim));
+    }
+body
+{
+    debug(operations)
+    {
+        debugOP.writefln("operations.mapArg()");
+        mixin(debugIndentScope);
+        debugOP.writefln("from <%X>, %d",
+                        source.container.ptr,
+                        source.container.length);
+        debugOP.writefln("to   <%X>, %d",
+                        dest.container.ptr,
+                        dest.container.length);
+        debugOP.writeln("...");
+        mixin(debugIndentScope);
+    }
+    alias safeBinaryFun!fun funToApply;
+    auto isource = source.byElement;
+    auto idest = dest.byElement;
+    foreach(ref d; idest)
+    {
+        d = funToApply(isource.front, arg);
+        isource.popFront();
+    }
+}
+
+/*
  * Merge data from two storages using binary function
  * and copy it to the third storage
  */
