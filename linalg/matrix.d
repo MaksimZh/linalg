@@ -614,7 +614,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 debugOP.writeln("...");
                 mixin(debugIndentScope);
             }
-            TypeOfResultMatrix!(typeof(this), op, Tlhs) dest;
+            TypeOfResultMatrix!(Tlhs, op, typeof(this)) dest;
             static if(!(typeof(dest).isStatic))
                 dest.setDim([this.nrows, this.ncols]);
             linalg.storage.operations.map!(
@@ -818,6 +818,7 @@ template isMatrix(T)
 private template TypeOfResultMatrix(Tlhs, string op, Trhs)
 {
     static if(isMatrix!Tlhs && isMatrix!Trhs)
+    {
         static if(op == "+" || op == "-")
             alias Matrix!(TypeOfOp!(Tlhs.ElementType,
                                     op, Trhs.ElementType),
@@ -828,6 +829,9 @@ private template TypeOfResultMatrix(Tlhs, string op, Trhs)
                                     op, Trhs.ElementType),
                           Tlhs.nrowsPat, Trhs.ncolsPat,
                           Tlhs.storageOrder) TypeOfResultMatrix;
+        else
+            alias void TypeOfResultMatrix;
+    }
     else static if(isMatrix!Tlhs && (op == "*" || op == "/"))
          alias Matrix!(TypeOfOp!(Tlhs.ElementType, op, Trhs),
                        Tlhs.nrowsPat, Tlhs.ncolsPat,
