@@ -742,14 +742,25 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 
     public // Ranges
     {
-        @property auto byElement() pure inout
+        @property auto byElement() pure
+        {
+            return storage.byElement();
+        }
+
+        @property auto byElement() pure const
         {
             return storage.byElement();
         }
 
         static if(!isVector)
         {
-            @property auto byRow() pure inout
+            @property auto byRow() pure
+            {
+                return storage.byRow!(Matrix!(ElementType, 1, dynamicSize,
+                                              storageOrder, false))();
+            }
+
+            @property auto byRow() pure const
             {
                 return storage.byRow!(Matrix!(ElementType, 1, dynamicSize,
                                               storageOrder, false))();
@@ -761,7 +772,20 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                                               storageOrder, false))();
             }
 
-            @property auto byBlock(size_t[2] subdim) pure inout
+            @property auto byCol() pure const
+            {
+                return storage.byCol!(Matrix!(ElementType, dynamicSize, 1,
+                                              storageOrder, false))();
+            }
+
+            @property auto byBlock(size_t[2] subdim) pure
+            {
+                return storage.byBlock!(Matrix!(ElementType,
+                                                dynamicSize, dynamicSize,
+                                                storageOrder, false))(subdim);
+            }
+
+            @property auto byBlock(size_t[2] subdim) pure const
             {
                 return storage.byBlock!(Matrix!(ElementType,
                                                 dynamicSize, dynamicSize,
