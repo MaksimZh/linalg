@@ -518,6 +518,19 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 debugOP.writeln("...");
                 mixin(debugIndentScope);
             }
+
+            /*
+             * If matrix is empty (not allocated) then just assume it has
+             * appropriate size and filled with zeros.
+             */
+            static if(!isStatic && canRealloc)
+                if(nrows * ncols == 0)
+                {
+                    this.setDim([source.nrows, source.ncols]);
+                    linalg.storage.operations.map!(op ~ "a")(
+                        source.storage, this.storage);
+                    return this;
+                }
             linalg.storage.operations.zip!("a"~op~"b")(
                 this.storage, source.storage, this.storage);
             return this;
@@ -933,6 +946,10 @@ unittest // opOpAssign
     assert(cast(int[][]) a == [[12, 14, 16, 18],
                                [20, 22, 24, 26],
                                [28, 30, 32, 34]]);
+
+    Matrix!(int, dynamicSize, dynamicSize) c;
+    c += b;
+    assert(cast(int[][]) c == cast(int[][]) b);
 
     a = A(array(iota(12)));
     a *= 2;
