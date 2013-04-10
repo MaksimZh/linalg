@@ -552,7 +552,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             static if(!(typeof(dest).isStatic))
                 dest.setDim([this.nrows, this.ncols]);
             linalg.storage.operations.zip!("a"~op~"b")(
-                this.storage, source.storage, dest.storage);
+                this.storage, rhs.storage, dest.storage);
             return dest;
         }
 
