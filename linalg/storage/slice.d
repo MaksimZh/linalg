@@ -15,7 +15,7 @@ struct Slice
     const size_t up; // upper boundary
     const size_t stride; // stride (1 means no gap)
 
-    this(size_t lo, size_t up, size_t stride = 1)
+    this(size_t lo, size_t up, size_t stride = 1) pure
     {
         this.lo = lo;
         this.up = up;
