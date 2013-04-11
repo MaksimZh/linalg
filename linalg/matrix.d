@@ -708,7 +708,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
          * Return transposed matrix for real matrix or
          * conjugated and transposed matrix for complex matrix.
          */
-        ref auto conj() pure const
+        @property ref auto conj() pure const
         {
             debug(matrix)
             {
