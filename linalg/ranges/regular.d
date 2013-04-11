@@ -105,7 +105,7 @@ struct ByElement(ElementType, size_t rank, bool mutable = true)
             {
                 debugOP.writeln(\"ByElement!(2).this()\");
                 mixin(debugIndentScope);
-                debugOP.writefln(\"data = <%%X>, %%d\",
+                debugOP.writefln(\"data = <%X>, %d\",
                                  data.ptr, data.length);
                 debugOP.writeln(\"dim = \", dim);
                 debugOP.writeln(\"stride = \", stride);

@@ -106,7 +106,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     {
         debug(matrix)
         {
-            debugOP.writefln("Matrix<%X>.this()", &this);
+            debugOP.writefln("Matrix<%X>.this(storage)", &this);
             mixin(debugIndentScope);
             debugOP.writefln("storage.data = <%X>, %d",
                              storage.data.ptr,
@@ -593,7 +593,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             static if(!(typeof(dest).isStatic))
                 dest.setDim([this.nrows, this.ncols]);
             linalg.storage.operations.mapArgs!((a, rhs) => mixin("a"~op~"rhs"))(
-                this.storage, this.storage, rhs);
+                this.storage, dest.storage, rhs);
             return dest;
         }
 
@@ -616,7 +616,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             static if(!(typeof(dest).isStatic))
                 dest.setDim([this.nrows, this.ncols]);
             linalg.storage.operations.mapArgs!((a, lhs) => mixin("lhs"~op~"a"))(
-                this.storage, this.storage, lhs);
+                this.storage, dest.storage, lhs);
             return dest;
         }
 
@@ -1063,6 +1063,22 @@ unittest // Matrix multiplication
         assert(cast(int[][]) a == [[52, 58],
                                    [124, 139]]);
     }
+}
+
+unittest // Multiplication by scalar
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Multiplication by scalar");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    auto a = Matrix!(int, 2, 3)([1, 2, 3, 4, 5, 6]);
+    assert(cast(int[][]) (a * 2) == [[2, 4, 6],
+                                     [8, 10, 12]]);
+    assert(cast(int[][]) (2 * a) == [[2, 4, 6],
+                                     [8, 10, 12]]);
 }
 
 unittest // Diagonalization
