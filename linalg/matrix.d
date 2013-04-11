@@ -826,7 +826,7 @@ public // Map function
      * Map pure function over matrix.
      */
     ref auto map(alias fun, Tsource)(Tsource source) pure
-        if(isMAtrix!Tsource)
+        if(isMatrix!Tsource)
     {
         Matrix!(ReturnTypeOfUnaryFun!(fun, source.ElementType),
                 Tsource.nrowsPat, Tsource.ncolsPat, Tsource.storageOrder) dest;
@@ -840,6 +840,7 @@ public // Map function
      * Map function over matrix.
      */
     ref auto mapImp(alias fun, Tsource)(Tsource source)
+        if(isMatrix!Tsource)
     {
         Matrix!(ReturnTypeOfUnaryFun!(fun, source.ElementType),
                 Tsource.nrowsPat, Tsource.ncolsPat, Tsource.storageOrder) dest;
