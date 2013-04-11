@@ -470,7 +470,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         /* Unary operations
          */
 
-        ref auto opUnary(string op)() pure
+        ref auto opUnary(string op)() pure inout
             if(op == "+")
         {
             debug(matrix)
@@ -483,7 +483,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             return this;
         }
 
-        ref auto opUnary(string op)() pure
+        ref auto opUnary(string op)() pure const
             if(op == "-")
         {
             debug(matrix)
@@ -537,7 +537,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         }
 
         ref auto opBinary(string op, Trhs)(
-            auto ref const Trhs rhs) pure
+            auto ref const Trhs rhs) pure const
             if(isMatrix!Trhs && (op == "+" || op == "-"))
         {
             debug(matrix)
@@ -578,7 +578,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         }
 
         ref auto opBinary(string op, Trhs)(
-            auto ref const Trhs rhs) pure
+            auto ref const Trhs rhs) pure const
             if(!(isMatrix!Trhs) && (op == "*" || op == "/"))
         {
             debug(matrix)
@@ -601,7 +601,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
          * can be non-commutative
          */
         ref auto opBinaryRight(string op, Tlhs)(
-            auto ref const Tlhs lhs) pure
+            auto ref const Tlhs lhs) pure const
             if(!(isMatrix!Tlhs) && op == "*")
         {
             debug(matrix)
@@ -639,7 +639,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         }
 
         ref auto opBinary(string op, Trhs)(
-            auto ref const Trhs rhs) pure
+            auto ref const Trhs rhs) pure const
             if(isMatrix!Trhs && op == "*")
         {
             debug(matrix)
@@ -704,27 +704,6 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 
     public // Other operations
     {
-        /**
-         * Map function over matrix.
-         */
-        ref auto map(alias fun)() pure const
-        {
-            debug(matrix)
-            {
-                debugOP.writefln("Matrix<%X>.map()", &this);
-                mixin(debugIndentScope);
-                debugOP.writeln("...");
-                mixin(debugIndentScope);
-            }
-
-            Matrix!(ReturnTypeOfUnaryFun!(fun, ElementType),
-                    nrowsPat, ncolsPat, storageOrder) dest;
-            static if(!(typeof(dest).isStatic))
-                dest.setDim([this.nrows, this.ncols]);
-            linalg.storage.operations.map!(fun)(this.storage, dest.storage);
-            return dest;
-        }
-
         /**
          * Return transposed matrix for real matrix or
          * conjugated and transposed matrix for complex matrix.
@@ -839,6 +818,36 @@ private template TypeOfResultMatrix(Tlhs, string op, Trhs)
                        Trhs.storageOrder) TypeOfResultMatrix;
     else
         alias void TypeOfResultMatrix;
+}
+
+public // Map function
+{
+    /**
+     * Map pure function over matrix.
+     */
+    ref auto map(alias fun, Tsource)(Tsource source) pure
+        if(isMAtrix!Tsource)
+    {
+        Matrix!(ReturnTypeOfUnaryFun!(fun, source.ElementType),
+                Tsource.nrowsPat, Tsource.ncolsPat, Tsource.storageOrder) dest;
+        static if(!(typeof(dest).isStatic))
+            dest.setDim([source.nrows, source.ncols]);
+        linalg.storage.operations.map!(fun)(source.storage, dest.storage);
+        return dest;
+    }
+
+    /**
+     * Map function over matrix.
+     */
+    ref auto mapImp(alias fun, Tsource)(Tsource source)
+    {
+        Matrix!(ReturnTypeOfUnaryFun!(fun, source.ElementType),
+                Tsource.nrowsPat, Tsource.ncolsPat, Tsource.storageOrder) dest;
+        static if(!(typeof(dest).isStatic))
+            dest.setDim([source.nrows, source.ncols]);
+        linalg.storage.operations.mapImp!(fun)(source.storage, dest.storage);
+        return dest;
+    }
 }
 
 unittest // Static
@@ -1097,7 +1106,7 @@ unittest // Map function
     }
     else debug mixin(debugSilentScope);
 
-    assert(cast(int[][]) (Matrix!(int, 3, 4)(array(iota(12))).map!("a*2")())
+    assert(cast(int[][]) map!("a*2")(Matrix!(int, 3, 4)(array(iota(12))))
            == [[0, 2, 4, 6],
                [8, 10, 12, 14],
                [16, 18, 20, 22]]);

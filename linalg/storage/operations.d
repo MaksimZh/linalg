@@ -83,6 +83,40 @@ body
     }
 }
 
+/* Copy data between storages applying function (impure version) */
+void mapImp(alias fun, Tsource, Tdest)(const auto ref Tsource source,
+                                       auto ref Tdest dest)
+    if((isStorageRegular2D!Tsource && isStorageRegular2D!Tdest)
+        || (isStorageRegular1D!Tsource && isStorageRegular1D!Tdest))
+    in
+    {
+        assert(dest.isCompatDim(source.dim));
+    }
+body
+{
+    debug(operations)
+    {
+        debugOP.writefln("operations.mapImp()");
+        mixin(debugIndentScope);
+        debugOP.writefln("from <%X>, %d",
+                        source.container.ptr,
+                        source.container.length);
+        debugOP.writefln("to   <%X>, %d",
+                        dest.container.ptr,
+                        dest.container.length);
+        debugOP.writeln("...");
+        mixin(debugIndentScope);
+    }
+    alias safeUnaryFun!fun funToApply;
+    auto isource = source.byElement;
+    auto idest = dest.byElement;
+    foreach(ref d; idest)
+    {
+        d = funToApply(isource.front);
+        isource.popFront();
+    }
+}
+
 /*
  * Copy data between storages applying binary function
  * with additional argument
