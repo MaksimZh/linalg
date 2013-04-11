@@ -253,7 +253,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         @property size_t ncols() pure const { return dim[1]; }
 
         /* Test dimensions for compatibility */
-        bool isCompatDim(in size_t[] dim) pure
+        bool isCompatDim(in size_t[] dim) pure const
         {
             static if(isStatic)
             {

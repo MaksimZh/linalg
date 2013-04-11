@@ -168,7 +168,7 @@ struct StorageRegular1D(T, size_t dim_)
         @property size_t length() pure const { return dim; }
 
         /* Test dimensions for compatibility */
-        bool isCompatDim(in size_t dim) pure
+        bool isCompatDim(in size_t dim) pure const
         {
             static if(isStatic)
             {

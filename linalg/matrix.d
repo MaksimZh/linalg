@@ -572,8 +572,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 debugOP.writeln("...");
                 mixin(debugIndentScope);
             }
-            linalg.storage.operations.mapArg!("a"~op~"b")(
-                this.storage, source, this.storage);
+            linalg.storage.operations.mapArgs!((a, b) => mixin("a"~op~"b"))(
+                this.storage, this.storage, source);
             return this;
         }
 
@@ -592,8 +592,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
             static if(!(typeof(dest).isStatic))
                 dest.setDim([this.nrows, this.ncols]);
-            linalg.storage.operations.mapArg!("a"~op~"b")(
-                this.storage, rhs, dest.storage);
+            linalg.storage.operations.mapArgs!((a, rhs) => mixin("a"~op~"rhs"))(
+                this.storage, this.storage, rhs);
             return dest;
         }
 
@@ -615,8 +615,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             TypeOfResultMatrix!(Tlhs, op, typeof(this)) dest;
             static if(!(typeof(dest).isStatic))
                 dest.setDim([this.nrows, this.ncols]);
-            linalg.storage.operations.mapArg!("b"~op~"a")(
-                this.storage, lhs, dest.storage);
+            linalg.storage.operations.mapArgs!((a, lhs) => mixin("lhs"~op~"a"))(
+                this.storage, this.storage, lhs);
             return dest;
         }
 
@@ -825,28 +825,17 @@ public // Map function
     /**
      * Map pure function over matrix.
      */
-    ref auto map(alias fun, Tsource)(Tsource source) pure
+    ref auto map(alias fun, Tsource, Targs...)(
+        const auto ref Tsource source,
+        const auto ref Targs args) pure
         if(isMatrix!Tsource)
     {
-        Matrix!(ReturnTypeOfUnaryFun!(fun, source.ElementType),
+        Matrix!(typeof(fun(source[0, 0], args)),
                 Tsource.nrowsPat, Tsource.ncolsPat, Tsource.storageOrder) dest;
         static if(!(typeof(dest).isStatic))
             dest.setDim([source.nrows, source.ncols]);
-        linalg.storage.operations.map!(fun)(source.storage, dest.storage);
-        return dest;
-    }
-
-    /**
-     * Map function over matrix.
-     */
-    ref auto mapImp(alias fun, Tsource)(Tsource source)
-        if(isMatrix!Tsource)
-    {
-        Matrix!(ReturnTypeOfUnaryFun!(fun, source.ElementType),
-                Tsource.nrowsPat, Tsource.ncolsPat, Tsource.storageOrder) dest;
-        static if(!(typeof(dest).isStatic))
-            dest.setDim([source.nrows, source.ncols]);
-        linalg.storage.operations.mapImp!(fun)(source.storage, dest.storage);
+        linalg.storage.operations.mapArgs!(fun)(
+            source.storage, dest.storage, args);
         return dest;
     }
 }
@@ -1107,7 +1096,13 @@ unittest // Map function
     }
     else debug mixin(debugSilentScope);
 
-    assert(cast(int[][]) map!("a*2")(Matrix!(int, 3, 4)(array(iota(12))))
+    int b = 2;
+    /*NOTE:
+     * One has to specify type of a.
+     * Otherwise type of destination container will be const somehow.
+     */
+    assert(cast(int[][]) map!((int a, b) => a*b)(
+               Matrix!(int, 3, 4)(array(iota(12))), b)
            == [[0, 2, 4, 6],
                [8, 10, 12, 14],
                [16, 18, 20, 22]]);
