@@ -203,6 +203,36 @@ body
     }
 }
 
+/* Hermitian conjugation of vector */
+void conjMatrix(Tsource, Tdest)(
+    const ref Tsource source, ref Tdest dest) pure
+    if(isStorageRegular1D!Tsource && isStorageRegular1D!Tdest)
+    in
+    {
+        assert(dest.length == source.length);
+    }
+body
+{
+    debug(operations)
+    {
+        debugOP.writefln("operations.conjMatrix()");
+        mixin(debugIndentScope);
+        debugOP.writefln("from <%X>, %d",
+                        source.container.ptr,
+                        source.container.length);
+        debugOP.writefln("to   <%X>, %d",
+                        dest.container.ptr,
+                        dest.container.length);
+        debugOP.writeln("...");
+        mixin(debugIndentScope);
+    }
+
+    static if(isComplex!(Tsource.ElementType))
+        map!("a.conj")(source, dest);
+    else
+        copy(source, dest);
+}
+
 /* Hermitian conjugation */
 void conjMatrix(Tsource, Tdest)(
     const ref Tsource source, ref Tdest dest) pure

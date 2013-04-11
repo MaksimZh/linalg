@@ -721,10 +721,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             Matrix!(ElementType, ncolsPat, nrowsPat, storageOrder) dest;
             static if(!(typeof(dest).isStatic))
                 dest.setDim([this.ncols, this.nrows]);
-            static if(isVector) {}
-            else
-                linalg.storage.operations.conjMatrix(
-                    this.storage, dest.storage);
+            linalg.storage.operations.conjMatrix(
+                this.storage, dest.storage);
             return dest;
         }
     }
@@ -1147,4 +1145,17 @@ unittest // Hermitian conjugation
            == [[C(1, -1), C(2, -1)],
                [C(1, -2), C(2, -2)],
                [C(1, -3), C(2, -3)]]);
+
+    assert(cast(int[][]) (Matrix!(int, 1, 4)(array(iota(4))).conj())
+           == [[0],
+               [1],
+               [2],
+               [3]]);
+
+    //FIXME: may fail for low precision
+    assert(cast(C[][]) (Matrix!(C, 1, 3)(
+                            [C(1, 1), C(1, 2), C(1, 3)]).conj())
+           == [[C(1, -1)],
+               [C(1, -2)],
+               [C(1, -3)]]);
 }
