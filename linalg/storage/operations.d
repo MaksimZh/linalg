@@ -205,7 +205,7 @@ body
 
 /* Hermitian conjugation of vector */
 void conjMatrix(Tsource, Tdest)(
-    const ref Tsource source, ref Tdest dest) pure
+    const auto ref Tsource source, auto ref Tdest dest) pure
     if(isStorageRegular1D!Tsource && isStorageRegular1D!Tdest)
     in
     {
@@ -235,7 +235,7 @@ body
 
 /* Hermitian conjugation */
 void conjMatrix(Tsource, Tdest)(
-    const ref Tsource source, ref Tdest dest) pure
+    const auto ref Tsource source, auto ref Tdest dest) pure
     if(isStorageRegular2D!Tsource && isStorageRegular2D!Tdest)
     in
     {
@@ -261,10 +261,7 @@ body
     auto idest = dest.byCol;
     while(!(isource.empty))
     {
-        static if(isComplex!(Tsource.ElementType))
-            map!("a.conj")(isource.front, idest.front);
-        else
-            copy(isource.front, idest.front);
+        conjMatrix(isource.front, idest.front);
         isource.popFront();
         idest.popFront();
     }
