@@ -466,5 +466,5 @@ body
         mixin(debugIndentScope);
     }
 
-    return symmEigenval(source.data, source.nrows, ilo, iup);
+    return symmEigenval(source.container, source.nrows, ilo, iup);
 }

@@ -58,19 +58,19 @@ struct StorageRegular1D(T, size_t dim_)
             alias ElementType[] ContainerType;
     }
 
-    package // Container, dimensions, strides
+    private // Container, dimensions, strides
     {
-        ContainerType container;
+        ContainerType _container;
 
         static if(isStatic)
         {
-            enum size_t dim = dimPattern;
-            enum size_t stride = 1;
+            enum size_t _dim = dimPattern;
+            enum size_t _stride = 1;
         }
         else
         {
-            size_t dim;
-            size_t stride;
+            size_t _dim;
+            size_t _stride;
         }
     }
 
@@ -80,7 +80,7 @@ struct StorageRegular1D(T, size_t dim_)
         inout this()(inout ElementType[] array) pure
             in
             {
-                assert(array.length == container.length);
+                assert(array.length == _container.length);
             }
         body
         {
@@ -91,12 +91,12 @@ struct StorageRegular1D(T, size_t dim_)
                 debugOP.writefln("array = <%X>, %d", array.ptr, array.length);
                 debugOP.writeln("...");
                 scope(exit) debug debugOP.writefln(
-                    "container = <%X>, %d",
-                    this.container.ptr,
-                    this.container.length);
+                    "_container = <%X>, %d",
+                    _container.ptr,
+                    _container.length);
                 mixin(debugIndentScope);
             }
-            container = array;
+            _container = array;
         }
     }
     else
@@ -110,13 +110,13 @@ struct StorageRegular1D(T, size_t dim_)
                 debugOP.writeln("dim = ", dim);
                 debugOP.writeln("...");
                 scope(exit) debug debugOP.writefln(
-                    "container = <%X>, %d",
-                    this.container.ptr,
-                    this.container.length);
+                    "_container = <%X>, %d",
+                    _container.ptr,
+                    _container.length);
                 mixin(debugIndentScope);
             }
-            this.dim = dim;
-            stride = 1;
+            _dim = dim;
+            _stride = 1;
             _reallocate();
         }
 
@@ -129,10 +129,10 @@ struct StorageRegular1D(T, size_t dim_)
                 debugOP.writefln("array = <%X>, %d", array.ptr, array.length);
                 debugOP.writeln("...");
                 scope(exit) debug debugOP.writefln(
-                    "container<%X> = <%X>, %d",
-                    &(this.container),
-                    this.container.ptr,
-                    this.container.length);
+                    "_container<%X> = <%X>, %d",
+                    &(_container),
+                    _container.ptr,
+                    _container.length);
                 mixin(debugIndentScope);
             }
             this(array, array.length, 1);
@@ -151,32 +151,35 @@ struct StorageRegular1D(T, size_t dim_)
                 debugOP.writeln("stride = ", stride);
                 debugOP.writeln("...");
                 scope(exit) debug debugOP.writefln(
-                    "container<%X> = <%X>, %d",
-                    &(this.container),
-                    this.container.ptr,
-                    this.container.length);
+                    "_container<%X> = <%X>, %d",
+                    &(_container),
+                    _container.ptr,
+                    _container.length);
                 mixin(debugIndentScope);
             }
-            container = array;
-            this.dim = dim;
-            this.stride = stride;
+            _container = array;
+            _dim = dim;
+            _stride = stride;
         }
     }
 
     public // Dimensions and memory
     {
-        @property size_t length() pure const { return dim; }
+        @property auto container() pure inout { return _container[]; }
+        @property size_t dim() pure const { return _dim; }
+        alias dim length;
+        @property size_t stride() pure const { return _stride; }
 
         /* Test dimensions for compatibility */
         bool isCompatDim(in size_t dim) pure const
         {
             static if(isStatic)
             {
-                return dim == dimPattern;
+                return _dim == dimPattern;
             }
             else
             {
-                return (dim == dimPattern) || (dimPattern == dynamicSize);
+                return (_dim == dimPattern) || (dimPattern == dynamicSize);
             }
         }
 
@@ -193,14 +196,14 @@ struct StorageRegular1D(T, size_t dim_)
                     mixin(debugIndentScope);
                     debugOP.writeln("...");
                     scope(exit) debug debugOP.writefln(
-                        "container<%X> = <%X>, %d",
-                        &(this.container),
-                        this.container.ptr,
-                        this.container.length);
+                        "_container<%X> = <%X>, %d",
+                        &(_container),
+                        _container.ptr,
+                        _container.length);
                     mixin(debugIndentScope);
                 }
-                stride = 1;
-                container = new ElementType[dim];
+                _stride = 1;
+                _container = new ElementType[_dim];
             }
 
             void setDim(in size_t dim) pure
@@ -210,7 +213,7 @@ struct StorageRegular1D(T, size_t dim_)
                 }
             body
             {
-                this.dim = dim;
+                _dim = dim;
                 _reallocate();
             }
         }
@@ -219,9 +222,9 @@ struct StorageRegular1D(T, size_t dim_)
     public // Slices and indices support
     {
         //NOTE: depends on DMD pull-request 443
-        package size_t mapIndex(size_t i) pure const
+        private size_t _mapIndex(size_t i) pure const
         {
-            return i * stride;
+            return i * _stride;
         }
 
         mixin sliceOverload;
@@ -229,27 +232,27 @@ struct StorageRegular1D(T, size_t dim_)
         size_t opDollar(size_t dimIndex)() pure const
         {
             static assert(dimIndex == 0);
-            return dim;
+            return _dim;
         }
 
         ref inout auto opIndex() pure inout
         {
             debug(slice) debugOP.writeln("slice");
             return StorageRegular1D!(ElementType, dynamicSize)(
-                container[], length, stride);
+                _container[], length, _stride);
         }
 
         ref inout auto opIndex(size_t i) pure inout
         {
-            return container[mapIndex(i)];
+            return _container[_mapIndex(i)];
         }
 
         ref inout auto opIndex(Slice s) pure inout
         {
             debug(slice) debugOP.writeln("slice ", s);
             return StorageRegular1D!(ElementType, dynamicSize)(
-                container[mapIndex(s.lo)..mapIndex(s.upReal)],
-                s.length, stride);
+                _container[_mapIndex(s.lo).._mapIndex(s.upReal)],
+                s.length, _stride);
         }
     }
 
@@ -267,7 +270,7 @@ struct StorageRegular1D(T, size_t dim_)
         }
         StorageRegular1D!(ElementType, dimPattern) result;
         static if(!(result.isStatic))
-            result.setDim(this.dim);
+            result.setDim(_dim);
         copy(this, result);
         return result;
     }
@@ -275,7 +278,7 @@ struct StorageRegular1D(T, size_t dim_)
     /* Convert to built-in array */
     ElementType[] opCast() pure const
     {
-        return toArray(container, dim, stride);
+        return toArray(_container, _dim, _stride);
     }
 
     public // Ranges
@@ -283,20 +286,14 @@ struct StorageRegular1D(T, size_t dim_)
         @property auto byElement() pure
         {
             return ByElement!(ElementType, 1, true)(
-                container, dim, stride);
+                _container, _dim, _stride);
         }
 
         @property auto byElement() pure const
         {
             return ByElement!(ElementType, 1, false)(
-                container, dim, stride);
+                _container, _dim, _stride);
         }
-    }
-
-    /* Return dynamic array referring storage elements */
-    @property auto data() pure inout
-    {
-        return container[];
     }
 }
 
@@ -318,21 +315,21 @@ unittest // Static
     auto b = StorageRegular1D!(int, 4)([0, 1, 2, 3]);
     assert(b.length == 4);
     assert(cast(int[]) b == [0, 1, 2, 3]);
-    assert(b.data == [0, 1, 2, 3]);
+    assert(b.container == [0, 1, 2, 3]);
 
     immutable auto ib = StorageRegular1D!(int, 4)([0, 1, 2, 3]);
     assert(ib.length == 4);
     assert(cast(int[]) ib == [0, 1, 2, 3]);
-    assert(ib.data == [0, 1, 2, 3]);
+    assert(ib.container == [0, 1, 2, 3]);
 
     // .dup
     auto d = b.dup;
     assert(cast(int[]) d == [0, 1, 2, 3]);
-    assert(d.data !is b.data);
+    assert(d.container !is b.container);
 
     auto d1 = ib.dup;
     assert(cast(int[]) d1 == [0, 1, 2, 3]);
-    assert(d1.data !is ib.data);
+    assert(d1.container !is ib.container);
 
     // Range
     int[] tmp = [];
@@ -369,40 +366,40 @@ unittest // Dynamic
     auto a = StorageRegular1D!(int, dynamicSize)(4);
     assert(a.length == 4);
     assert(cast(int[]) a == [int.init, int.init, int.init, int.init]);
-    assert(a.data == [int.init, int.init, int.init, int.init]);
+    assert(a.container == [int.init, int.init, int.init, int.init]);
 
     auto b = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3]);
     assert(b.length == 4);
     assert(cast(int[]) b == [0, 1, 2, 3]);
-    assert(b.data == [0, 1, 2, 3]);
+    assert(b.container == [0, 1, 2, 3]);
 
     auto c = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3], 2, 3);
     assert(c.length == 2);
     assert(cast(int[]) c == [0, 3]);
-    assert(c.data == [0, 1, 2, 3]);
+    assert(c.container == [0, 1, 2, 3]);
 
     immutable auto ia = StorageRegular1D!(int, dynamicSize)(4);
     assert(ia.length == 4);
     assert(cast(int[]) ia == [int.init, int.init, int.init, int.init]);
-    assert(ia.data == [int.init, int.init, int.init, int.init]);
+    assert(ia.container == [int.init, int.init, int.init, int.init]);
 
     immutable auto ib = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3]);
     assert(ib.length == 4);
     assert(cast(int[]) ib == [0, 1, 2, 3]);
-    assert(ib.data == [0, 1, 2, 3]);
+    assert(ib.container == [0, 1, 2, 3]);
 
     immutable auto ic = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3], 2, 3);
     assert(ic.length == 2);
     assert(cast(int[]) ic == [0, 3]);
-    assert(ic.data == [0, 1, 2, 3]);
+    assert(ic.container == [0, 1, 2, 3]);
 
     // .dup
     auto d = b.dup;
     assert(cast(int[]) d == [0, 1, 2, 3]);
-    assert(d.data !is b.data);
+    assert(d.container !is b.container);
     auto d1 = ic.dup;
     assert(cast(int[]) d1 == [0, 3]);
-    assert(d1.data !is ic.data);
+    assert(d1.container !is ic.container);
 
     // Range
     int[] tmp = [];

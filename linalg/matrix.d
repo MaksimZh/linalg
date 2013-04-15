@@ -108,9 +108,9 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         {
             debugOP.writefln("Matrix<%X>.this(storage)", &this);
             mixin(debugIndentScope);
-            debugOP.writefln("storage.data = <%X>, %d",
-                             storage.data.ptr,
-                             storage.data.length);
+            debugOP.writefln("storage.container = <%X>, %d",
+                             storage.container.ptr,
+                             storage.container.length);
             debugOP.writeln("...");
             scope(exit) debug debugOP.writefln(
                 "storage<%X>", &(this.storage));
@@ -670,9 +670,9 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     }
 
     /** Return dynamic array referring matrix elements */
-    @property auto data() pure inout
+    @property auto container() pure inout
     {
-        return storage.data;
+        return storage.container;
     }
 
     public // Diagonalization
