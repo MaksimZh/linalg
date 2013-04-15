@@ -21,7 +21,7 @@ version(unittest)
 }
 
 import linalg.types;
-import linalg.storage.operations;
+import linalg.operations.basic;
 import linalg.storage.slice;
 import linalg.ranges.regular;
 

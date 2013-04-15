@@ -24,7 +24,12 @@ public import linalg.types;
 import linalg.storage.regular1d;
 import linalg.storage.regular2d;
 import linalg.storage.slice;
-import linalg.storage.operations;
+
+import linalg.operations.basic;
+import linalg.operations.conjugation;
+import linalg.operations.multiplication;
+import linalg.operations.eigen;
+
 
 alias linalg.storage.slice.Slice Slice; //NOTE: waiting for proper slice support
 
@@ -499,7 +504,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 auto dest = Matrix!(ElementType,
                                     nrowsPat, ncolsPat,
                                     storageOrder)(nrows, ncols);
-            linalg.storage.operations.map!("-a")(this.storage, dest.storage);
+            linalg.operations.basic.map!("-a")(this.storage, dest.storage);
             return dest;
         }
 
@@ -527,11 +532,11 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 if(nrows * ncols == 0)
                 {
                     this.setDim([source.nrows, source.ncols]);
-                    linalg.storage.operations.map!(op ~ "a")(
+                    linalg.operations.basic.map!(op ~ "a")(
                         source.storage, this.storage);
                     return this;
                 }
-            linalg.storage.operations.zip!("a"~op~"b")(
+            linalg.operations.basic.zip!("a"~op~"b")(
                 this.storage, source.storage, this.storage);
             return this;
         }
@@ -551,7 +556,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
             static if(!(typeof(dest).isStatic))
                 dest.setDim([this.nrows, this.ncols]);
-            linalg.storage.operations.zip!("a"~op~"b")(
+            linalg.operations.basic.zip!("a"~op~"b")(
                 this.storage, rhs.storage, dest.storage);
             return dest;
         }
@@ -572,7 +577,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 debugOP.writeln("...");
                 mixin(debugIndentScope);
             }
-            linalg.storage.operations.mapArgs!((a, b) => mixin("a"~op~"b"))(
+            mapArgs!((a, b) => mixin("a"~op~"b"))(
                 this.storage, this.storage, source);
             return this;
         }
@@ -592,7 +597,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
             static if(!(typeof(dest).isStatic))
                 dest.setDim([this.nrows, this.ncols]);
-            linalg.storage.operations.mapArgs!((a, rhs) => mixin("a"~op~"rhs"))(
+            mapArgs!((a, rhs) => mixin("a"~op~"rhs"))(
                 this.storage, dest.storage, rhs);
             return dest;
         }
@@ -615,7 +620,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             TypeOfResultMatrix!(Tlhs, op, typeof(this)) dest;
             static if(!(typeof(dest).isStatic))
                 dest.setDim([this.nrows, this.ncols]);
-            linalg.storage.operations.mapArgs!((a, lhs) => mixin("lhs"~op~"a"))(
+            mapArgs!((a, lhs) => mixin("lhs"~op~"a"))(
                 this.storage, dest.storage, lhs);
             return dest;
         }
@@ -654,16 +659,14 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             static if(this.shape == MatrixShape.row
                       && rhs.shape == MatrixShape.col)
             {
-                return linalg.storage.operations.mulAsMatrices(
-                    this.storage, rhs.storage);
+                return mulAsMatrices(this.storage, rhs.storage);
             }
             else
             {
                 TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
                 static if(!(typeof(dest).isStatic))
                     dest.setDim([this.nrows, rhs.ncols]);
-                linalg.storage.operations.mulAsMatrices(
-                    this.storage, rhs.storage, dest.storage);
+                mulAsMatrices(this.storage, rhs.storage, dest.storage);
                 return dest;
             }
         }
@@ -696,8 +699,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                     mixin(debugIndentScope);
                 }
 
-                return linalg.storage.operations.matrixSymmEigenval(
-                    this.storage, ilo, iup);
+                return matrixSymmEigenval(this.storage, ilo, iup);
             }
         }
     }
@@ -721,8 +723,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             Matrix!(ElementType, ncolsPat, nrowsPat, storageOrder) dest;
             static if(!(typeof(dest).isStatic))
                 dest.setDim([this.ncols, this.nrows]);
-            linalg.storage.operations.conjMatrix(
-                this.storage, dest.storage);
+            conjMatrix(this.storage, dest.storage);
             return dest;
         }
     }
@@ -832,8 +833,7 @@ public // Map function
                 Tsource.nrowsPat, Tsource.ncolsPat, Tsource.storageOrder) dest;
         static if(!(typeof(dest).isStatic))
             dest.setDim([source.nrows, source.ncols]);
-        linalg.storage.operations.mapArgs!(fun)(
-            source.storage, dest.storage, args);
+        mapArgs!(fun)(source.storage, dest.storage, args);
         return dest;
     }
 }
