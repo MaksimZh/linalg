@@ -550,6 +550,9 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                         source.storage, this.storage);
                     return this;
                 }
+            static if(!(Tsource.isStatic))
+                if(source.empty)
+                    return this;
             linalg.operations.basic.zip!("a"~op~"b")(
                 this.storage, source.storage, this.storage);
             return this;
