@@ -272,16 +272,15 @@ struct ByLine(ElementType, ResultType, bool mutable = true)
 
     mixin("this(" ~ (mutable ? "" : "in ")
           ~ "ElementType[] data,
-             size_t dimExt, size_t strideExt,
-             size_t dimInt, size_t strideInt) pure
+             in size_t[2] dim, in size_t[2] stride) pure
         {
             _data = data;
-            _dimExt = dimExt;
-            _strideExt = strideExt;
-            _dimInt = dimInt;
-            _strideInt = strideInt;
+            _dimExt = dim[0];
+            _strideExt = stride[0];
+            _dimInt = dim[0];
+            _strideInt = stride[1];
             _ptr = _data.ptr;
-            _ptrFin = _data.ptr + dimExt * strideExt;
+            _ptrFin = _data.ptr + dim[0] * stride[0];
         }
     ");
 
@@ -335,7 +334,7 @@ unittest
     }
     else debug mixin(debugSilentScope);
 
-    auto rng = ByLine!(int, Foo!int, false)(array(iota(24)), 6, 4, 4, 1);
+    auto rng = ByLine!(int, Foo!int, false)(array(iota(24)), [6, 4], [4, 1]);
     int[][] result = [];
     foreach(r; rng)
         result ~= [r.eval()];
@@ -356,7 +355,7 @@ unittest
     }
     else debug mixin(debugSilentScope);
 
-    auto rng = ByLine!(int, Foo!int, false)(array(iota(24)), 4, 1, 6, 4);
+    auto rng = ByLine!(int, Foo!int, false)(array(iota(24)), [4, 6], [1, 4]);
     int[][] result = [];
     foreach(r; rng)
         result ~= [r.eval()];
