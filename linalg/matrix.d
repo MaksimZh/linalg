@@ -543,7 +543,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
              * appropriate size and filled with zeros.
              */
             static if(!isStatic && canRealloc)
-                if(nrows * ncols == 0)
+                if(empty)
                 {
                     this.setDim([source.nrows, source.ncols]);
                     linalg.operations.basic.map!(op ~ "a")(
@@ -568,6 +568,17 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 mixin(debugIndentScope);
             }
             TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
+
+            /*
+             * If one of the operands is empty (not allocated) then
+             * return the other one with proper sign.
+             */
+            static if(!isStatic)
+                if(empty)
+                    return mixin(op~"rhs");
+            static if(!(Trhs.isStatic))
+                if(rhs.empty)
+                    return this;
             static if(!(typeof(dest).isStatic))
                 dest.setDim([this.nrows, this.ncols]);
             linalg.operations.basic.zip!("a"~op~"b")(
