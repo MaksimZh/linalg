@@ -165,7 +165,7 @@ struct StorageRegular1D(T, size_t dim_)
 
     public // Dimensions and memory
     {
-        @property auto container() pure const { return _container[]; }
+        @property auto container() pure inout { return _container[]; }
         @property size_t dim() pure const { return _dim; }
         alias dim length;
         @property size_t stride() pure const { return _stride; }
@@ -315,21 +315,21 @@ unittest // Static
     auto b = StorageRegular1D!(int, 4)([0, 1, 2, 3]);
     assert(b.length == 4);
     assert(cast(int[]) b == [0, 1, 2, 3]);
-    assert(b.data == [0, 1, 2, 3]);
+    assert(b.container == [0, 1, 2, 3]);
 
     immutable auto ib = StorageRegular1D!(int, 4)([0, 1, 2, 3]);
     assert(ib.length == 4);
     assert(cast(int[]) ib == [0, 1, 2, 3]);
-    assert(ib.data == [0, 1, 2, 3]);
+    assert(ib.container == [0, 1, 2, 3]);
 
     // .dup
     auto d = b.dup;
     assert(cast(int[]) d == [0, 1, 2, 3]);
-    assert(d.data !is b.data);
+    assert(d.container !is b.container);
 
     auto d1 = ib.dup;
     assert(cast(int[]) d1 == [0, 1, 2, 3]);
-    assert(d1.data !is ib.data);
+    assert(d1.container !is ib.container);
 
     // Range
     int[] tmp = [];
@@ -366,40 +366,40 @@ unittest // Dynamic
     auto a = StorageRegular1D!(int, dynamicSize)(4);
     assert(a.length == 4);
     assert(cast(int[]) a == [int.init, int.init, int.init, int.init]);
-    assert(a.data == [int.init, int.init, int.init, int.init]);
+    assert(a.container == [int.init, int.init, int.init, int.init]);
 
     auto b = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3]);
     assert(b.length == 4);
     assert(cast(int[]) b == [0, 1, 2, 3]);
-    assert(b.data == [0, 1, 2, 3]);
+    assert(b.container == [0, 1, 2, 3]);
 
     auto c = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3], 2, 3);
     assert(c.length == 2);
     assert(cast(int[]) c == [0, 3]);
-    assert(c.data == [0, 1, 2, 3]);
+    assert(c.container == [0, 1, 2, 3]);
 
     immutable auto ia = StorageRegular1D!(int, dynamicSize)(4);
     assert(ia.length == 4);
     assert(cast(int[]) ia == [int.init, int.init, int.init, int.init]);
-    assert(ia.data == [int.init, int.init, int.init, int.init]);
+    assert(ia.container == [int.init, int.init, int.init, int.init]);
 
     immutable auto ib = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3]);
     assert(ib.length == 4);
     assert(cast(int[]) ib == [0, 1, 2, 3]);
-    assert(ib.data == [0, 1, 2, 3]);
+    assert(ib.container == [0, 1, 2, 3]);
 
     immutable auto ic = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3], 2, 3);
     assert(ic.length == 2);
     assert(cast(int[]) ic == [0, 3]);
-    assert(ic.data == [0, 1, 2, 3]);
+    assert(ic.container == [0, 1, 2, 3]);
 
     // .dup
     auto d = b.dup;
     assert(cast(int[]) d == [0, 1, 2, 3]);
-    assert(d.data !is b.data);
+    assert(d.container !is b.container);
     auto d1 = ic.dup;
     assert(cast(int[]) d1 == [0, 3]);
-    assert(d1.data !is ic.data);
+    assert(d1.container !is ic.container);
 
     // Range
     int[] tmp = [];
