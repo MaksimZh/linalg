@@ -849,13 +849,17 @@ public // Map function
     /**
      * Map pure function over matrix.
      */
-    ref auto map(alias fun, Tsource, Targs...)(
+    auto map(alias fun, Tsource, Targs...)(
         const auto ref Tsource source,
         const auto ref Targs args) pure
         if(isMatrix!Tsource)
     {
         Matrix!(typeof(fun(source[0, 0], args)),
                 Tsource.nrowsPat, Tsource.ncolsPat, Tsource.storageOrder) dest;
+        /* If source is empty then return empty matrix */
+        static if(!(Tsource.isStatic))
+            if(source.empty)
+                return dest;
         static if(!(typeof(dest).isStatic))
             dest.setDim([source.nrows, source.ncols]);
         linalg.operations.basic.map!(fun)(source.storage, dest.storage, args);
