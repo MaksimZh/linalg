@@ -567,22 +567,30 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 debugOP.writeln("...");
                 mixin(debugIndentScope);
             }
-            TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
 
             /*
              * If one of the operands is empty (not allocated) then
              * return the other one with proper sign.
              */
-            static if(!isStatic)
+            alias TypeOfResultMatrix!(typeof(this), op, Trhs) Tresult;
+            static if(!isStatic && is(Tresult == Trhs))
                 if(empty)
                     return mixin(op~"rhs");
-            static if(!(Trhs.isStatic))
+            static if(!(Trhs.isStatic) && is(Tresult == typeof(this)))
                 if(rhs.empty)
                     return this;
+            Tresult dest;
             static if(!(typeof(dest).isStatic))
                 dest.setDim([this.nrows, this.ncols]);
-            linalg.operations.basic.zip!("a"~op~"b")(
-                this.storage, rhs.storage, dest.storage);
+            if(empty)
+                linalg.operations.basic.map!((a, lhs) => mixin("lhs"~op~"a"))(
+                    rhs.storage, dest.storage, zero!ElementType);
+            else if(rhs.empty)
+                linalg.operations.basic.map!((a, rhs) => mixin("a"~op~"rhs"))(
+                    this.storage, dest.storage, zero!(Trhs.ElementType));
+            else
+                linalg.operations.basic.zip!("a"~op~"b")(
+                    this.storage, rhs.storage, dest.storage);
             return dest;
         }
 
