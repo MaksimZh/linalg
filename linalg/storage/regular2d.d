@@ -199,9 +199,9 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             {
                 debugOP.writefln("StorageRegular2D<%X>.this()", &this);
                 mixin(debugIndentScope);
-                debugOP.writefln("source._container = <%X>, %d",
-                                 source._container.ptr,
-                                 source._container.length);
+                debugOP.writefln("source.container = <%X>, %d",
+                                 source.container.ptr,
+                                 source.container.length);
                 debugOP.writeln("...");
                 scope(exit) debug debugOP.writefln(
                     "_container<%X> = <%X>, %d",
@@ -210,16 +210,16 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                     _container.length);
                 mixin(debugIndentScope);
             }
-            _container = source._container;
+            _container = source.container;
             static if(storageOrder == StorageOrder.rowMajor)
             {
-                _dim = [1, source._dim];
-                _stride = [1, source._stride];
+                _dim = [1, source.dim];
+                _stride = [1, source.stride];
             }
             else
             {
-                _dim = [source._dim, 1];
-                _stride = [source._stride, 1];
+                _dim = [source.dim, 1];
+                _stride = [source.stride, 1];
             }
         }
 
@@ -230,9 +230,9 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             {
                 debugOP.writefln("StorageRegular2D<%X>.this()", &this);
                 mixin(debugIndentScope);
-                debugOP.writefln("source._container = <%X>, %d",
-                                 source._container.ptr,
-                                 source._container.length);
+                debugOP.writefln("source.container = <%X>, %d",
+                                 source.container.ptr,
+                                 source.container.length);
                 debugOP.writeln("...");
                 scope(exit) debug debugOP.writefln(
                     "_container<%X> = <%X>, %d",
@@ -241,17 +241,21 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                     _container.length);
                 mixin(debugIndentScope);
             }
-            _container = source._container;
-            _dim = source._dim;
-            _stride = source._stride;
+            _container = source.container;
+            _dim = source.dim;
+            _stride = source.stride;
         }
     }
 
     public // Dimensions and memory
     {
+        @property auto container() pure const { return _container[]; }
+        @property size_t[2] dim() pure const { return _dim; }
+        @property size_t[2] stride() pure const { return _stride; }
+
         @property size_t nrows() pure const { return _dim[0]; }
         @property size_t ncols() pure const { return _dim[1]; }
-        @property size_t[2] dim() pure const { return dim; }
+
 
         /* Test dimensions for compatibility */
         bool isCompatDim(in size_t[] dim) pure const
@@ -495,11 +499,6 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             return ByBlock!(ElementType, ResultType, storageOrder, false)(
                 _container, _dim, _stride, subdim);
         }
-    }
-
-    @property auto data() pure inout
-    {
-        return _container[];
     }
 }
 

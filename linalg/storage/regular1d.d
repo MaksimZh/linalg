@@ -165,8 +165,10 @@ struct StorageRegular1D(T, size_t dim_)
 
     public // Dimensions and memory
     {
+        @property auto container() pure const { return _container[]; }
         @property size_t dim() pure const { return _dim; }
         alias dim length;
+        @property size_t stride() pure const { return _stride; }
 
         /* Test dimensions for compatibility */
         bool isCompatDim(in size_t dim) pure const
@@ -292,12 +294,6 @@ struct StorageRegular1D(T, size_t dim_)
             return ByElement!(ElementType, 1, false)(
                 _container, _dim, _stride);
         }
-    }
-
-    /* Return dynamic array referring storage elements */
-    @property auto data() pure inout
-    {
-        return _container[];
     }
 }
 
