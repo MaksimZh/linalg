@@ -31,11 +31,11 @@ body
         debugOP.writefln("operations.copy()");
         mixin(debugIndentScope);
         debugOP.writefln("from <%X>, %d",
-                        source.container.ptr,
-                        source.container.length);
+                        source.data.ptr,
+                        source.data.length);
         debugOP.writefln("to   <%X>, %d",
-                        dest.container.ptr,
-                        dest.container.length);
+                        dest.data.ptr,
+                        dest.data.length);
         debugOP.writeln("...");
         mixin(debugIndentScope);
     }
@@ -65,11 +65,11 @@ body
         debugOP.writefln("operations.map()");
         mixin(debugIndentScope);
         debugOP.writefln("from <%X>, %d",
-                        source.container.ptr,
-                        source.container.length);
+                        source.data.ptr,
+                        source.data.length);
         debugOP.writefln("to   <%X>, %d",
-                        dest.container.ptr,
-                        dest.container.length);
+                        dest.data.ptr,
+                        dest.data.length);
         debugOP.writeln("...");
         mixin(debugIndentScope);
     }
@@ -99,11 +99,11 @@ body
         debugOP.writefln("operations.mapImp()");
         mixin(debugIndentScope);
         debugOP.writefln("from <%X>, %d",
-                        source.container.ptr,
-                        source.container.length);
+                        source.data.ptr,
+                        source.data.length);
         debugOP.writefln("to   <%X>, %d",
-                        dest.container.ptr,
-                        dest.container.length);
+                        dest.data.ptr,
+                        dest.data.length);
         debugOP.writeln("...");
         mixin(debugIndentScope);
     }
@@ -138,11 +138,11 @@ body
         debugOP.writefln("operations.mapArgs()");
         mixin(debugIndentScope);
         debugOP.writefln("from <%X>, %d",
-                        source.container.ptr,
-                        source.container.length);
+                        source.data.ptr,
+                        source.data.length);
         debugOP.writefln("to   <%X>, %d",
-                        dest.container.ptr,
-                        dest.container.length);
+                        dest.data.ptr,
+                        dest.data.length);
         debugOP.writeln("...");
         mixin(debugIndentScope);
     }
@@ -180,14 +180,14 @@ body
         debugOP.writefln("operations.zip()");
         mixin(debugIndentScope);
         debugOP.writefln("from <%X>, %d",
-                        sourceA.container.ptr,
-                        sourceA.container.length);
+                        sourceA.data.ptr,
+                        sourceA.data.length);
         debugOP.writefln("from <%X>, %d",
-                        sourceB.container.ptr,
-                        sourceB.container.length);
+                        sourceB.data.ptr,
+                        sourceB.data.length);
         debugOP.writefln("to   <%X>, %d",
-                        dest.container.ptr,
-                        dest.container.length);
+                        dest.data.ptr,
+                        dest.data.length);
         debugOP.writeln("...");
         mixin(debugIndentScope);
     }
@@ -218,11 +218,11 @@ body
         debugOP.writefln("operations.conjMatrix()");
         mixin(debugIndentScope);
         debugOP.writefln("from <%X>, %d",
-                        source.container.ptr,
-                        source.container.length);
+                        source.data.ptr,
+                        source.data.length);
         debugOP.writefln("to   <%X>, %d",
-                        dest.container.ptr,
-                        dest.container.length);
+                        dest.data.ptr,
+                        dest.data.length);
         debugOP.writeln("...");
         mixin(debugIndentScope);
     }
@@ -248,11 +248,11 @@ body
         debugOP.writefln("operations.conjMatrix()");
         mixin(debugIndentScope);
         debugOP.writefln("from <%X>, %d",
-                        source.container.ptr,
-                        source.container.length);
+                        source.data.ptr,
+                        source.data.length);
         debugOP.writefln("to   <%X>, %d",
-                        dest.container.ptr,
-                        dest.container.length);
+                        dest.data.ptr,
+                        dest.data.length);
         debugOP.writeln("...");
         mixin(debugIndentScope);
     }
@@ -281,11 +281,11 @@ auto mulAsMatrices(TsourceA, TsourceB)(
         debugOP.writefln("operations.mulAsMatrices()");
         mixin(debugIndentScope);
         debugOP.writefln("from <%X>, %d",
-                        sourceA.container.ptr,
-                        sourceA.container.length);
+                        sourceA.data.ptr,
+                        sourceA.data.length);
         debugOP.writefln("from <%X>, %d",
-                        sourceB.container.ptr,
-                        sourceB.container.length);
+                        sourceB.data.ptr,
+                        sourceB.data.length);
         debugOP.writefln("to   return");
         debugOP.writeln("...");
         mixin(debugIndentScope);
@@ -326,14 +326,14 @@ body
         debugOP.writefln("operations.mulAsMatrices()");
         mixin(debugIndentScope);
         debugOP.writefln("from <%X>, %d",
-                        sourceA.container.ptr,
-                        sourceA.container.length);
+                        sourceA.data.ptr,
+                        sourceA.data.length);
         debugOP.writefln("from <%X>, %d",
-                        sourceB.container.ptr,
-                        sourceB.container.length);
+                        sourceB.data.ptr,
+                        sourceB.data.length);
         debugOP.writefln("to   <%X>, %d",
-                        dest.container.ptr,
-                        dest.container.length);
+                        dest.data.ptr,
+                        dest.data.length);
         debugOP.writeln("...");
         mixin(debugIndentScope);
     }
@@ -367,14 +367,14 @@ body
         debugOP.writefln("operations.mulAsMatrices()");
         mixin(debugIndentScope);
         debugOP.writefln("from <%X>, %d",
-                        sourceA.container.ptr,
-                        sourceA.container.length);
+                        sourceA.data.ptr,
+                        sourceA.data.length);
         debugOP.writefln("from <%X>, %d",
-                        sourceB.container.ptr,
-                        sourceB.container.length);
+                        sourceB.data.ptr,
+                        sourceB.data.length);
         debugOP.writefln("to   <%X>, %d",
-                        dest.container.ptr,
-                        dest.container.length);
+                        dest.data.ptr,
+                        dest.data.length);
         debugOP.writeln("...");
         mixin(debugIndentScope);
     }
@@ -408,14 +408,14 @@ body
         debugOP.writefln("operations.mulAsMatrices()");
         mixin(debugIndentScope);
         debugOP.writefln("from <%X>, %d",
-                        sourceA.container.ptr,
-                        sourceA.container.length);
+                        sourceA.data.ptr,
+                        sourceA.data.length);
         debugOP.writefln("from <%X>, %d",
-                        sourceB.container.ptr,
-                        sourceB.container.length);
+                        sourceB.data.ptr,
+                        sourceB.data.length);
         debugOP.writefln("to   <%X>, %d",
-                        dest.container.ptr,
-                        dest.container.length);
+                        dest.data.ptr,
+                        dest.data.length);
         debugOP.writeln("...");
         mixin(debugIndentScope);
     }
@@ -460,8 +460,8 @@ body
         debugOP.writefln("operations.matrixSymmEigenval()");
         mixin(debugIndentScope);
         debugOP.writefln("from <%X>, %d",
-                         source.container.ptr,
-                         source.container.length);
+                         source.data.ptr,
+                         source.data.length);
         debugOP.writeln("...");
         mixin(debugIndentScope);
     }
