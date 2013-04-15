@@ -276,6 +276,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             enum size_t ncols = 1;
         }
         else static assert(false);
+        /** Dimensions of matrix */
+        @property size_t[2] dim() pure const { return [nrows, ncols]; }
 
         /** Test dimensions for compatibility */
         bool isCompatDim(in size_t[] dim) pure
@@ -312,6 +314,18 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 else static if(shape == MatrixShape.col)
                     setDim(dim[0]);
             }
+        }
+
+        /**
+         * Whether matrix is empty (not allocated).
+         * Always false for static matrix.
+         */
+        @property bool empty() pure const
+        {
+            static if(isStatic)
+                return false;
+            else
+                return nrows*ncols == 0;
         }
     }
 
