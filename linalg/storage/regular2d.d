@@ -87,19 +87,19 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             alias ElementType[] ContainerType;
     }
 
-    package // Container, dimensions, strides
+    private // Container, dimensions, strides
     {
-        ContainerType container;
+        ContainerType _container;
 
         static if(isStatic)
         {
-            enum size_t[2] dim = dimPattern;
-            enum size_t[2] stride = calcStrides!storageOrder(dim);
+            enum size_t[2] _dim = dimPattern;
+            enum size_t[2] _stride = calcStrides!storageOrder(dimPattern);
         }
         else
         {
-            size_t[2] dim;
-            size_t[2] stride;
+            size_t[2] _dim;
+            size_t[2] _stride;
         }
     }
 
@@ -109,7 +109,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         inout this()(inout ElementType[] array) pure
             in
             {
-                assert(array.length == container.length);
+                assert(array.length == _container.length);
             }
         body
         {
@@ -120,12 +120,12 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                 debugOP.writefln("array = <%X>, %d", array.ptr, array.length);
                 debugOP.writeln("...");
                 scope(exit) debug debugOP.writefln(
-                    "container = <%X>, %d",
-                    this.container.ptr,
-                    this.container.length);
+                    "_container = <%X>, %d",
+                    _container.ptr,
+                    _container.length);
                 mixin(debugIndentScope);
             }
-            container = array;
+            _container = array;
         }
     }
     else
@@ -139,13 +139,13 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                 debugOP.writeln("dim = ", dim);
                 debugOP.writeln("...");
                 scope(exit) debug debugOP.writefln(
-                    "container = <%X>, %d",
-                    this.container.ptr,
-                    this.container.length);
+                    "_container = <%X>, %d",
+                    _container.ptr,
+                    _container.length);
                 mixin(debugIndentScope);
             }
-            this.dim = dim;
-            stride = calcStrides!storageOrder(dim);
+            _dim = dim;
+            _stride = calcStrides!storageOrder(dim);
             _reallocate();
         }
 
@@ -159,10 +159,10 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                 debugOP.writeln("dim = ", dim);
                 debugOP.writeln("...");
                 scope(exit) debug debugOP.writefln(
-                    "container<%X> = <%X>, %d",
-                    &(this.container),
-                    this.container.ptr,
-                    this.container.length);
+                    "_container<%X> = <%X>, %d",
+                    &(_container),
+                    _container.ptr,
+                    _container.length);
                 mixin(debugIndentScope);
             }
             this(array, dim, calcStrides!storageOrder(dim));
@@ -181,15 +181,15 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                 debugOP.writeln("stride = ", stride);
                 debugOP.writeln("...");
                 scope(exit) debug debugOP.writefln(
-                    "container<%X> = <%X>, %d",
-                    &(this.container),
-                    this.container.ptr,
-                    this.container.length);
+                    "_container<%X> = <%X>, %d",
+                    &(_container),
+                    _container.ptr,
+                    _container.length);
                 mixin(debugIndentScope);
             }
-            container = array;
-            this.dim = dim;
-            this.stride = stride;
+            _container = array;
+            _dim = dim;
+            _stride = stride;
         }
 
         inout this(Tsource)(ref inout Tsource source) pure
@@ -199,27 +199,27 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             {
                 debugOP.writefln("StorageRegular2D<%X>.this()", &this);
                 mixin(debugIndentScope);
-                debugOP.writefln("source.container = <%X>, %d",
-                                 source.container.ptr,
-                                 source.container.length);
+                debugOP.writefln("source._container = <%X>, %d",
+                                 source._container.ptr,
+                                 source._container.length);
                 debugOP.writeln("...");
                 scope(exit) debug debugOP.writefln(
-                    "container<%X> = <%X>, %d",
-                    &(this.container),
-                    this.container.ptr,
-                    this.container.length);
+                    "_container<%X> = <%X>, %d",
+                    &(_container),
+                    _container.ptr,
+                    _container.length);
                 mixin(debugIndentScope);
             }
-            container = source.container;
+            _container = source._container;
             static if(storageOrder == StorageOrder.rowMajor)
             {
-                this.dim = [1, source.length];
-                this.stride = [1, source.stride];
+                _dim = [1, source._dim];
+                _stride = [1, source._stride];
             }
             else
             {
-                this.dim = [source.length, 1];
-                this.stride = [source.stride, 1];
+                _dim = [source._dim, 1];
+                _stride = [source._stride, 1];
             }
         }
 
@@ -230,34 +230,35 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             {
                 debugOP.writefln("StorageRegular2D<%X>.this()", &this);
                 mixin(debugIndentScope);
-                debugOP.writefln("source.container = <%X>, %d",
-                                 source.container.ptr,
-                                 source.container.length);
+                debugOP.writefln("source._container = <%X>, %d",
+                                 source._container.ptr,
+                                 source._container.length);
                 debugOP.writeln("...");
                 scope(exit) debug debugOP.writefln(
-                    "container<%X> = <%X>, %d",
-                    &(this.container),
-                    this.container.ptr,
-                    this.container.length);
+                    "_container<%X> = <%X>, %d",
+                    &(_container),
+                    _container.ptr,
+                    _container.length);
                 mixin(debugIndentScope);
             }
-            container = source.container;
-            this.dim = source.dim;
-            this.stride = source.stride;
+            _container = source._container;
+            _dim = source._dim;
+            _stride = source._stride;
         }
     }
 
     public // Dimensions and memory
     {
-        @property size_t nrows() pure const { return dim[0]; }
-        @property size_t ncols() pure const { return dim[1]; }
+        @property size_t nrows() pure const { return _dim[0]; }
+        @property size_t ncols() pure const { return _dim[1]; }
+        @property size_t[2] dim() pure const { return dim; }
 
         /* Test dimensions for compatibility */
         bool isCompatDim(in size_t[] dim) pure const
         {
             static if(isStatic)
             {
-                return this.dim == dim;
+                return _dim == dim;
             }
             else
             {
@@ -284,13 +285,13 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                     debugOP.writeln("...");
                     mixin(debugIndentScope);
                     scope(exit) debug debugOP.writefln(
-                        "container<%X> = <%X>, %d",
-                        &(this.container),
-                        this.container.ptr,
-                        this.container.length);
+                        "_container<%X> = <%X>, %d",
+                        &(_container),
+                        _container.ptr,
+                        _container.length);
                 }
-                stride = calcStrides!storageOrder(dim);
-                container = new ElementType[calcContainerSize(dim)];
+                _stride = calcStrides!storageOrder(_dim);
+                _container = new ElementType[calcContainerSize(_dim)];
             }
 
             void setDim(in size_t[2] dim) pure
@@ -300,7 +301,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                 }
             body
             {
-                this.dim = dim;
+                _dim = dim;
                 _reallocate();
             }
         }
@@ -309,9 +310,9 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
     public // Slices and indices support
     {
         //NOTE: depends on DMD pull-request 443
-        package size_t mapIndex(size_t irow, size_t icol) pure const
+        private size_t _mapIndex(size_t irow, size_t icol) pure const
         {
-            return irow * stride[0] + icol * stride[1];
+            return irow * _stride[0] + icol * _stride[1];
         }
 
         mixin sliceOverload;
@@ -326,32 +327,32 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             debug(slice) debugOP.writeln("slice");
             return StorageRegular2D!(ElementType, storageOrder,
                                      dynamicSize, dynamicSize)(
-                                         container[], dim, stride);
+                                         _container[], _dim, _stride);
         }
 
         ref inout auto opIndex(size_t irow, size_t icol) pure inout
         {
-            return container[mapIndex(irow, icol)];
+            return _container[_mapIndex(irow, icol)];
         }
 
         ref inout auto opIndex(Slice srow, size_t icol) pure inout
         {
             debug(slice) debugOP.writeln("slice ", srow, ", ", icol);
             return StorageRegular1D!(ElementType, dynamicSize)(
-                container[mapIndex(srow.lo, icol)
+                _container[_mapIndex(srow.lo, icol)
                           ..
-                          mapIndex(srow.upReal - 1, icol) + 1],
-                srow.length, stride[0] * srow.stride);
+                          _mapIndex(srow.upReal - 1, icol) + 1],
+                srow.length, _stride[0] * srow.stride);
         }
 
         ref inout auto opIndex(size_t irow, Slice scol) pure inout
         {
             debug(slice) debugOP.writeln("slice ", irow, ", ", scol);
             return StorageRegular1D!(ElementType, dynamicSize)(
-                container[mapIndex(irow, scol.lo)
+                _container[_mapIndex(irow, scol.lo)
                           ..
-                          mapIndex(irow, scol.upReal - 1) + 1],
-                scol.length, stride[1] * scol.stride);
+                          _mapIndex(irow, scol.upReal - 1) + 1],
+                scol.length, _stride[1] * scol.stride);
         }
 
         ref inout auto opIndex(Slice srow, Slice scol) pure inout
@@ -359,14 +360,14 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             debug(slice) debugOP.writeln("slice ", srow, ", ", scol);
             return StorageRegular2D!(ElementType, storageOrder,
                                      dynamicSize, dynamicSize)(
-                                         container[mapIndex(srow.lo, scol.lo)
+                                         _container[_mapIndex(srow.lo, scol.lo)
                                                    ..
-                                                   mapIndex(srow.upReal - 1,
-                                                            scol.upReal - 1)
+                                                   _mapIndex(srow.upReal - 1,
+                                                             scol.upReal - 1)
                                                    + 1],
                                          [srow.length, scol.length],
-                                         [stride[0] * srow.stride,
-                                          stride[1] * scol.stride]);
+                                         [_stride[0] * srow.stride,
+                                          _stride[1] * scol.stride]);
         }
     }
 
@@ -382,7 +383,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         StorageRegular2D!(ElementType, storageOrder,
                           dimPattern[0], dimPattern[1]) result;
         static if(!(result.isStatic))
-            result.setDim(this.dim);
+            result.setDim(_dim);
         copy(this, result);
         return result;
     }
@@ -390,7 +391,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
     /* Convert to built-in array */
     ElementType[][] opCast() pure const
     {
-        return toArray(container, dim, stride);
+        return toArray(_container, _dim, _stride);
     }
 
     public // Ranges
@@ -398,107 +399,107 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         @property auto byElement() pure
         {
             return ByElement!(ElementType, 2, true)(
-                container, dim, stride);
+                _container, _dim, _stride);
         }
 
         @property auto byElement() pure const
         {
             return ByElement!(ElementType, 2, false)(
-                container, dim, stride);
+                _container, _dim, _stride);
         }
 
         @property auto byRow()() pure
         {
             return ByLine!(ElementType, void, true)(
-                container,
-                dim[0], stride[0],
-                dim[1], stride[1]);
+                _container,
+                [_dim[0], _dim[1]],
+                [_stride[0], _stride[1]]);
         }
 
         @property auto byRow()() pure const
         {
             return ByLine!(ElementType, void, false)(
-                container,
-                dim[0], stride[0],
-                dim[1], stride[1]);
+                _container,
+                [_dim[0], _dim[1]],
+                [_stride[0], _stride[1]]);
         }
 
         @property auto byCol()() pure
         {
             return ByLine!(ElementType, void, true)(
-                container,
-                dim[1], stride[1],
-                dim[0], stride[0]);
+                _container,
+                [_dim[1], _dim[0]],
+                [_stride[1], _stride[0]]);
         }
 
         @property auto byCol()() pure const
         {
             return ByLine!(ElementType, void, false)(
-                container,
-                dim[1], stride[1],
-                dim[0], stride[0]);
+                _container,
+                [_dim[1], _dim[0]],
+                [_stride[1], _stride[0]]);
         }
 
         @property auto byRow(ResultType)() pure
         {
             return ByLine!(ElementType, ResultType, true)(
-                container,
-                dim[0], stride[0],
-                dim[1], stride[1]);
+                _container,
+                [_dim[0], _dim[1]],
+                [_stride[0], _stride[1]]);
         }
 
         @property auto byRow(ResultType)() pure const
         {
             return ByLine!(ElementType, ResultType, false)(
-                container,
-                dim[0], stride[0],
-                dim[1], stride[1]);
+                _container,
+                [_dim[0], _dim[1]],
+                [_stride[0], _stride[1]]);
         }
 
         @property auto byCol(ResultType)() pure
         {
             return ByLine!(ElementType, ResultType, true)(
-                container,
-                dim[1], stride[1],
-                dim[0], stride[0]);
+                _container,
+                [_dim[1], _dim[0]],
+                [_stride[1], _stride[0]]);
         }
 
         @property auto byCol(ResultType)() pure const
         {
             return ByLine!(ElementType, ResultType, false)(
-                container,
-                dim[1], stride[1],
-                dim[0], stride[0]);
+                _container,
+                [_dim[1], _dim[0]],
+                [_stride[1], _stride[0]]);
         }
 
         @property auto byBlock()(size_t[2] subdim) pure
         {
             return ByBlock!(ElementType, void, storageOrder, true)(
-                container, dim, stride, subdim);
+                _container, _dim, _stride, subdim);
         }
 
         @property auto byBlock()(size_t[2] subdim) pure const
         {
             return ByBlock!(ElementType, void, storageOrder, false)(
-                container, dim, stride, subdim);
+                _container, _dim, _stride, subdim);
         }
 
         @property auto byBlock(ResultType)(size_t[2] subdim) pure
         {
             return ByBlock!(ElementType, ResultType, storageOrder, true)(
-                container, dim, stride, subdim);
+                _container, _dim, _stride, subdim);
         }
 
         @property auto byBlock(ResultType)(size_t[2] subdim) pure const
         {
             return ByBlock!(ElementType, ResultType, storageOrder, false)(
-                container, dim, stride, subdim);
+                _container, _dim, _stride, subdim);
         }
     }
 
     @property auto data() pure inout
     {
-        return container[];
+        return _container[];
     }
 }
 
