@@ -276,6 +276,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             enum size_t ncols = 1;
         }
         else static assert(false);
+        /** Dimensions of matrix */
+        @property size_t[2] dim() pure const { return [nrows, ncols]; }
 
         /** Test dimensions for compatibility */
         bool isCompatDim(in size_t[] dim) pure
@@ -312,6 +314,18 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 else static if(shape == MatrixShape.col)
                     setDim(dim[0]);
             }
+        }
+
+        /**
+         * Whether matrix is empty (not allocated).
+         * Always false for static matrix.
+         */
+        @property bool empty() pure const
+        {
+            static if(isStatic)
+                return false;
+            else
+                return nrows*ncols == 0;
         }
     }
 
@@ -529,7 +543,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
              * appropriate size and filled with zeros.
              */
             static if(!isStatic && canRealloc)
-                if(nrows * ncols == 0)
+                if(empty)
                 {
                     this.setDim([source.nrows, source.ncols]);
                     linalg.operations.basic.map!(op ~ "a")(
@@ -541,7 +555,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             return this;
         }
 
-        ref auto opBinary(string op, Trhs)(
+        auto opBinary(string op, Trhs)(
             auto ref const Trhs rhs) pure const
             if(isMatrix!Trhs && (op == "+" || op == "-"))
         {
@@ -553,11 +567,30 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 debugOP.writeln("...");
                 mixin(debugIndentScope);
             }
-            TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
+
+            /*
+             * If one of the operands is empty (not allocated) then
+             * return the other one with proper sign.
+             */
+            alias TypeOfResultMatrix!(typeof(this), op, Trhs) Tresult;
+            static if(!isStatic && is(Tresult == Trhs))
+                if(empty)
+                    return mixin(op~"rhs");
+            static if(!(Trhs.isStatic) && is(Tresult == typeof(this)))
+                if(rhs.empty)
+                    return this;
+            Tresult dest;
             static if(!(typeof(dest).isStatic))
                 dest.setDim([this.nrows, this.ncols]);
-            linalg.operations.basic.zip!("a"~op~"b")(
-                this.storage, rhs.storage, dest.storage);
+            if(empty)
+                linalg.operations.basic.map!((a, lhs) => mixin("lhs"~op~"a"))(
+                    rhs.storage, dest.storage, zero!ElementType);
+            else if(rhs.empty)
+                linalg.operations.basic.map!((a, rhs) => mixin("a"~op~"rhs"))(
+                    this.storage, dest.storage, zero!(Trhs.ElementType));
+            else
+                linalg.operations.basic.zip!("a"~op~"b")(
+                    this.storage, rhs.storage, dest.storage);
             return dest;
         }
 
@@ -582,7 +615,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             return this;
         }
 
-        ref auto opBinary(string op, Trhs)(
+        auto opBinary(string op, Trhs)(
             auto ref const Trhs rhs) pure const
             if(!(isMatrix!Trhs) && (op == "*" || op == "/"))
         {
@@ -605,7 +638,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         /* Multiplication between matrix elements and scalar
          * can be non-commutative
          */
-        ref auto opBinaryRight(string op, Tlhs)(
+        auto opBinaryRight(string op, Tlhs)(
             auto ref const Tlhs lhs) pure const
             if(!(isMatrix!Tlhs) && op == "*")
         {
@@ -643,7 +676,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             return (this = this * source);
         }
 
-        ref auto opBinary(string op, Trhs)(
+        auto opBinary(string op, Trhs)(
             auto ref const Trhs rhs) pure const
             if(isMatrix!Trhs && op == "*")
         {
@@ -824,13 +857,17 @@ public // Map function
     /**
      * Map pure function over matrix.
      */
-    ref auto map(alias fun, Tsource, Targs...)(
+    auto map(alias fun, Tsource, Targs...)(
         const auto ref Tsource source,
         const auto ref Targs args) pure
         if(isMatrix!Tsource)
     {
         Matrix!(typeof(fun(source[0, 0], args)),
                 Tsource.nrowsPat, Tsource.ncolsPat, Tsource.storageOrder) dest;
+        /* If source is empty then return empty matrix */
+        static if(!(Tsource.isStatic))
+            if(source.empty)
+                return dest;
         static if(!(typeof(dest).isStatic))
             dest.setDim([source.nrows, source.ncols]);
         linalg.operations.basic.map!(fun)(source.storage, dest.storage, args);
@@ -1021,6 +1058,29 @@ unittest // Slices
                [6, 101, 8, 9, 102, 11],
                [12, 13, 14, 15, 16, 17],
                [18, 103, 20, 21, 104, 23]]);
+}
+
+unittest // Matrix addition
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Matrix addition");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    {
+        auto a = Matrix!(int, 2, 3)([1, 2, 3, 4, 5, 6]);
+        auto b = Matrix!(int, 2, 3)([7, 8, 9, 10, 11, 12]);
+        assert(cast(int[][]) (a + b) == [[8, 10, 12],
+                                         [14, 16, 18]]);
+    }
+    {
+        auto a = Matrix!(int, 2, 3)([1, 2, 3, 4, 5, 6]);
+        Matrix!(int, dynamicSize, dynamicSize) b;
+        assert(cast(int[][]) (a + b) == [[1, 2, 3],
+                                         [4, 5, 6]]);
+    }
 }
 
 unittest // Matrix multiplication

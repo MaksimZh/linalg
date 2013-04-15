@@ -94,3 +94,16 @@ public import std.complex;
 {
     return std.complex.conj(z);
 }
+
+template zero(T)
+{
+    static if(isNumeric!T)
+        enum T zero = 0;
+    else static if(isComplex!T && is(typeof(T(0, 0))))
+        enum T zero = T(0, 0);
+    else static if(is(typeof(T.zero) == T))
+        enum T zero = T.zero;
+    else static if(is(typeof(T.zero()) == T))
+        alias T.zero zero;
+    else static assert(false);
+}
