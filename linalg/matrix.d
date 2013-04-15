@@ -555,7 +555,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             return this;
         }
 
-        ref auto opBinary(string op, Trhs)(
+        auto opBinary(string op, Trhs)(
             auto ref const Trhs rhs) pure const
             if(isMatrix!Trhs && (op == "+" || op == "-"))
         {
@@ -607,7 +607,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             return this;
         }
 
-        ref auto opBinary(string op, Trhs)(
+        auto opBinary(string op, Trhs)(
             auto ref const Trhs rhs) pure const
             if(!(isMatrix!Trhs) && (op == "*" || op == "/"))
         {
@@ -630,7 +630,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         /* Multiplication between matrix elements and scalar
          * can be non-commutative
          */
-        ref auto opBinaryRight(string op, Tlhs)(
+        auto opBinaryRight(string op, Tlhs)(
             auto ref const Tlhs lhs) pure const
             if(!(isMatrix!Tlhs) && op == "*")
         {
@@ -668,7 +668,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             return (this = this * source);
         }
 
-        ref auto opBinary(string op, Trhs)(
+        auto opBinary(string op, Trhs)(
             auto ref const Trhs rhs) pure const
             if(isMatrix!Trhs && op == "*")
         {
@@ -1046,6 +1046,29 @@ unittest // Slices
                [6, 101, 8, 9, 102, 11],
                [12, 13, 14, 15, 16, 17],
                [18, 103, 20, 21, 104, 23]]);
+}
+
+unittest // Matrix addition
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Matrix addition");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    {
+        auto a = Matrix!(int, 2, 3)([1, 2, 3, 4, 5, 6]);
+        auto b = Matrix!(int, 2, 3)([7, 8, 9, 10, 11, 12]);
+        assert(cast(int[][]) (a + b) == [[8, 10, 12],
+                                         [14, 16, 18]]);
+    }
+    {
+        auto a = Matrix!(int, 2, 3)([1, 2, 3, 4, 5, 6]);
+        Matrix!(int, dynamicSize, dynamicSize) b;
+        assert(cast(int[][]) (a + b) == [[1, 2, 3],
+                                         [4, 5, 6]]);
+    }
 }
 
 unittest // Matrix multiplication
