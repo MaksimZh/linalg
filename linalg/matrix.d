@@ -756,6 +756,26 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 
                 return matrixSymmEigenval(this.storage, ilo, iup);
             }
+
+            /**
+             * Return eigenvalues in given range
+             * and corresponding eigenvectors.
+             *
+             * Only upper-triangle part is used.
+             * Contents of matrix will be modified.
+             */
+            auto symmEigenAll()(size_t ilo, size_t iup) pure
+            {
+                debug(matrix)
+                {
+                    debugOP.writefln("Matrix<%X>.symmEigenAll()", &this);
+                    mixin(debugIndentScope);
+                    debugOP.writeln("...");
+                    mixin(debugIndentScope);
+                }
+
+                return matrixSymmEigenAll(this.storage, ilo, iup);
+            }
         }
     }
 

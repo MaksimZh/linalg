@@ -23,6 +23,7 @@ private version(linalg_backend_lapack)
     import linalg.backends.lapack;
 
     alias linalg.backends.lapack.symmEigenval symmEigenval;
+    alias linalg.backends.lapack.symmEigenAll symmEigenAll;
 }
 
 /*
@@ -81,4 +82,34 @@ body
     }
 
     return symmEigenval(source.container, source.nrows, ilo, iup);
+}
+
+/*
+ * Return eigenvalues in given range
+ * and corresponding eigenvectors.
+ *
+ * Only upper-triangle part is used.
+ * Contents of storage will be modified.
+ */
+auto matrixSymmEigenAll(Tsource)(ref Tsource source,
+                                 size_t ilo, size_t iup) pure
+    if(isStorageRegular2D!Tsource)
+        in
+        {
+            assert(source.nrows == source.ncols);
+        }
+body
+{
+    debug(operations)
+    {
+        debugOP.writefln("operations.matrixSymmEigenval()");
+        mixin(debugIndentScope);
+        debugOP.writefln("from <%X>, %d",
+                         source.container.ptr,
+                         source.container.length);
+        debugOP.writeln("...");
+        mixin(debugIndentScope);
+    }
+
+    return symmEigenAll(source.container, source.nrows, ilo, iup);
 }

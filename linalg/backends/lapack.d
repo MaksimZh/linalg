@@ -17,6 +17,7 @@ version(linalg_backend_lapack):
 
 import std.complex;
 import std.conv;
+import std.typecons;
 
 private extern(C) void zheev_(in char* JOBZ,
                               in char* UPLO,
