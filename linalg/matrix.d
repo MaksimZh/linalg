@@ -719,13 +719,32 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         static if(!isVector)
         {
             /**
+             * Return all eigenvalues.
+             *
+             * Only upper-triangle part is used.
+             * Contents of matrix will be modified.
+             */
+            auto symmEigenval()() pure
+            {
+                debug(matrix)
+                {
+                    debugOP.writefln("Matrix<%X>.symmEigenval()", &this);
+                    mixin(debugIndentScope);
+                    debugOP.writeln("...");
+                    mixin(debugIndentScope);
+                }
+
+                return matrixSymmEigenval(this.storage);
+            }
+
+            /**
              * Return eigenvalues in given range
              * (ascending order, starts from 0, includes borders).
              *
              * Only upper-triangle part is used.
              * Contents of matrix will be modified.
              */
-            double[] symmEigenval()(size_t ilo, size_t iup) pure
+            auto symmEigenval()(size_t ilo, size_t iup) pure
             {
                 debug(matrix)
                 {
@@ -1159,8 +1178,10 @@ unittest // Diagonalization
              C(0, 0), C(2, 0), C(0, 0),
              C(0, 0), C(0, 0), C(3, 0)]);
         double[] val;
+        auto b = a.dup;
         //FIXME: may fail for low precision
-        assert(a.symmEigenval(1, 2) == [2, 3]);
+        assert(a.symmEigenval() == [1, 2, 3]);
+        assert(b.symmEigenval(1, 2) == [2, 3]);
     }
 }
 

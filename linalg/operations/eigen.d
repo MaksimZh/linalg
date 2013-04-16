@@ -26,6 +26,34 @@ private version(linalg_backend_lapack)
 }
 
 /*
+ * Return all eigenvalues.
+ *
+ * Only upper-triangle part is used.
+ * Contents of storage will be modified.
+ */
+auto matrixSymmEigenval(Tsource)(ref Tsource source) pure
+    if(isStorageRegular2D!Tsource)
+        in
+        {
+            assert(source.nrows == source.ncols);
+        }
+body
+{
+    debug(operations)
+    {
+        debugOP.writefln("operations.matrixSymmEigenval()");
+        mixin(debugIndentScope);
+        debugOP.writefln("from <%X>, %d",
+                         source.container.ptr,
+                         source.container.length);
+        debugOP.writeln("...");
+        mixin(debugIndentScope);
+    }
+
+    return symmEigenval(source.container, source.nrows);
+}
+
+/*
  * Return eigenvalues in given range
  * (ascending order, starts from 0, includes borders).
  *
