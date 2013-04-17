@@ -19,12 +19,12 @@ enum size_t dynsize = 0;
 /** Order of the elements in the container */
 enum StorageOrder
 {
-    rowMajor, /// 000, 001, 002, ..., 010, 011, ...
-    colMajor  /// 000, 100, 200, ..., 010, 110, ...
+    row, /// 000, 001, 002, ..., 010, 011, ...
+    col  /// 000, 100, 200, ..., 010, 110, ...
 }
 
 /** Storage order that is set by default */
-enum StorageOrder defaultStorageOrder = StorageOrder.rowMajor;
+enum StorageOrder defaultStorageOrder = StorageOrder.row;
 
 /** Derive type of the result of binary operation */
 template TypeOfOp(Tlhs, string op, Trhs)

@@ -31,9 +31,9 @@ private // Auxiliary functions
     // Calculates strides in data array for dense storage
     size_t[2] calcStrides(StorageOrder storageOrder)(in size_t[2] dim) pure
     {
-        static if(storageOrder == StorageOrder.rowMajor)
+        static if(storageOrder == StorageOrder.row)
             return [dim[1], 1];
-        else static if(storageOrder == StorageOrder.colMajor)
+        else static if(storageOrder == StorageOrder.col)
             return [1, dim[0]];
         else
             static assert(false);
@@ -210,7 +210,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                     _container.length);
                 mixin(debugIndentScope);
             }
-            static if(storageOrder == StorageOrder.rowMajor)
+            static if(storageOrder == StorageOrder.row)
                 this(source.container, [1, source.dim], [1, source.stride]);
             else
                 this(source.container, [source.dim, 1], [source.stride, 1]);

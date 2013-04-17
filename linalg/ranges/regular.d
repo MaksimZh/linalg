@@ -474,10 +474,10 @@ version(unittest)
 {
     struct Foo2(T)
     {
-        const StorageRegular2D!(T, StorageOrder.rowMajor,
+        const StorageRegular2D!(T, StorageOrder.row,
                                 dynsize, dynsize) storage;
 
-        this(const StorageRegular2D!(T, StorageOrder.rowMajor,
+        this(const StorageRegular2D!(T, StorageOrder.row,
                                      dynsize, dynsize) storage) const
         {
             this.storage = storage;
@@ -504,7 +504,7 @@ unittest
     }
     else debug mixin(debugSilentScope);
 
-    auto rng = ByBlock!(int, Foo2!int, StorageOrder.rowMajor, false)(
+    auto rng = ByBlock!(int, Foo2!int, StorageOrder.row, false)(
         array(iota(24)), [4, 6], [6, 1], [2, 3]);
     int[][][] result = [];
     foreach(r; rng)

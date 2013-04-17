@@ -418,8 +418,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             return cast(Tcast)
                 StorageRegular2D!(ElementType,
                                   shape == MatrixShape.row
-                                  ? StorageOrder.rowMajor
-                                  : StorageOrder.colMajor,
+                                  ? StorageOrder.row
+                                  : StorageOrder.col,
                                   dynsize, dynsize)(storage);
         }
     }
