@@ -79,7 +79,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         enum StorageOrder storageOrder = storageOrder_;
 
         /* Whether this is a static array with fixed dimensions and strides */
-        enum bool isStatic = !canFind(dimPattern, dynamicSize);
+        enum bool isStatic = !canFind(dimPattern, dynsize);
 
         static if(isStatic)
             alias ElementType[calcContainerSize(dimPattern)] ContainerType;
@@ -260,7 +260,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                 if(dim.length != rank)
                     return false;
                 foreach(i, d; dim)
-                    if((d != dimPattern[i]) && (dimPattern[i] != dynamicSize))
+                    if((d != dimPattern[i]) && (dimPattern[i] != dynsize))
                         return false;
                 return true;
             }
@@ -321,7 +321,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         {
             debug(slice) debugOP.writeln("slice");
             return StorageRegular2D!(ElementType, storageOrder,
-                                     dynamicSize, dynamicSize)(
+                                     dynsize, dynsize)(
                                          _container[], _dim, _stride);
         }
 
@@ -333,7 +333,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         ref inout auto opIndex(Slice srow, size_t icol) pure inout
         {
             debug(slice) debugOP.writeln("slice ", srow, ", ", icol);
-            return StorageRegular1D!(ElementType, dynamicSize)(
+            return StorageRegular1D!(ElementType, dynsize)(
                 _container[_mapIndex(srow.lo, icol)
                           ..
                           _mapIndex(srow.upReal - 1, icol) + 1],
@@ -343,7 +343,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         ref inout auto opIndex(size_t irow, Slice scol) pure inout
         {
             debug(slice) debugOP.writeln("slice ", irow, ", ", scol);
-            return StorageRegular1D!(ElementType, dynamicSize)(
+            return StorageRegular1D!(ElementType, dynsize)(
                 _container[_mapIndex(irow, scol.lo)
                           ..
                           _mapIndex(irow, scol.upReal - 1) + 1],
@@ -354,7 +354,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         {
             debug(slice) debugOP.writeln("slice ", srow, ", ", scol);
             return StorageRegular2D!(ElementType, storageOrder,
-                                     dynamicSize, dynamicSize)(
+                                     dynsize, dynsize)(
                                          _container[_mapIndex(srow.lo, scol.lo)
                                                    ..
                                                    _mapIndex(srow.upReal - 1,
@@ -581,7 +581,7 @@ unittest // Dynamic
 
     // Constructors
     auto a = StorageRegular2D!(int, defaultStorageOrder,
-                               dynamicSize, dynamicSize)([3, 4]);
+                               dynsize, dynsize)([3, 4]);
     assert([a.nrows, a.ncols] == [3, 4]);
     assert(cast(int[][]) a == [[int.init, int.init, int.init, int.init],
                                [int.init, int.init, int.init, int.init],
@@ -591,7 +591,7 @@ unittest // Dynamic
                            int.init, int.init, int.init, int.init]);
 
     auto b = StorageRegular2D!(int, defaultStorageOrder,
-                               dynamicSize, dynamicSize)(
+                               dynsize, dynsize)(
                                    array(iota(12)), [3, 4]);
     assert([b.nrows, b.ncols] == [3, 4]);
     assert(cast(int[][]) b == [[0, 1, 2, 3],
@@ -602,7 +602,7 @@ unittest // Dynamic
                            8, 9, 10, 11]);
 
     auto c = StorageRegular2D!(int, defaultStorageOrder,
-                               dynamicSize, dynamicSize)(
+                               dynsize, dynsize)(
                                    array(iota(12)), [2, 2], [8, 3]);
     assert([c.nrows, c.ncols] == [2, 2]);
     assert(cast(int[][]) c == [[0, 3],
@@ -612,7 +612,7 @@ unittest // Dynamic
                            8, 9, 10, 11]);
 
     immutable auto ia = StorageRegular2D!(int, defaultStorageOrder,
-                                          dynamicSize, dynamicSize)([3, 4]);
+                                          dynsize, dynsize)([3, 4]);
     assert([ia.nrows, ia.ncols] == [3, 4]);
     assert(cast(int[][]) ia == [[int.init, int.init, int.init, int.init],
                                 [int.init, int.init, int.init, int.init],
@@ -622,7 +622,7 @@ unittest // Dynamic
                             int.init, int.init, int.init, int.init]);
 
     immutable auto ib = StorageRegular2D!(int, defaultStorageOrder,
-                                          dynamicSize, dynamicSize)(
+                                          dynsize, dynsize)(
                                               array(iota(12)), [3, 4]);
     assert([ib.nrows, ib.ncols] == [3, 4]);
     assert(cast(int[][]) ib == [[0, 1, 2, 3],
@@ -633,7 +633,7 @@ unittest // Dynamic
                             8, 9, 10, 11]);
 
     immutable auto ic = StorageRegular2D!(int, defaultStorageOrder,
-                                          dynamicSize, dynamicSize)(
+                                          dynsize, dynsize)(
                                               array(iota(12)), [2, 2], [8, 3]);
     assert([ic.nrows, ic.ncols] == [2, 2]);
     assert(cast(int[][]) ic == [[0, 3],

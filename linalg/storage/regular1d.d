@@ -50,7 +50,7 @@ struct StorageRegular1D(T, size_t dim_)
         public enum uint rank = 1; // Number of dimensions
 
         /* Whether this is a static array with fixed dimensions and strides */
-        enum bool isStatic = dimPattern != dynamicSize;
+        enum bool isStatic = dimPattern != dynsize;
 
         static if(isStatic)
             alias ElementType[dimPattern] ContainerType;
@@ -179,7 +179,7 @@ struct StorageRegular1D(T, size_t dim_)
             }
             else
             {
-                return (_dim == dimPattern) || (dimPattern == dynamicSize);
+                return (_dim == dimPattern) || (dimPattern == dynsize);
             }
         }
 
@@ -238,7 +238,7 @@ struct StorageRegular1D(T, size_t dim_)
         ref inout auto opIndex() pure inout
         {
             debug(slice) debugOP.writeln("slice");
-            return StorageRegular1D!(ElementType, dynamicSize)(
+            return StorageRegular1D!(ElementType, dynsize)(
                 _container[], length, _stride);
         }
 
@@ -250,7 +250,7 @@ struct StorageRegular1D(T, size_t dim_)
         ref inout auto opIndex(Slice s) pure inout
         {
             debug(slice) debugOP.writeln("slice ", s);
-            return StorageRegular1D!(ElementType, dynamicSize)(
+            return StorageRegular1D!(ElementType, dynsize)(
                 _container[_mapIndex(s.lo).._mapIndex(s.upReal)],
                 s.length, _stride);
         }
@@ -363,32 +363,32 @@ unittest // Dynamic
     else debug mixin(debugSilentScope);
 
     // Constructors
-    auto a = StorageRegular1D!(int, dynamicSize)(4);
+    auto a = StorageRegular1D!(int, dynsize)(4);
     assert(a.length == 4);
     assert(cast(int[]) a == [int.init, int.init, int.init, int.init]);
     assert(a.container == [int.init, int.init, int.init, int.init]);
 
-    auto b = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3]);
+    auto b = StorageRegular1D!(int, dynsize)([0, 1, 2, 3]);
     assert(b.length == 4);
     assert(cast(int[]) b == [0, 1, 2, 3]);
     assert(b.container == [0, 1, 2, 3]);
 
-    auto c = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3], 2, 3);
+    auto c = StorageRegular1D!(int, dynsize)([0, 1, 2, 3], 2, 3);
     assert(c.length == 2);
     assert(cast(int[]) c == [0, 3]);
     assert(c.container == [0, 1, 2, 3]);
 
-    immutable auto ia = StorageRegular1D!(int, dynamicSize)(4);
+    immutable auto ia = StorageRegular1D!(int, dynsize)(4);
     assert(ia.length == 4);
     assert(cast(int[]) ia == [int.init, int.init, int.init, int.init]);
     assert(ia.container == [int.init, int.init, int.init, int.init]);
 
-    immutable auto ib = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3]);
+    immutable auto ib = StorageRegular1D!(int, dynsize)([0, 1, 2, 3]);
     assert(ib.length == 4);
     assert(cast(int[]) ib == [0, 1, 2, 3]);
     assert(ib.container == [0, 1, 2, 3]);
 
-    immutable auto ic = StorageRegular1D!(int, dynamicSize)([0, 1, 2, 3], 2, 3);
+    immutable auto ic = StorageRegular1D!(int, dynsize)([0, 1, 2, 3], 2, 3);
     assert(ic.length == 2);
     assert(cast(int[]) ic == [0, 3]);
     assert(ic.container == [0, 1, 2, 3]);

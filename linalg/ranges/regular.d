@@ -287,13 +287,13 @@ struct ByLine(ElementType, ResultType, bool mutable = true)
     @property bool empty() pure const { return _ptr >= _ptrFin; }
     mixin(format("@property %s%s%s front() pure
                   {
-                      return %s(StorageRegular1D!(ElementType, dynamicSize)(
+                      return %s(StorageRegular1D!(ElementType, dynsize)(
                                     _ptr[0..((_dimInt - 1) * _strideInt + 1)],
                                     _dimInt, _strideInt));
                   }",
                  mutable ? "" : "const(",
                  is(ResultType == void)
-                 ? "StorageRegular1D!(ElementType, dynamicSize)"
+                 ? "StorageRegular1D!(ElementType, dynsize)"
                  : "ResultType",
                  mutable ? "" : ")",
                  is(ResultType == void)
@@ -306,9 +306,9 @@ version(unittest)
 {
     struct Foo(T)
     {
-        const StorageRegular1D!(T, dynamicSize) storage;
+        const StorageRegular1D!(T, dynsize) storage;
 
-        this(const StorageRegular1D!(T, dynamicSize) storage) const
+        this(const StorageRegular1D!(T, dynsize) storage) const
         {
             this.storage = storage;
         }
@@ -433,14 +433,14 @@ struct ByBlock(ElementType, ResultType, StorageOrder storageOrder,
     mixin(format("@property %s%s%s front() pure
         {
             return %s(StorageRegular2D!(ElementType, storageOrder,
-                        dynamicSize, dynamicSize)(
+                        dynsize, dynsize)(
                           _ptr[0.._len],
                           _subdim, _substride));
         }",
                  mutable ? "" : "const(",
                  is(ResultType == void)
                  ? "StorageRegular2D!(ElementType, storageOrder,
-                                      dynamicSize, dynamicSize)"
+                                      dynsize, dynsize)"
                  : "ResultType",
                  mutable ? "" : ")",
                  is(ResultType == void)
@@ -475,10 +475,10 @@ version(unittest)
     struct Foo2(T)
     {
         const StorageRegular2D!(T, StorageOrder.rowMajor,
-                                dynamicSize, dynamicSize) storage;
+                                dynsize, dynsize) storage;
 
         this(const StorageRegular2D!(T, StorageOrder.rowMajor,
-                                     dynamicSize, dynamicSize) storage) const
+                                     dynsize, dynsize) storage) const
         {
             this.storage = storage;
         }

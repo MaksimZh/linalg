@@ -14,7 +14,7 @@ module linalg.types;
 import std.traits;
 
 /** Value to denote not fixed dimension of the array */
-enum size_t dynamicSize = 0;
+enum size_t dynsize = 0;
 
 /** Order of the elements in the container */
 enum StorageOrder

@@ -344,8 +344,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             ref inout auto opIndex() pure inout
             {
                 return Matrix!(ElementType,
-                               nrowsPat == 1 ? 1 : dynamicSize,
-                               ncolsPat == 1 ? 1 : dynamicSize,
+                               nrowsPat == 1 ? 1 : dynsize,
+                               ncolsPat == 1 ? 1 : dynsize,
                                storageOrder, false)(storage.opIndex());
             }
 
@@ -357,8 +357,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             ref inout auto opIndex(Slice s) pure inout
             {
                 return Matrix!(ElementType,
-                               nrowsPat == 1 ? 1 : dynamicSize,
-                               ncolsPat == 1 ? 1 : dynamicSize,
+                               nrowsPat == 1 ? 1 : dynsize,
+                               ncolsPat == 1 ? 1 : dynsize,
                                storageOrder, false)(storage.opIndex(s));
             }
         }
@@ -367,8 +367,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             ref inout auto opIndex() pure inout
             {
                 return Matrix!(ElementType,
-                               nrowsPat == 1 ? 1 : dynamicSize,
-                               ncolsPat == 1 ? 1 : dynamicSize,
+                               nrowsPat == 1 ? 1 : dynsize,
+                               ncolsPat == 1 ? 1 : dynsize,
                                storageOrder, false)(storage.opIndex());
             }
 
@@ -380,7 +380,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             ref inout auto opIndex(Slice srow, size_t icol) pure inout
             {
                 return Matrix!(ElementType,
-                               dynamicSize, 1,
+                               dynsize, 1,
                                storageOrder, false)(
                     storage.opIndex(srow, icol));
             }
@@ -388,7 +388,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             ref inout auto opIndex(size_t irow, Slice scol) pure inout
             {
                 return Matrix!(ElementType,
-                               1, dynamicSize,
+                               1, dynsize,
                                storageOrder, false)(
                     storage.opIndex(irow, scol));
             }
@@ -396,7 +396,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             ref inout auto opIndex(Slice srow, Slice scol) pure inout
             {
                 return Matrix!(ElementType,
-                               dynamicSize, dynamicSize,
+                               dynsize, dynsize,
                                storageOrder, false)(
                     storage.opIndex(srow, scol));
             }
@@ -420,7 +420,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                                   shape == MatrixShape.row
                                   ? StorageOrder.rowMajor
                                   : StorageOrder.colMajor,
-                                  dynamicSize, dynamicSize)(storage);
+                                  dynsize, dynsize)(storage);
         }
     }
     else
@@ -819,39 +819,39 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         {
             @property auto byRow() pure
             {
-                return storage.byRow!(Matrix!(ElementType, 1, dynamicSize,
+                return storage.byRow!(Matrix!(ElementType, 1, dynsize,
                                               storageOrder, false))();
             }
 
             @property auto byRow() pure const
             {
-                return storage.byRow!(Matrix!(ElementType, 1, dynamicSize,
+                return storage.byRow!(Matrix!(ElementType, 1, dynsize,
                                               storageOrder, false))();
             }
 
             @property auto byCol() pure
             {
-                return storage.byCol!(Matrix!(ElementType, dynamicSize, 1,
+                return storage.byCol!(Matrix!(ElementType, dynsize, 1,
                                               storageOrder, false))();
             }
 
             @property auto byCol() pure const
             {
-                return storage.byCol!(Matrix!(ElementType, dynamicSize, 1,
+                return storage.byCol!(Matrix!(ElementType, dynsize, 1,
                                               storageOrder, false))();
             }
 
             @property auto byBlock(size_t[2] subdim) pure
             {
                 return storage.byBlock!(Matrix!(ElementType,
-                                                dynamicSize, dynamicSize,
+                                                dynsize, dynsize,
                                                 storageOrder, false))(subdim);
             }
 
             @property auto byBlock(size_t[2] subdim) pure const
             {
                 return storage.byBlock!(Matrix!(ElementType,
-                                                dynamicSize, dynamicSize,
+                                                dynsize, dynsize,
                                                 storageOrder, false))(subdim);
             }
         }
@@ -953,16 +953,16 @@ unittest // Dynamic
     }
     else debug mixin(debugSilentScope);
 
-    auto b = Matrix!(int, dynamicSize, dynamicSize)(array(iota(12)), 3, 4);
+    auto b = Matrix!(int, dynsize, dynsize)(array(iota(12)), 3, 4);
     assert([b.nrows, b.ncols] == [3, 4]);
     assert(cast(int[][]) b == [[0, 1, 2, 3],
                                [4, 5, 6, 7],
                                [8, 9, 10, 11]]);
-    auto br = Matrix!(int, 1, dynamicSize)(array(iota(3)));
+    auto br = Matrix!(int, 1, dynsize)(array(iota(3)));
     assert([br.nrows, br.ncols] == [1, 3]);
     assert(cast(int[]) br == [0, 1, 2]);
     assert(cast(int[][]) br == [[0, 1, 2]]);
-    auto bc = Matrix!(int, dynamicSize, 1)(array(iota(4)));
+    auto bc = Matrix!(int, dynsize, 1)(array(iota(4)));
     assert([bc.nrows, bc.ncols] == [4, 1]);
     assert(cast(int[]) bc == [0, 1, 2, 3]);
     assert(cast(int[][]) bc == [[0],
@@ -991,7 +991,7 @@ unittest // Assignment
     assert(cast(int[][])(b = a) == test);
     assert(cast(int[][])b == test);
     debug debugOP.writeln("dynamic -> dynamic");
-    alias Matrix!(int, dynamicSize, dynamicSize) A1;
+    alias Matrix!(int, dynsize, dynsize) A1;
     A1 a1, b1;
     a1 = A1(array(iota(12)), 3, 4);
     assert(cast(int[][])(b1 = a1) == test);
@@ -1024,7 +1024,7 @@ unittest // opOpAssign
                                [20, 22, 24, 26],
                                [28, 30, 32, 34]]);
 
-    Matrix!(int, dynamicSize, dynamicSize) c;
+    Matrix!(int, dynsize, dynsize) c;
     c += b;
     assert(cast(int[][]) c == cast(int[][]) b);
 
@@ -1119,7 +1119,7 @@ unittest // Matrix addition
     }
     {
         auto a = Matrix!(int, 2, 3)([1, 2, 3, 4, 5, 6]);
-        Matrix!(int, dynamicSize, dynamicSize) b;
+        Matrix!(int, dynsize, dynsize) b;
         assert(cast(int[][]) (a + b) == [[1, 2, 3],
                                          [4, 5, 6]]);
     }
