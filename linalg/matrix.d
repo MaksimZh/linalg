@@ -1056,6 +1056,76 @@ unittest // Dimension control
     assert(!(b.isCompatDim([22, 33])));
 }
 
+unittest // Copying
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Copying");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    immutable int[] src = [1, 2, 3, 4, 5, 6];
+    int[] msrc = src.dup;
+
+    {
+        auto a = Matrix!(int, 2, 3)(src);
+        Matrix!(int, 2, 3) b;
+        auto c = (b = a);
+        assert(cast(int[][]) b == cast(int[][]) a);
+        assert(cast(int[][]) c == cast(int[][]) a);
+        assert(b.storage.container.ptr != a.storage.container.ptr);
+        assert(c.storage.container.ptr != a.storage.container.ptr);
+        assert(c.storage.container.ptr != b.storage.container.ptr);
+    }
+    {
+        auto a = Matrix!(int, 2, 3)(msrc);
+        Matrix!(int, dynsize, dynsize) b;
+        auto c = (b = a);
+        assert(cast(int[][]) b == cast(int[][]) a);
+        assert(cast(int[][]) c == cast(int[][]) a);
+        assert(b.storage.container.ptr == a.storage.container.ptr);
+        assert(c.storage.container.ptr == a.storage.container.ptr);
+    }
+    version(none){ //FIXME: Linalg issue 16
+        auto a = Matrix!(int, 2, 3)(src);
+        Matrix!(int, dynsize, dynsize) b;
+        auto c = (b = a.dup);
+        assert(cast(int[][]) b == cast(int[][]) a);
+        assert(cast(int[][]) c == cast(int[][]) a);
+        assert(b.storage.container.ptr != a.storage.container.ptr);
+        assert(c.storage.container.ptr == b.storage.container.ptr);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(msrc, 2, 3);
+        Matrix!(int, 2, 3) b;
+        auto c = (b = a);
+        assert(cast(int[][]) b == cast(int[][]) a);
+        assert(cast(int[][]) c == cast(int[][]) a);
+        assert(b.storage.container.ptr != a.storage.container.ptr);
+        assert(c.storage.container.ptr != a.storage.container.ptr);
+        assert(c.storage.container.ptr != b.storage.container.ptr);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(msrc, 2, 3);
+        Matrix!(int, dynsize, dynsize) b;
+        auto c = (b = a);
+        assert(cast(int[][]) b == cast(int[][]) a);
+        assert(cast(int[][]) c == cast(int[][]) a);
+        assert(b.storage.container.ptr == a.storage.container.ptr);
+        assert(c.storage.container.ptr == a.storage.container.ptr);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(msrc, 2, 3);
+        Matrix!(int, dynsize, dynsize) b;
+        auto c = (b = a.dup);
+        assert(cast(int[][]) b == cast(int[][]) a);
+        assert(cast(int[][]) c == cast(int[][]) a);
+        assert(b.storage.container.ptr != a.storage.container.ptr);
+        assert(c.storage.container.ptr == b.storage.container.ptr);
+    }
+}
+
 version(oldUnittests)
 {
     unittest // Static
