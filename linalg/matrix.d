@@ -98,8 +98,12 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         alias StorageType.isStatic isStatic;
     }
 
-    /* Storage of matrix data */
-    private StorageType storage;
+    /**
+     * Storage of matrix data.
+     * This field is public to allow direct access to matrix data storage
+     * if optimization is needed.
+     */
+    public StorageType storage;
 
     /* Constructors
      */
@@ -706,12 +710,6 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 return dest;
             }
         }
-    }
-
-    /** Return dynamic array referring matrix elements */
-    @property auto container() pure inout
-    {
-        return storage.container;
     }
 
     public // Diagonalization
