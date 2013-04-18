@@ -1009,6 +1009,24 @@ unittest // Constructors, cast
                [4, 5, 6]]);
 }
 
+unittest // Storage direct access
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Storage direct access");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    immutable int[] src = [1, 2, 3, 4, 5, 6];
+
+    auto a = Matrix!(int, dynsize, dynsize, StorageOrder.row)(src, 2, 3);
+    assert(a.storage.container.ptr == src.ptr);
+    assert(a.storage.container == [1, 2, 3, 4, 5, 6]);
+    assert(a.storage.dim == [2, 3]);
+    assert(a.storage.stride == [3, 1]);
+}
+
 version(oldUnittests)
 {
     unittest // Static
