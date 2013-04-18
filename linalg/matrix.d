@@ -58,11 +58,11 @@ enum MatrixShape
 }
 
 /* Returns shape of matrix with given dimensions */
-private auto shapeForDim(size_t nrows, size_t ncols)
+private auto shapeForDim(size_t[2] dim)
 {
-    if(nrows == 1)
+    if(dim[0] == 1)
         return MatrixShape.row;
-    else if(ncols == 1)
+    else if(dim[1] == 1)
         return MatrixShape.col;
     else
         return MatrixShape.matrix;
@@ -75,17 +75,17 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
               StorageOrder storageOrder_ = defaultStorageOrder,
               bool canRealloc = true)
 {
-    /** Dimensions patterns */
-    enum size_t nrowsPat = nrows_;
-    enum size_t ncolsPat = ncols_; ///ditto
+    /** Dimensions pattern */
+    enum size_t[2] dimPattern = [nrows_, ncols_];
 
     /* Select storage type.
      * Note: vectors use 1d storage (mainly for optimization)
      */
-    alias MatrixStorageType!(T, storageOrder_, nrowsPat, ncolsPat) StorageType;
+    alias MatrixStorageType!(T, storageOrder_, nrows_, ncols_)
+        StorageType;
 
     /** Shape of the matrix or vector */
-    enum auto shape = shapeForDim(nrowsPat, ncolsPat);
+    enum auto shape = shapeForDim(dimPattern);
     /** Whether this is vector */
     enum bool isVector = shape != MatrixShape.matrix;
     /** Storage order */
@@ -280,7 +280,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         @property size_t[2] dim() pure const { return [nrows, ncols]; }
 
         /** Test dimensions for compatibility */
-        bool isCompatDim(in size_t[] dim) pure
+        bool isCompatDim(in size_t[2] dim) pure
         {
             static if(shape == MatrixShape.matrix)
                 return storage.isCompatDim(dim);
@@ -344,8 +344,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             ref inout auto opIndex() pure inout
             {
                 return Matrix!(ElementType,
-                               nrowsPat == 1 ? 1 : dynsize,
-                               ncolsPat == 1 ? 1 : dynsize,
+                               dimPattern[0] == 1 ? 1 : dynsize,
+                               dimPattern[1] == 1 ? 1 : dynsize,
                                storageOrder, false)(storage.opIndex());
             }
 
@@ -357,8 +357,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             ref inout auto opIndex(Slice s) pure inout
             {
                 return Matrix!(ElementType,
-                               nrowsPat == 1 ? 1 : dynsize,
-                               ncolsPat == 1 ? 1 : dynsize,
+                               dimPattern[0] == 1 ? 1 : dynsize,
+                               dimPattern[1] == 1 ? 1 : dynsize,
                                storageOrder, false)(storage.opIndex(s));
             }
         }
@@ -367,8 +367,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             ref inout auto opIndex() pure inout
             {
                 return Matrix!(ElementType,
-                               nrowsPat == 1 ? 1 : dynsize,
-                               ncolsPat == 1 ? 1 : dynsize,
+                               dimPattern[0] == 1 ? 1 : dynsize,
+                               dimPattern[1] == 1 ? 1 : dynsize,
                                storageOrder, false)(storage.opIndex());
             }
 
@@ -442,7 +442,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             mixin(debugIndentScope);
         }
         return Matrix!(ElementType,
-                       nrowsPat, ncolsPat,
+                       dimPattern[0], dimPattern[1],
                        storageOrder, true)(this.storage.dup);
     }
 
@@ -516,7 +516,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 Matrix dest;
             else
                 auto dest = Matrix!(ElementType,
-                                    nrowsPat, ncolsPat,
+                                    dimPattern[0], dimPattern[1],
                                     storageOrder)(nrows, ncols);
             linalg.operations.basic.map!("-a")(this.storage, dest.storage);
             return dest;
@@ -795,7 +795,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 mixin(debugIndentScope);
             }
 
-            Matrix!(ElementType, ncolsPat, nrowsPat, storageOrder) dest;
+            Matrix!(ElementType, dimPattern[1], dimPattern[0], storageOrder) dest;
             static if(!(typeof(dest).isStatic))
                 dest.setDim([this.ncols, this.nrows]);
             conjMatrix(this.storage, dest.storage);
@@ -872,23 +872,23 @@ private template TypeOfResultMatrix(Tlhs, string op, Trhs)
         static if(op == "+" || op == "-")
             alias Matrix!(TypeOfOp!(Tlhs.ElementType,
                                     op, Trhs.ElementType),
-                          Tlhs.nrowsPat, Tlhs.ncolsPat,
+                          Tlhs.dimPattern[0], Tlhs.dimPattern[1],
                           Tlhs.storageOrder) TypeOfResultMatrix;
         else static if(op == "*")
             alias Matrix!(TypeOfOp!(Tlhs.ElementType,
                                     op, Trhs.ElementType),
-                          Tlhs.nrowsPat, Trhs.ncolsPat,
+                          Tlhs.dimPattern[0], Trhs.dimPattern[1],
                           Tlhs.storageOrder) TypeOfResultMatrix;
         else
             alias void TypeOfResultMatrix;
     }
     else static if(isMatrix!Tlhs && (op == "*" || op == "/"))
          alias Matrix!(TypeOfOp!(Tlhs.ElementType, op, Trhs),
-                       Tlhs.nrowsPat, Tlhs.ncolsPat,
+                       Tlhs.dimPattern[0], Tlhs.dimPattern[1],
                        Tlhs.storageOrder) TypeOfResultMatrix;
     else static if(isMatrix!Trhs && (op == "*"))
          alias Matrix!(TypeOfOp!(Tlhs, op, Trhs.ElementType),
-                       Trhs.nrowsPat, Trhs.ncolsPat,
+                       Trhs.dimPattern[0], Trhs.dimPattern[1],
                        Trhs.storageOrder) TypeOfResultMatrix;
     else
         alias void TypeOfResultMatrix;
@@ -905,7 +905,8 @@ public // Map function
         if(isMatrix!Tsource)
     {
         Matrix!(typeof(fun(source[0, 0], args)),
-                Tsource.nrowsPat, Tsource.ncolsPat, Tsource.storageOrder) dest;
+                Tsource.dimPattern[0], Tsource.dimPattern[1],
+                Tsource.storageOrder) dest;
         /* If source is empty then return empty matrix */
         static if(!(Tsource.isStatic))
             if(source.empty)
