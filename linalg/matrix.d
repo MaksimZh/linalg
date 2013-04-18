@@ -963,6 +963,52 @@ unittest // Type properties
     static assert(!(Midd.isStatic));
 }
 
+unittest // Constructors, cast
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Constructors & cast");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    immutable int[] a = [1, 2, 3, 4, 5, 6];
+
+    assert(cast(int[][]) Matrix!(int, dynsize, dynsize)(
+               StorageRegular2D!(int, StorageOrder.row, dynsize, dynsize)(
+                   a, [2, 3]))
+           == [[1, 2, 3],
+               [4, 5, 6]]);
+    assert(cast(int[][]) Matrix!(int, 2, 3)(a)
+           == [[1, 2, 3],
+               [4, 5, 6]]);
+    assert(cast(int[][]) Matrix!(int, 1, 3)(a[0..3])
+           == [[1, 2, 3]]);
+    assert(cast(int[][]) Matrix!(int, 3, 1)(a[0..3])
+           == [[1],
+               [2],
+               [3]]);
+    assert(cast(int[][]) Matrix!(int, 1, dynsize)(a[0..3])
+           == [[1, 2, 3]]);
+    assert(cast(int[][]) Matrix!(int, dynsize, 1)(a[0..3])
+           == [[1],
+               [2],
+               [3]]);
+    assert(cast(int[][]) Matrix!(int, 1, dynsize)(3)
+           == [[0, 0, 0]]);
+    assert(cast(int[][]) Matrix!(int, 1, dynsize)(1, 3)
+           == [[0, 0, 0]]);
+    assert(cast(int[][]) Matrix!(int, dynsize, dynsize)(2, 3)
+           == [[0, 0, 0],
+               [0, 0, 0]]);
+    assert(cast(int[][]) Matrix!(int, dynsize, dynsize)(2, 3)
+           == [[0, 0, 0],
+               [0, 0, 0]]);
+    assert(cast(int[][]) Matrix!(int, dynsize, dynsize)(a, 2, 3)
+           == [[1, 2, 3],
+               [4, 5, 6]]);
+}
+
 version(oldUnittests)
 {
     unittest // Static
