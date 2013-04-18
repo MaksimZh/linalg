@@ -1027,6 +1027,35 @@ unittest // Storage direct access
     assert(a.storage.stride == [3, 1]);
 }
 
+unittest // Dimension control
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Dimension control");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    Matrix!(int, dynsize, dynsize) a;
+    assert(a.empty);
+    assert(a.nrows == 0);
+    assert(a.ncols == 0);
+    assert(a.dim == [0, 0]);
+    a.setDim([2, 3]);
+    assert(!(a.empty));
+    assert(a.nrows == 2);
+    assert(a.ncols == 3);
+    assert(a.dim == [2, 3]);
+    assert(a.isCompatDim([22, 33]));
+
+    Matrix!(int, 2, 3) b;
+    assert(!(b.empty));
+    assert(b.nrows == 2);
+    assert(b.ncols == 3);
+    assert(b.dim == [2, 3]);
+    assert(!(b.isCompatDim([22, 33])));
+}
+
 version(oldUnittests)
 {
     unittest // Static
