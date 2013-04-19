@@ -1483,6 +1483,102 @@ unittest // Matrix *
     }
 }
 
+unittest // Ranges
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Ranges");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    immutable int[] src = [1, 2, 3, 4, 5, 6];
+    {
+        auto a = Matrix!(int, 2, 3)(src);
+        {
+            int[] result = [];
+            foreach(r; a.byElement)
+                result ~= [r];
+            assert(result == [1, 2, 3, 4, 5, 6]);
+        }
+        {
+            int[][] result = [];
+            foreach(r; a.byRow)
+                result ~= [cast(int[]) r];
+            assert(result == [[1, 2, 3],
+                              [4, 5, 6]]);
+        }
+        {
+            int[][] result = [];
+            foreach(r; a.byCol)
+                result ~= [cast(int[]) r];
+            assert(result == [[1, 4],
+                              [2, 5],
+                              [3, 6]]);
+        }
+        {
+            immutable int[] src1 = [1, 2, 3, 4, 5, 6,
+                                    7, 8, 9, 10, 11, 12,
+                                    13, 14, 15, 16, 17, 18,
+                                    19, 20, 21, 22, 23, 24];
+            auto b = Matrix!(int, 4, 6)(src1);
+            int[][][] result = [];
+            foreach(r; b.byBlock([2, 3]))
+                result ~= [cast(int[][]) r];
+            assert(result == [[[1, 2, 3],
+                               [7, 8, 9]],
+                              [[4, 5, 6],
+                               [10, 11, 12]],
+                              [[13, 14, 15],
+                               [19, 20, 21]],
+                              [[16, 17, 18],
+                               [22, 23, 24]]]);
+        }
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(src, 2, 3);
+        {
+            int[] result = [];
+            foreach(r; a.byElement)
+                result ~= [r];
+            assert(result == [1, 2, 3, 4, 5, 6]);
+        }
+        {
+            int[][] result = [];
+            foreach(r; a.byRow)
+                result ~= [cast(int[]) r];
+            assert(result == [[1, 2, 3],
+                              [4, 5, 6]]);
+        }
+        {
+            int[][] result = [];
+            foreach(r; a.byCol)
+                result ~= [cast(int[]) r];
+            assert(result == [[1, 4],
+                              [2, 5],
+                              [3, 6]]);
+        }
+        {
+            immutable int[] src1 = [1, 2, 3, 4, 5, 6,
+                                    7, 8, 9, 10, 11, 12,
+                                    13, 14, 15, 16, 17, 18,
+                                    19, 20, 21, 22, 23, 24];
+            auto b = Matrix!(int, dynsize, dynsize)(src1, 4, 6);
+            int[][][] result = [];
+            foreach(r; b.byBlock([2, 3]))
+                result ~= [cast(int[][]) r];
+            assert(result == [[[1, 2, 3],
+                               [7, 8, 9]],
+                              [[4, 5, 6],
+                               [10, 11, 12]],
+                              [[13, 14, 15],
+                               [19, 20, 21]],
+                              [[16, 17, 18],
+                               [22, 23, 24]]]);
+        }
+    }
+}
+
 version(all) // Old unittests
 {
     unittest // Diagonalization
