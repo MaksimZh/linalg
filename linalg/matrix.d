@@ -1174,6 +1174,32 @@ unittest // Slices
                [18, 103, 20, 21, 104, 23]]);
 }
 
+unittest // Unary + and -
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Unary + and -");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    immutable int[] src = [1, 2, 3, 4, 5, 6];
+    {
+        auto a = Matrix!(int, 2, 3)(src);
+        assert(cast(int[][]) (+a) == [[1, 2, 3],
+                                      [4, 5, 6]]);
+        assert(cast(int[][]) (-a) == [[-1, -2, -3],
+                                      [-4, -5, -6]]);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(src, 2, 3);
+        assert(cast(int[][]) (+a) == [[1, 2, 3],
+                                      [4, 5, 6]]);
+        assert(cast(int[][]) (-a) == [[-1, -2, -3],
+                                      [-4, -5, -6]]);
+    }
+}
+
 version(oldUnittests)
 {
     unittest // Static
