@@ -583,10 +583,10 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             alias TypeOfResultMatrix!(typeof(this), op, Trhs) Tresult;
             static if(!isStatic && is(Tresult == Trhs))
                 if(empty)
-                    return mixin(op~"rhs");
+                    return mixin(op~"rhs").dup;
             static if(!(Trhs.isStatic) && is(Tresult == typeof(this)))
                 if(rhs.empty)
-                    return this;
+                    return this.dup;
             Tresult dest;
             static if(!(typeof(dest).isStatic))
                 dest.setDim([this.nrows, this.ncols]);
