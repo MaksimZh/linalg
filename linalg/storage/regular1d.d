@@ -268,9 +268,7 @@ struct StorageRegular1D(T, size_t dim_)
             debugOP.writeln("...");
             mixin(debugIndentScope);
         }
-        StorageRegular1D!(ElementType, dimPattern) result;
-        static if(!(result.isStatic))
-            result.setDim(_dim);
+        auto result = StorageRegular1D!(ElementType, dynsize)(_dim);
         copy(this, result);
         return result;
     }

@@ -58,11 +58,11 @@ enum MatrixShape
 }
 
 /* Returns shape of matrix with given dimensions */
-private auto shapeForDim(size_t nrows, size_t ncols)
+private auto shapeForDim(size_t[2] dim)
 {
-    if(nrows == 1)
+    if(dim[0] == 1)
         return MatrixShape.row;
-    else if(ncols == 1)
+    else if(dim[1] == 1)
         return MatrixShape.col;
     else
         return MatrixShape.matrix;
@@ -75,17 +75,17 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
               StorageOrder storageOrder_ = defaultStorageOrder,
               bool canRealloc = true)
 {
-    /** Dimensions patterns */
-    enum size_t nrowsPat = nrows_;
-    enum size_t ncolsPat = ncols_; ///ditto
+    /** Dimensions pattern */
+    enum size_t[2] dimPattern = [nrows_, ncols_];
 
     /* Select storage type.
      * Note: vectors use 1d storage (mainly for optimization)
      */
-    alias MatrixStorageType!(T, storageOrder_, nrowsPat, ncolsPat) StorageType;
+    alias MatrixStorageType!(T, storageOrder_, nrows_, ncols_)
+        StorageType;
 
     /** Shape of the matrix or vector */
-    enum auto shape = shapeForDim(nrowsPat, ncolsPat);
+    enum auto shape = shapeForDim(dimPattern);
     /** Whether this is vector */
     enum bool isVector = shape != MatrixShape.matrix;
     /** Storage order */
@@ -98,8 +98,12 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         alias StorageType.isStatic isStatic;
     }
 
-    /* Storage of matrix data */
-    private StorageType storage;
+    /**
+     * Storage of matrix data.
+     * This field is public to allow direct access to matrix data storage
+     * if optimization is needed.
+     */
+    public StorageType storage;
 
     /* Constructors
      */
@@ -280,7 +284,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         @property size_t[2] dim() pure const { return [nrows, ncols]; }
 
         /** Test dimensions for compatibility */
-        bool isCompatDim(in size_t[] dim) pure
+        bool isCompatDim(in size_t[2] dim) pure
         {
             static if(shape == MatrixShape.matrix)
                 return storage.isCompatDim(dim);
@@ -344,8 +348,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             ref inout auto opIndex() pure inout
             {
                 return Matrix!(ElementType,
-                               nrowsPat == 1 ? 1 : dynsize,
-                               ncolsPat == 1 ? 1 : dynsize,
+                               dimPattern[0] == 1 ? 1 : dynsize,
+                               dimPattern[1] == 1 ? 1 : dynsize,
                                storageOrder, false)(storage.opIndex());
             }
 
@@ -357,8 +361,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             ref inout auto opIndex(Slice s) pure inout
             {
                 return Matrix!(ElementType,
-                               nrowsPat == 1 ? 1 : dynsize,
-                               ncolsPat == 1 ? 1 : dynsize,
+                               dimPattern[0] == 1 ? 1 : dynsize,
+                               dimPattern[1] == 1 ? 1 : dynsize,
                                storageOrder, false)(storage.opIndex(s));
             }
         }
@@ -367,8 +371,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             ref inout auto opIndex() pure inout
             {
                 return Matrix!(ElementType,
-                               nrowsPat == 1 ? 1 : dynsize,
-                               ncolsPat == 1 ? 1 : dynsize,
+                               dimPattern[0] == 1 ? 1 : dynsize,
+                               dimPattern[1] == 1 ? 1 : dynsize,
                                storageOrder, false)(storage.opIndex());
             }
 
@@ -442,7 +446,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             mixin(debugIndentScope);
         }
         return Matrix!(ElementType,
-                       nrowsPat, ncolsPat,
+                       dimPattern[0] == 1 ? 1 : dynsize,
+                       dimPattern[1] == 1 ? 1 : dynsize,
                        storageOrder, true)(this.storage.dup);
     }
 
@@ -516,7 +521,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 Matrix dest;
             else
                 auto dest = Matrix!(ElementType,
-                                    nrowsPat, ncolsPat,
+                                    dimPattern[0], dimPattern[1],
                                     storageOrder)(nrows, ncols);
             linalg.operations.basic.map!("-a")(this.storage, dest.storage);
             return dest;
@@ -578,10 +583,10 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             alias TypeOfResultMatrix!(typeof(this), op, Trhs) Tresult;
             static if(!isStatic && is(Tresult == Trhs))
                 if(empty)
-                    return mixin(op~"rhs");
+                    return mixin(op~"rhs").dup;
             static if(!(Trhs.isStatic) && is(Tresult == typeof(this)))
                 if(rhs.empty)
-                    return this;
+                    return this.dup;
             Tresult dest;
             static if(!(typeof(dest).isStatic))
                 dest.setDim([this.nrows, this.ncols]);
@@ -708,12 +713,6 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         }
     }
 
-    /** Return dynamic array referring matrix elements */
-    @property auto container() pure inout
-    {
-        return storage.container;
-    }
-
     public // Diagonalization
     {
         static if(!isVector)
@@ -795,7 +794,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 mixin(debugIndentScope);
             }
 
-            Matrix!(ElementType, ncolsPat, nrowsPat, storageOrder) dest;
+            Matrix!(ElementType, dimPattern[1], dimPattern[0], storageOrder) dest;
             static if(!(typeof(dest).isStatic))
                 dest.setDim([this.ncols, this.nrows]);
             conjMatrix(this.storage, dest.storage);
@@ -872,23 +871,27 @@ private template TypeOfResultMatrix(Tlhs, string op, Trhs)
         static if(op == "+" || op == "-")
             alias Matrix!(TypeOfOp!(Tlhs.ElementType,
                                     op, Trhs.ElementType),
-                          Tlhs.nrowsPat, Tlhs.ncolsPat,
+                          Tlhs.dimPattern[0] == 1 ? 1 : dynsize,
+                          Tlhs.dimPattern[1] == 1 ? 1 : dynsize,
                           Tlhs.storageOrder) TypeOfResultMatrix;
         else static if(op == "*")
             alias Matrix!(TypeOfOp!(Tlhs.ElementType,
                                     op, Trhs.ElementType),
-                          Tlhs.nrowsPat, Trhs.ncolsPat,
+                          Tlhs.dimPattern[0] == 1 ? 1 : dynsize,
+                          Trhs.dimPattern[1] == 1 ? 1 : dynsize,
                           Tlhs.storageOrder) TypeOfResultMatrix;
         else
             alias void TypeOfResultMatrix;
     }
     else static if(isMatrix!Tlhs && (op == "*" || op == "/"))
          alias Matrix!(TypeOfOp!(Tlhs.ElementType, op, Trhs),
-                       Tlhs.nrowsPat, Tlhs.ncolsPat,
+                       Tlhs.dimPattern[0] == 1 ? 1 : dynsize,
+                       Tlhs.dimPattern[1] == 1 ? 1 : dynsize,
                        Tlhs.storageOrder) TypeOfResultMatrix;
     else static if(isMatrix!Trhs && (op == "*"))
          alias Matrix!(TypeOfOp!(Tlhs, op, Trhs.ElementType),
-                       Trhs.nrowsPat, Trhs.ncolsPat,
+                       Trhs.dimPattern[0] == 1 ? 1 : dynsize,
+                       Trhs.dimPattern[1] == 1 ? 1 : dynsize,
                        Trhs.storageOrder) TypeOfResultMatrix;
     else
         alias void TypeOfResultMatrix;
@@ -905,7 +908,8 @@ public // Map function
         if(isMatrix!Tsource)
     {
         Matrix!(typeof(fun(source[0, 0], args)),
-                Tsource.nrowsPat, Tsource.ncolsPat, Tsource.storageOrder) dest;
+                Tsource.dimPattern[0], Tsource.dimPattern[1],
+                Tsource.storageOrder) dest;
         /* If source is empty then return empty matrix */
         static if(!(Tsource.isStatic))
             if(source.empty)
@@ -917,142 +921,214 @@ public // Map function
     }
 }
 
-unittest // Static
+unittest // Type properties
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Static");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    alias Matrix!(int, 2, 3) Mi23;
+    alias Matrix!(int, 2, 3, StorageOrder.row) Mi23r;
+    alias Matrix!(int, 2, 3, StorageOrder.col) Mi23c;
+    alias Matrix!(int, dynsize, 3) Mid3;
+    alias Matrix!(int, 1, 3) Mi13;
+    alias Matrix!(int, 2, 1) Mi21;
+    alias Matrix!(int, dynsize, dynsize) Midd;
+    alias Matrix!(int, 1, dynsize) Mi1d;
+    alias Matrix!(int, dynsize, 1) Mid1;
 
-    auto a = Matrix!(int, 3, 4)(array(iota(12)));
-    assert([a.nrows, a.ncols] == [3, 4]);
-    assert(cast(int[][]) a == [[0, 1, 2, 3],
-                               [4, 5, 6, 7],
-                               [8, 9, 10, 11]]);
-    auto ar = Matrix!(int, 1, 3)(array(iota(3)));
-    assert([ar.nrows, ar.ncols] == [1, 3]);
-    assert(cast(int[]) ar == [0, 1, 2]);
-    assert(cast(int[][]) ar == [[0, 1, 2]]);
-    auto ac = Matrix!(int, 4, 1)(array(iota(4)));
-    assert([ac.nrows, ac.ncols] == [4, 1]);
-    assert(cast(int[]) ac == [0, 1, 2, 3]);
-    assert(cast(int[][]) ac == [[0],
-                                [1],
-                                [2],
-                                [3]]);
+    // dimPattern
+    static assert(Mi23.dimPattern == [2, 3]);
+    static assert(Mid3.dimPattern == [dynsize, 3]);
+
+    // shape
+    static assert(Mi23.shape == MatrixShape.matrix);
+    static assert(Mi13.shape == MatrixShape.row);
+    static assert(Mi21.shape == MatrixShape.col);
+    static assert(Midd.shape == MatrixShape.matrix);
+    static assert(Mi1d.shape == MatrixShape.row);
+    static assert(Mid1.shape == MatrixShape.col);
+
+    // isVector
+    static assert(!(Mi23.isVector));
+    static assert(Mi13.isVector);
+    static assert(Mi21.isVector);
+    static assert(!(Midd.isVector));
+    static assert(Mi1d.isVector);
+    static assert(Mid1.isVector);
+
+    // storageOrder
+    static assert(Mi23.storageOrder == defaultStorageOrder);
+    static assert(Mi23r.storageOrder == StorageOrder.row);
+    static assert(Mi23c.storageOrder == StorageOrder.col);
+
+    // ElementType
+    static assert(is(Mi23.ElementType == int));
+
+    // isStatic
+    static assert(Mi23.isStatic);
+    static assert(!(Mid3.isStatic));
+    static assert(!(Mi1d.isStatic));
+    static assert(!(Midd.isStatic));
 }
 
-unittest // Dynamic
+unittest // Constructors, cast
 {
     debug(unittests)
     {
-        debugOP.writeln("linalg.matrix unittest: Dynamic");
+        debugOP.writeln("linalg.matrix unittest: Constructors & cast");
         mixin(debugIndentScope);
     }
     else debug mixin(debugSilentScope);
 
-    auto b = Matrix!(int, dynsize, dynsize)(array(iota(12)), 3, 4);
-    assert([b.nrows, b.ncols] == [3, 4]);
-    assert(cast(int[][]) b == [[0, 1, 2, 3],
-                               [4, 5, 6, 7],
-                               [8, 9, 10, 11]]);
-    auto br = Matrix!(int, 1, dynsize)(array(iota(3)));
-    assert([br.nrows, br.ncols] == [1, 3]);
-    assert(cast(int[]) br == [0, 1, 2]);
-    assert(cast(int[][]) br == [[0, 1, 2]]);
-    auto bc = Matrix!(int, dynsize, 1)(array(iota(4)));
-    assert([bc.nrows, bc.ncols] == [4, 1]);
-    assert(cast(int[]) bc == [0, 1, 2, 3]);
-    assert(cast(int[][]) bc == [[0],
-                                [1],
-                                [2],
-                                [3]]);
+    immutable int[] a = [1, 2, 3, 4, 5, 6];
+
+    assert(cast(int[][]) Matrix!(int, dynsize, dynsize)(
+               StorageRegular2D!(int, StorageOrder.row, dynsize, dynsize)(
+                   a, [2, 3]))
+           == [[1, 2, 3],
+               [4, 5, 6]]);
+    assert(cast(int[][]) Matrix!(int, 2, 3)(a)
+           == [[1, 2, 3],
+               [4, 5, 6]]);
+    assert(cast(int[][]) Matrix!(int, 1, 3)(a[0..3])
+           == [[1, 2, 3]]);
+    assert(cast(int[][]) Matrix!(int, 3, 1)(a[0..3])
+           == [[1],
+               [2],
+               [3]]);
+    assert(cast(int[][]) Matrix!(int, 1, dynsize)(a[0..3])
+           == [[1, 2, 3]]);
+    assert(cast(int[][]) Matrix!(int, dynsize, 1)(a[0..3])
+           == [[1],
+               [2],
+               [3]]);
+    assert(cast(int[][]) Matrix!(int, 1, dynsize)(3)
+           == [[0, 0, 0]]);
+    assert(cast(int[][]) Matrix!(int, 1, dynsize)(1, 3)
+           == [[0, 0, 0]]);
+    assert(cast(int[][]) Matrix!(int, dynsize, dynsize)(2, 3)
+           == [[0, 0, 0],
+               [0, 0, 0]]);
+    assert(cast(int[][]) Matrix!(int, dynsize, dynsize)(2, 3)
+           == [[0, 0, 0],
+               [0, 0, 0]]);
+    assert(cast(int[][]) Matrix!(int, dynsize, dynsize)(a, 2, 3)
+           == [[1, 2, 3],
+               [4, 5, 6]]);
 }
 
-unittest // Assignment
+unittest // Storage direct access
 {
     debug(unittests)
     {
-        debugOP.writeln("linalg.matrix unittest: Assignment");
+        debugOP.writeln("linalg.matrix unittest: Storage direct access");
         mixin(debugIndentScope);
     }
     else debug mixin(debugSilentScope);
 
-    debug debugOP.writeln("static -> static");
-    alias Matrix!(int, 3, 4) A;
-    A a, b;
-    a = A(array(iota(12)));
-    auto test = [[0, 1, 2, 3],
-                 [4, 5, 6, 7],
-                 [8, 9, 10, 11]];
-    assert(cast(int[][])a == test);
-    assert(cast(int[][])(b = a) == test);
-    assert(cast(int[][])b == test);
-    debug debugOP.writeln("dynamic -> dynamic");
-    alias Matrix!(int, dynsize, dynsize) A1;
-    A1 a1, b1;
-    a1 = A1(array(iota(12)), 3, 4);
-    assert(cast(int[][])(b1 = a1) == test);
-    assert(cast(int[][])b1 == test);
-    debug debugOP.writeln("dynamic -> static");
-    A c;
-    assert(cast(int[][])(c = a1) == test);
-    assert(cast(int[][])c == test);
-    debug debugOP.writeln("static -> dynamic");
-    A1 c1;
-    assert(cast(int[][])(c1 = a) == test);
-    assert(cast(int[][])c1 == test);
+    immutable int[] src = [1, 2, 3, 4, 5, 6];
+
+    auto a = Matrix!(int, dynsize, dynsize, StorageOrder.row)(src, 2, 3);
+    assert(a.storage.container.ptr == src.ptr);
+    assert(a.storage.container == [1, 2, 3, 4, 5, 6]);
+    assert(a.storage.dim == [2, 3]);
+    assert(a.storage.stride == [3, 1]);
 }
 
-unittest // opOpAssign
+unittest // Dimension control
 {
     debug(unittests)
     {
-        debugOP.writeln("linalg.matrix unittest: opOpAssign");
+        debugOP.writeln("linalg.matrix unittest: Dimension control");
         mixin(debugIndentScope);
     }
     else debug mixin(debugSilentScope);
 
-    alias Matrix!(int, 3, 4) A;
-    A a, b;
-    a = A(array(iota(12)));
-    b = A(array(iota(12, 24)));
-    a += b;
-    assert(cast(int[][]) a == [[12, 14, 16, 18],
-                               [20, 22, 24, 26],
-                               [28, 30, 32, 34]]);
+    Matrix!(int, dynsize, dynsize) a;
+    assert(a.empty);
+    assert(a.nrows == 0);
+    assert(a.ncols == 0);
+    assert(a.dim == [0, 0]);
+    a.setDim([2, 3]);
+    assert(!(a.empty));
+    assert(a.nrows == 2);
+    assert(a.ncols == 3);
+    assert(a.dim == [2, 3]);
+    assert(a.isCompatDim([22, 33]));
 
-    Matrix!(int, dynsize, dynsize) c;
-    c += b;
-    assert(cast(int[][]) c == cast(int[][]) b);
-
-    a = A(array(iota(12)));
-    a *= 2;
-    assert(cast(int[][]) a == [[0, 2, 4, 6],
-                               [8, 10, 12, 14],
-                               [16, 18, 20, 22]]);
+    Matrix!(int, 2, 3) b;
+    assert(!(b.empty));
+    assert(b.nrows == 2);
+    assert(b.ncols == 3);
+    assert(b.dim == [2, 3]);
+    assert(!(b.isCompatDim([22, 33])));
 }
 
-unittest // opUnary
+unittest // Copying
 {
     debug(unittests)
     {
-        debugOP.writeln("linalg.matrix unittest: opUnary");
+        debugOP.writeln("linalg.matrix unittest: Copying");
         mixin(debugIndentScope);
     }
     else debug mixin(debugSilentScope);
 
-    alias Matrix!(int, 3, 4) A;
-    A a;
-    a = A(array(iota(12)));
-    assert(cast(int[][]) (+a) == [[0, 1, 2, 3],
-                                  [4, 5, 6, 7],
-                                  [8, 9, 10, 11]]);
-    assert(cast(int[][]) (-a) == [[-0, -1, -2, -3],
-                                  [-4, -5, -6, -7],
-                                  [-8, -9, -10, -11]]);
+    immutable int[] src = [1, 2, 3, 4, 5, 6];
+    int[] msrc = src.dup;
+
+    {
+        auto a = Matrix!(int, 2, 3)(src);
+        Matrix!(int, 2, 3) b;
+        auto c = (b = a);
+        assert(cast(int[][]) b == cast(int[][]) a);
+        assert(cast(int[][]) c == cast(int[][]) a);
+        assert(b.storage.container.ptr != a.storage.container.ptr);
+        assert(c.storage.container.ptr != a.storage.container.ptr);
+        assert(c.storage.container.ptr != b.storage.container.ptr);
+    }
+    {
+        auto a = Matrix!(int, 2, 3)(msrc);
+        Matrix!(int, dynsize, dynsize) b;
+        auto c = (b = a);
+        assert(cast(int[][]) b == cast(int[][]) a);
+        assert(cast(int[][]) c == cast(int[][]) a);
+        assert(b.storage.container.ptr == a.storage.container.ptr);
+        assert(c.storage.container.ptr == a.storage.container.ptr);
+    }
+    {
+        auto a = Matrix!(int, 2, 3)(src);
+        Matrix!(int, dynsize, dynsize) b;
+        auto c = (b = a.dup);
+        assert(cast(int[][]) b == cast(int[][]) a);
+        assert(cast(int[][]) c == cast(int[][]) a);
+        assert(b.storage.container.ptr != a.storage.container.ptr);
+        assert(c.storage.container.ptr == b.storage.container.ptr);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(msrc, 2, 3);
+        Matrix!(int, 2, 3) b;
+        auto c = (b = a);
+        assert(cast(int[][]) b == cast(int[][]) a);
+        assert(cast(int[][]) c == cast(int[][]) a);
+        assert(b.storage.container.ptr != a.storage.container.ptr);
+        assert(c.storage.container.ptr != a.storage.container.ptr);
+        assert(c.storage.container.ptr != b.storage.container.ptr);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(msrc, 2, 3);
+        Matrix!(int, dynsize, dynsize) b;
+        auto c = (b = a);
+        assert(cast(int[][]) b == cast(int[][]) a);
+        assert(cast(int[][]) c == cast(int[][]) a);
+        assert(b.storage.container.ptr == a.storage.container.ptr);
+        assert(c.storage.container.ptr == a.storage.container.ptr);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(msrc, 2, 3);
+        Matrix!(int, dynsize, dynsize) b;
+        auto c = (b = a.dup);
+        assert(cast(int[][]) b == cast(int[][]) a);
+        assert(cast(int[][]) c == cast(int[][]) a);
+        assert(b.storage.container.ptr != a.storage.container.ptr);
+        assert(c.storage.container.ptr == b.storage.container.ptr);
+    }
 }
 
 unittest // Regular indices
@@ -1102,164 +1178,489 @@ unittest // Slices
                [18, 103, 20, 21, 104, 23]]);
 }
 
-unittest // Matrix addition
+unittest // Unary + and -
 {
     debug(unittests)
     {
-        debugOP.writeln("linalg.matrix unittest: Matrix addition");
+        debugOP.writeln("linalg.matrix unittest: Unary + and -");
         mixin(debugIndentScope);
     }
     else debug mixin(debugSilentScope);
 
+    immutable int[] src = [1, 2, 3, 4, 5, 6];
     {
-        auto a = Matrix!(int, 2, 3)([1, 2, 3, 4, 5, 6]);
-        auto b = Matrix!(int, 2, 3)([7, 8, 9, 10, 11, 12]);
-        assert(cast(int[][]) (a + b) == [[8, 10, 12],
-                                         [14, 16, 18]]);
+        auto a = Matrix!(int, 2, 3)(src);
+        assert(cast(int[][]) (+a) == [[1, 2, 3],
+                                      [4, 5, 6]]);
+        assert(cast(int[][]) (-a) == [[-1, -2, -3],
+                                      [-4, -5, -6]]);
     }
     {
-        auto a = Matrix!(int, 2, 3)([1, 2, 3, 4, 5, 6]);
-        Matrix!(int, dynsize, dynsize) b;
-        assert(cast(int[][]) (a + b) == [[1, 2, 3],
-                                         [4, 5, 6]]);
+        auto a = Matrix!(int, dynsize, dynsize)(src, 2, 3);
+        assert(cast(int[][]) (+a) == [[1, 2, 3],
+                                      [4, 5, 6]]);
+        assert(cast(int[][]) (-a) == [[-1, -2, -3],
+                                      [-4, -5, -6]]);
     }
 }
 
-unittest // Matrix multiplication
+unittest // Matrix += and -=
 {
     debug(unittests)
     {
-        debugOP.writeln("linalg.matrix unittest: Matrix multiplication");
+        debugOP.writeln("linalg.matrix unittest: Matrix += and -=");
         mixin(debugIndentScope);
     }
     else debug mixin(debugSilentScope);
 
-    {
-        auto a = Matrix!(int, 1, 3)([1, 2, 3]);
-        auto b = Matrix!(int, 3, 1)([4, 5, 6]);
-        assert(a * b == 32);
-    }
-    {
-        auto a = Matrix!(int, 1, 3)([1, 2, 3]);
-        auto b = Matrix!(int, 3, 2)([6, 7, 8, 9, 10, 11]);
-        assert(cast(int[][]) (a * b) == [[52, 58]]);
-    }
-    {
-        auto a = Matrix!(int, 2, 3)([1, 2, 3, 4, 5, 6]);
-        auto b = Matrix!(int, 3, 1)([6, 7, 8]);
-        assert(cast(int[][]) (a * b) == [[44],
-                                         [107]]);
-    }
-    {
-        auto a = Matrix!(int, 2, 3)([1, 2, 3, 4, 5, 6]);
-        auto b = Matrix!(int, 3, 2)([6, 7, 8, 9, 10, 11]);
-        assert(cast(int[][]) (a * b) == [[52, 58],
-                                         [124, 139]]);
-    }
-    {
-        auto a = Matrix!(int, 0, 0)([1, 2, 3, 4, 5, 6], 2, 3);
-        auto b = Matrix!(int, 3, 2)([6, 7, 8, 9, 10, 11]);
-        a *= b;
-        assert(cast(int[][]) a == [[52, 58],
-                                   [124, 139]]);
-    }
-}
-
-unittest // Multiplication by scalar
-{
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Multiplication by scalar");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
-
-    auto a = Matrix!(int, 2, 3)([1, 2, 3, 4, 5, 6]);
-    assert(cast(int[][]) (a * 2) == [[2, 4, 6],
-                                     [8, 10, 12]]);
-    assert(cast(int[][]) (2 * a) == [[2, 4, 6],
-                                     [8, 10, 12]]);
-}
-
-unittest // Diagonalization
-{
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Diagonalization");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
-
-    version(linalg_backend_lapack)
-    {
-        alias Complex!double C;
-        auto a = Matrix!(C, 3, 3)(
-            [C(1, 0), C(0, 0), C(0, 0),
-             C(0, 0), C(2, 0), C(0, 0),
-             C(0, 0), C(0, 0), C(3, 0)]);
-        double[] val;
-        auto b = a.dup;
-        //FIXME: may fail for low precision
-        assert(a.symmEigenval() == [1, 2, 3]);
-        assert(b.symmEigenval(1, 2) == [2, 3]);
-    }
-}
-
-unittest // Map function
-{
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Map function");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
-
-    int b = 2;
-    /*NOTE:
-     * One has to specify type of a.
-     * Otherwise type of destination container will be const somehow.
+    immutable int[] src1 = [1, 2, 3, 4, 5, 6];
+    immutable int[] src2 = [7, 8, 9, 10, 11, 12];
+    /*NOTE
+     * One has to use src1.dup even if a is static.
+     * Will be resolved when mutable matrices referring
+     * immutable data are implemented.
      */
-    assert(cast(int[][]) map!((int a, b) => a*b)(
-               Matrix!(int, 3, 4)(array(iota(12))), b)
-           == [[0, 2, 4, 6],
-               [8, 10, 12, 14],
-               [16, 18, 20, 22]]);
+    {
+        auto a = Matrix!(int, 2, 3)(src1.dup);
+        auto b = Matrix!(int, 2, 3)(src2);
+        a += b;
+        assert(cast(int[][]) a == [[8, 10, 12],
+                                   [14, 16, 18]]);
+        a -= b;
+        assert(cast(int[][]) a == [[1, 2, 3],
+                                   [4, 5, 6]]);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(src1.dup, 2, 3);
+        auto b = Matrix!(int, 2, 3)(src2);
+        a += b;
+        assert(cast(int[][]) a == [[8, 10, 12],
+                                   [14, 16, 18]]);
+        a -= b;
+        assert(cast(int[][]) a == [[1, 2, 3],
+                                   [4, 5, 6]]);
+    }
+    {
+        auto a = Matrix!(int, 2, 3)(src1.dup);
+        auto b = Matrix!(int, dynsize, dynsize)(src2, 2, 3);
+        a += b;
+        assert(cast(int[][]) a == [[8, 10, 12],
+                                   [14, 16, 18]]);
+        a -= b;
+        assert(cast(int[][]) a == [[1, 2, 3],
+                                   [4, 5, 6]]);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(src1.dup, 2, 3);
+        auto b = Matrix!(int, dynsize, dynsize)(src2, 2, 3);
+        a += b;
+        assert(cast(int[][]) a == [[8, 10, 12],
+                                   [14, 16, 18]]);
+        a -= b;
+        assert(cast(int[][]) a == [[1, 2, 3],
+                                   [4, 5, 6]]);
+    }
 }
 
-unittest // Hermitian conjugation
+unittest // Matrix + and -
 {
     debug(unittests)
     {
-        debugOP.writeln("linalg.matrix unittest: Hermitian conjugation");
+        debugOP.writeln("linalg.matrix unittest: Matrix + and -");
         mixin(debugIndentScope);
     }
     else debug mixin(debugSilentScope);
 
-    assert(cast(int[][]) (Matrix!(int, 3, 4)(array(iota(12))).conj())
-           == [[0, 4, 8],
-               [1, 5, 9],
-               [2, 6, 10],
-               [3, 7, 11]]);
+    immutable int[] src1 = [1, 2, 3, 4, 5, 6];
+    immutable int[] src2 = [11, 22, 33, 44, 55, 66];
+    {
+        auto a = Matrix!(int, 2, 3)(src1);
+        auto b = Matrix!(int, 2, 3)(src2);
+        auto c = a + b;
+        assert(cast(int[][]) c == [[12, 24, 36],
+                                   [48, 60, 72]]);
+        c = b - a;
+        assert(cast(int[][]) c == [[10, 20, 30],
+                                   [40, 50, 60]]);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(src1, 2, 3);
+        auto b = Matrix!(int, 2, 3)(src2);
+        auto c = a + b;
+        assert(cast(int[][]) c == [[12, 24, 36],
+                                   [48, 60, 72]]);
+        c = b - a;
+        assert(cast(int[][]) c == [[10, 20, 30],
+                                   [40, 50, 60]]);
+    }
+    {
+        auto a = Matrix!(int, 2, 3)(src1);
+        auto b = Matrix!(int, dynsize, dynsize)(src2, 2, 3);
+        auto c = a + b;
+        assert(cast(int[][]) c == [[12, 24, 36],
+                                   [48, 60, 72]]);
+        c = b - a;
+        assert(cast(int[][]) c == [[10, 20, 30],
+                                   [40, 50, 60]]);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(src1, 2, 3);
+        auto b = Matrix!(int, dynsize, dynsize)(src2, 2, 3);
+        auto c = a + b;
+        assert(cast(int[][]) c == [[12, 24, 36],
+                                   [48, 60, 72]]);
+        c = b - a;
+        assert(cast(int[][]) c == [[10, 20, 30],
+                                   [40, 50, 60]]);
+    }
+}
 
-    alias Complex!double C;
-    //FIXME: may fail for low precision
-    assert(cast(C[][]) (Matrix!(C, 2, 3)(
-                            [C(1, 1), C(1, 2), C(1, 3),
-                             C(2, 1), C(2, 2), C(2, 3)]).conj())
-           == [[C(1, -1), C(2, -1)],
-               [C(1, -2), C(2, -2)],
-               [C(1, -3), C(2, -3)]]);
+unittest // Matrix *= scalar
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Matrix *= scalar");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
 
-    assert(cast(int[][]) (Matrix!(int, 1, 4)(array(iota(4))).conj())
-           == [[0],
-               [1],
-               [2],
-               [3]]);
+    immutable int[] src = [1, 2, 3, 4, 5, 6];
+    /*NOTE
+     * One has to use src.dup even if a is static.
+     * Will be resolved when mutable matrices referring
+     * immutable data are implemented.
+     */
+    {
+        auto a = Matrix!(int, 2, 3)(src.dup);
+        a *= 2;
+        assert(cast(int[][]) a == [[2, 4, 6],
+                                   [8, 10, 12]]);
+        a /= 2;
+        assert(cast(int[][]) a == [[1, 2, 3],
+                                   [4, 5, 6]]);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(src.dup, 2, 3);
+        a *= 2;
+        assert(cast(int[][]) a == [[2, 4, 6],
+                                   [8, 10, 12]]);
+        a /= 2;
+        assert(cast(int[][]) a == [[1, 2, 3],
+                                   [4, 5, 6]]);
+    }
+}
 
-    //FIXME: may fail for low precision
-    assert(cast(C[][]) (Matrix!(C, 1, 3)(
-                            [C(1, 1), C(1, 2), C(1, 3)]).conj())
-           == [[C(1, -1)],
-               [C(1, -2)],
-               [C(1, -3)]]);
+unittest // Matrix * scalar
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Matrix * scalar");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    immutable int[] src = [1, 2, 3, 4, 5, 6];
+    {
+        auto a = Matrix!(int, 2, 3)(src);
+        auto b = a * 2;
+        assert(cast(int[][]) b == [[2, 4, 6],
+                                   [8, 10, 12]]);
+        Matrix!(int, 2, 3) c;
+        c = b;
+        b = c / 2;
+        assert(cast(int[][]) b == [[1, 2, 3],
+                                   [4, 5, 6]]);
+        b = 2 * a;
+        assert(cast(int[][]) b == [[2, 4, 6],
+                                   [8, 10, 12]]);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(src, 2, 3);
+        auto b = a * 2;
+        assert(cast(int[][]) b == [[2, 4, 6],
+                                   [8, 10, 12]]);
+        Matrix!(int, dynsize, dynsize) c = b;
+        c = b;
+        b = c / 2;
+        assert(cast(int[][]) b == [[1, 2, 3],
+                                   [4, 5, 6]]);
+        b = 2 * a;
+        assert(cast(int[][]) b == [[2, 4, 6],
+                                   [8, 10, 12]]);
+    }
+}
+
+unittest // Matrix *=
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Matrix *=");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    /*NOTE
+     * One has to use src1.dup even if a is static.
+     * Will be resolved when mutable matrices referring
+     * immutable data are implemented.
+     */
+    {
+        immutable int[] src1 = [1, 2, 3, 4];
+        immutable int[] src2 = [7, 8, 9, 10];
+        auto a = Matrix!(int, 2, 2)(src1.dup);
+        auto b = Matrix!(int, 2, 2)(src2);
+        a *= b;
+        assert(cast(int[][]) a == [[25, 28],
+                                   [57, 64]]);
+    }
+    {
+        immutable int[] src1 = [1, 2, 3, 4, 5, 6];
+        immutable int[] src2 = [7, 8, 9, 10, 11, 12];
+        auto a = Matrix!(int, dynsize, dynsize)(src1.dup, 2, 3);
+        auto b = Matrix!(int, 3, 2)(src2);
+        a *= b;
+        assert(cast(int[][]) a == [[58, 64],
+                                   [139, 154]]);
+    }
+    {
+        immutable int[] src1 = [1, 2, 3, 4];
+        immutable int[] src2 = [7, 8, 9, 10];
+        auto a = Matrix!(int, 2, 2)(src1.dup);
+        auto b = Matrix!(int, dynsize, dynsize)(src2, 2, 2);
+        a *= b;
+        assert(cast(int[][]) a == [[25, 28],
+                                   [57, 64]]);
+    }
+    {
+        immutable int[] src1 = [1, 2, 3, 4, 5, 6];
+        immutable int[] src2 = [7, 8, 9, 10, 11, 12];
+        auto a = Matrix!(int, dynsize, dynsize)(src1.dup, 2, 3);
+        auto b = Matrix!(int, dynsize, dynsize)(src2, 3, 2);
+        a *= b;
+        assert(cast(int[][]) a == [[58, 64],
+                                   [139, 154]]);
+    }
+}
+
+unittest // Matrix *
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Matrix *");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    immutable int[] src1 = [1, 2, 3, 4, 5, 6];
+    immutable int[] src2 = [7, 8, 9, 10, 11, 12];
+    {
+        auto a = Matrix!(int, 2, 3)(src1);
+        auto b = Matrix!(int, 3, 2)(src2);
+        auto c = a * b;
+        assert(cast(int[][]) c == [[58, 64],
+                                   [139, 154]]);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(src1, 2, 3);
+        auto b = Matrix!(int, 3, 2)(src2);
+        auto c = a * b;
+        assert(cast(int[][]) c == [[58, 64],
+                                   [139, 154]]);
+    }
+    {
+        auto a = Matrix!(int, 2, 3)(src1);
+        auto b = Matrix!(int, dynsize, dynsize)(src2, 3, 2);
+        auto c = a * b;
+        assert(cast(int[][]) c == [[58, 64],
+                                   [139, 154]]);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(src1, 2, 3);
+        auto b = Matrix!(int, dynsize, dynsize)(src2, 3, 2);
+        auto c = a * b;
+        assert(cast(int[][]) c == [[58, 64],
+                                   [139, 154]]);
+    }
+}
+
+unittest // Ranges
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Ranges");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    immutable int[] src = [1, 2, 3, 4, 5, 6];
+    {
+        auto a = Matrix!(int, 2, 3)(src);
+        {
+            int[] result = [];
+            foreach(r; a.byElement)
+                result ~= [r];
+            assert(result == [1, 2, 3, 4, 5, 6]);
+        }
+        {
+            int[][] result = [];
+            foreach(r; a.byRow)
+                result ~= [cast(int[]) r];
+            assert(result == [[1, 2, 3],
+                              [4, 5, 6]]);
+        }
+        {
+            int[][] result = [];
+            foreach(r; a.byCol)
+                result ~= [cast(int[]) r];
+            assert(result == [[1, 4],
+                              [2, 5],
+                              [3, 6]]);
+        }
+        {
+            immutable int[] src1 = [1, 2, 3, 4, 5, 6,
+                                    7, 8, 9, 10, 11, 12,
+                                    13, 14, 15, 16, 17, 18,
+                                    19, 20, 21, 22, 23, 24];
+            auto b = Matrix!(int, 4, 6)(src1);
+            int[][][] result = [];
+            foreach(r; b.byBlock([2, 3]))
+                result ~= [cast(int[][]) r];
+            assert(result == [[[1, 2, 3],
+                               [7, 8, 9]],
+                              [[4, 5, 6],
+                               [10, 11, 12]],
+                              [[13, 14, 15],
+                               [19, 20, 21]],
+                              [[16, 17, 18],
+                               [22, 23, 24]]]);
+        }
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(src, 2, 3);
+        {
+            int[] result = [];
+            foreach(r; a.byElement)
+                result ~= [r];
+            assert(result == [1, 2, 3, 4, 5, 6]);
+        }
+        {
+            int[][] result = [];
+            foreach(r; a.byRow)
+                result ~= [cast(int[]) r];
+            assert(result == [[1, 2, 3],
+                              [4, 5, 6]]);
+        }
+        {
+            int[][] result = [];
+            foreach(r; a.byCol)
+                result ~= [cast(int[]) r];
+            assert(result == [[1, 4],
+                              [2, 5],
+                              [3, 6]]);
+        }
+        {
+            immutable int[] src1 = [1, 2, 3, 4, 5, 6,
+                                    7, 8, 9, 10, 11, 12,
+                                    13, 14, 15, 16, 17, 18,
+                                    19, 20, 21, 22, 23, 24];
+            auto b = Matrix!(int, dynsize, dynsize)(src1, 4, 6);
+            int[][][] result = [];
+            foreach(r; b.byBlock([2, 3]))
+                result ~= [cast(int[][]) r];
+            assert(result == [[[1, 2, 3],
+                               [7, 8, 9]],
+                              [[4, 5, 6],
+                               [10, 11, 12]],
+                              [[13, 14, 15],
+                               [19, 20, 21]],
+                              [[16, 17, 18],
+                               [22, 23, 24]]]);
+        }
+    }
+}
+
+version(all) // Old unittests
+{
+    unittest // Diagonalization
+    {
+        debug(unittests)
+        {
+            debugOP.writeln("linalg.matrix unittest: Diagonalization");
+            mixin(debugIndentScope);
+        }
+        else debug mixin(debugSilentScope);
+
+        version(linalg_backend_lapack)
+        {
+            alias Complex!double C;
+            auto a = Matrix!(C, 3, 3)(
+                [C(1, 0), C(0, 0), C(0, 0),
+                 C(0, 0), C(2, 0), C(0, 0),
+                 C(0, 0), C(0, 0), C(3, 0)]);
+            double[] val;
+            auto b = a.dup;
+            //FIXME: may fail for low precision
+            assert(a.symmEigenval() == [1, 2, 3]);
+            assert(b.symmEigenval(1, 2) == [2, 3]);
+        }
+    }
+
+    unittest // Map function
+    {
+        debug(unittests)
+        {
+            debugOP.writeln("linalg.matrix unittest: Map function");
+            mixin(debugIndentScope);
+        }
+        else debug mixin(debugSilentScope);
+
+        int b = 2;
+        /*NOTE:
+         * One has to specify type of a.
+         * Otherwise type of destination container will be const somehow.
+         */
+        assert(cast(int[][]) map!((int a, b) => a*b)(
+                   Matrix!(int, 3, 4)(array(iota(12))), b)
+               == [[0, 2, 4, 6],
+                   [8, 10, 12, 14],
+                   [16, 18, 20, 22]]);
+    }
+
+    unittest // Hermitian conjugation
+    {
+        debug(unittests)
+        {
+            debugOP.writeln("linalg.matrix unittest: Hermitian conjugation");
+            mixin(debugIndentScope);
+        }
+        else debug mixin(debugSilentScope);
+
+        assert(cast(int[][]) (Matrix!(int, 3, 4)(array(iota(12))).conj())
+               == [[0, 4, 8],
+                   [1, 5, 9],
+                   [2, 6, 10],
+                   [3, 7, 11]]);
+
+        alias Complex!double C;
+        //FIXME: may fail for low precision
+        assert(cast(C[][]) (Matrix!(C, 2, 3)(
+                                [C(1, 1), C(1, 2), C(1, 3),
+                                 C(2, 1), C(2, 2), C(2, 3)]).conj())
+               == [[C(1, -1), C(2, -1)],
+                   [C(1, -2), C(2, -2)],
+                   [C(1, -3), C(2, -3)]]);
+
+        assert(cast(int[][]) (Matrix!(int, 1, 4)(array(iota(4))).conj())
+               == [[0],
+                   [1],
+                   [2],
+                   [3]]);
+
+        //FIXME: may fail for low precision
+        assert(cast(C[][]) (Matrix!(C, 1, 3)(
+                                [C(1, 1), C(1, 2), C(1, 3)]).conj())
+               == [[C(1, -1)],
+                   [C(1, -2)],
+                   [C(1, -3)]]);
+    }
 }

@@ -375,10 +375,8 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             debugOP.writeln("...");
             mixin(debugIndentScope);
         }
-        StorageRegular2D!(ElementType, storageOrder,
-                          dimPattern[0], dimPattern[1]) result;
-        static if(!(result.isStatic))
-            result.setDim(_dim);
+        auto result = StorageRegular2D!(ElementType, storageOrder,
+                                        dynsize, dynsize)(_dim);
         copy(this, result);
         return result;
     }
