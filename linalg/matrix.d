@@ -1200,6 +1200,64 @@ unittest // Unary + and -
     }
 }
 
+unittest // Matrix += and -=
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Matrix += and -=");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    immutable int[] src1 = [1, 2, 3, 4, 5, 6];
+    immutable int[] src2 = [7, 8, 9, 10, 11, 12];
+    /*NOTE
+     * One has to use src1.dup even if a is static.
+     * Will be resolved when mutable matrices referring
+     * immutable data are implemented.
+     */
+    {
+        auto a = Matrix!(int, 2, 3)(src1.dup);
+        auto b = Matrix!(int, 2, 3)(src2);
+        a += b;
+        assert(cast(int[][]) a == [[8, 10, 12],
+                                   [14, 16, 18]]);
+        a -= b;
+        assert(cast(int[][]) a == [[1, 2, 3],
+                                   [4, 5, 6]]);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(src1.dup, 2, 3);
+        auto b = Matrix!(int, 2, 3)(src2);
+        a += b;
+        assert(cast(int[][]) a == [[8, 10, 12],
+                                   [14, 16, 18]]);
+        a -= b;
+        assert(cast(int[][]) a == [[1, 2, 3],
+                                   [4, 5, 6]]);
+    }
+    {
+        auto a = Matrix!(int, 2, 3)(src1.dup);
+        auto b = Matrix!(int, dynsize, dynsize)(src2, 2, 3);
+        a += b;
+        assert(cast(int[][]) a == [[8, 10, 12],
+                                   [14, 16, 18]]);
+        a -= b;
+        assert(cast(int[][]) a == [[1, 2, 3],
+                                   [4, 5, 6]]);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(src1.dup, 2, 3);
+        auto b = Matrix!(int, dynsize, dynsize)(src2, 2, 3);
+        a += b;
+        assert(cast(int[][]) a == [[8, 10, 12],
+                                   [14, 16, 18]]);
+        a -= b;
+        assert(cast(int[][]) a == [[1, 2, 3],
+                                   [4, 5, 6]]);
+    }
+}
+
 version(oldUnittests)
 {
     unittest // Static
@@ -1338,25 +1396,6 @@ version(oldUnittests)
         assert(cast(int[][]) (-a) == [[-0, -1, -2, -3],
                                       [-4, -5, -6, -7],
                                       [-8, -9, -10, -11]]);
-    }
-
-    unittest // Regular indices
-    {
-        debug(unittests)
-        {
-            debugOP.writeln("linalg.matrix unittest: Regular indices");
-            mixin(debugIndentScope);
-        }
-        else debug mixin(debugSilentScope);
-
-        auto a = Matrix!(int, 4, 6)(array(iota(24)));
-        assert(a[1, 2] == 8);
-        assert((a[1, 2] = 80) == 80);
-        assert(a[1, 2] == 80);
-        ++a[1, 2];
-        assert(a[1, 2] == 81);
-        a[1, 2] += 3;
-        assert(a[1, 2] == 84);
     }
 
     unittest // Matrix addition
