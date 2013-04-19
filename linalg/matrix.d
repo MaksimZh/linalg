@@ -446,7 +446,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             mixin(debugIndentScope);
         }
         return Matrix!(ElementType,
-                       dimPattern[0], dimPattern[1],
+                       dimPattern[0] == 1 ? 1 : dynsize,
+                       dimPattern[1] == 1 ? 1 : dynsize,
                        storageOrder, true)(this.storage.dup);
     }
 
@@ -1087,7 +1088,7 @@ unittest // Copying
         assert(b.storage.container.ptr == a.storage.container.ptr);
         assert(c.storage.container.ptr == a.storage.container.ptr);
     }
-    version(none){ //FIXME: Linalg issue 16
+    {
         auto a = Matrix!(int, 2, 3)(src);
         Matrix!(int, dynsize, dynsize) b;
         auto c = (b = a.dup);
