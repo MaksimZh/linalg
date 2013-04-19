@@ -1442,6 +1442,47 @@ unittest // Matrix *=
     }
 }
 
+unittest // Matrix *
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Matrix *");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    immutable int[] src1 = [1, 2, 3, 4, 5, 6];
+    immutable int[] src2 = [7, 8, 9, 10, 11, 12];
+    {
+        auto a = Matrix!(int, 2, 3)(src1);
+        auto b = Matrix!(int, 3, 2)(src2);
+        auto c = a * b;
+        assert(cast(int[][]) c == [[58, 64],
+                                   [139, 154]]);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(src1, 2, 3);
+        auto b = Matrix!(int, 3, 2)(src2);
+        auto c = a * b;
+        assert(cast(int[][]) c == [[58, 64],
+                                   [139, 154]]);
+    }
+    {
+        auto a = Matrix!(int, 2, 3)(src1);
+        auto b = Matrix!(int, dynsize, dynsize)(src2, 3, 2);
+        auto c = a * b;
+        assert(cast(int[][]) c == [[58, 64],
+                                   [139, 154]]);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(src1, 2, 3);
+        auto b = Matrix!(int, dynsize, dynsize)(src2, 3, 2);
+        auto c = a * b;
+        assert(cast(int[][]) c == [[58, 64],
+                                   [139, 154]]);
+    }
+}
+
 version(oldUnittests)
 {
     unittest // Static
