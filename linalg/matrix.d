@@ -1326,7 +1326,7 @@ unittest // Matrix *= scalar
 
     immutable int[] src = [1, 2, 3, 4, 5, 6];
     /*NOTE
-     * One has to use src1.dup even if a is static.
+     * One has to use src.dup even if a is static.
      * Will be resolved when mutable matrices referring
      * immutable data are implemented.
      */
@@ -1347,6 +1347,46 @@ unittest // Matrix *= scalar
         a /= 2;
         assert(cast(int[][]) a == [[1, 2, 3],
                                    [4, 5, 6]]);
+    }
+}
+
+unittest // Matrix * scalar
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Matrix * scalar");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    immutable int[] src = [1, 2, 3, 4, 5, 6];
+    {
+        auto a = Matrix!(int, 2, 3)(src);
+        auto b = a * 2;
+        assert(cast(int[][]) b == [[2, 4, 6],
+                                   [8, 10, 12]]);
+        Matrix!(int, 2, 3) c;
+        c = b;
+        b = c / 2;
+        assert(cast(int[][]) b == [[1, 2, 3],
+                                   [4, 5, 6]]);
+        b = 2 * a;
+        assert(cast(int[][]) b == [[2, 4, 6],
+                                   [8, 10, 12]]);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(src, 2, 3);
+        auto b = a * 2;
+        assert(cast(int[][]) b == [[2, 4, 6],
+                                   [8, 10, 12]]);
+        Matrix!(int, dynsize, dynsize) c = b;
+        c = b;
+        b = c / 2;
+        assert(cast(int[][]) b == [[1, 2, 3],
+                                   [4, 5, 6]]);
+        b = 2 * a;
+        assert(cast(int[][]) b == [[2, 4, 6],
+                                   [8, 10, 12]]);
     }
 }
 
