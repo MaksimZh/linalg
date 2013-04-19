@@ -871,23 +871,27 @@ private template TypeOfResultMatrix(Tlhs, string op, Trhs)
         static if(op == "+" || op == "-")
             alias Matrix!(TypeOfOp!(Tlhs.ElementType,
                                     op, Trhs.ElementType),
-                          Tlhs.dimPattern[0], Tlhs.dimPattern[1],
+                          Tlhs.dimPattern[0] == 1 ? 1 : dynsize,
+                          Tlhs.dimPattern[1] == 1 ? 1 : dynsize,
                           Tlhs.storageOrder) TypeOfResultMatrix;
         else static if(op == "*")
             alias Matrix!(TypeOfOp!(Tlhs.ElementType,
                                     op, Trhs.ElementType),
-                          Tlhs.dimPattern[0], Trhs.dimPattern[1],
+                          Tlhs.dimPattern[0] == 1 ? 1 : dynsize,
+                          Trhs.dimPattern[1] == 1 ? 1 : dynsize,
                           Tlhs.storageOrder) TypeOfResultMatrix;
         else
             alias void TypeOfResultMatrix;
     }
     else static if(isMatrix!Tlhs && (op == "*" || op == "/"))
          alias Matrix!(TypeOfOp!(Tlhs.ElementType, op, Trhs),
-                       Tlhs.dimPattern[0], Tlhs.dimPattern[1],
+                       Tlhs.dimPattern[0] == 1 ? 1 : dynsize,
+                       Tlhs.dimPattern[1] == 1 ? 1 : dynsize,
                        Tlhs.storageOrder) TypeOfResultMatrix;
     else static if(isMatrix!Trhs && (op == "*"))
          alias Matrix!(TypeOfOp!(Tlhs, op, Trhs.ElementType),
-                       Trhs.dimPattern[0], Trhs.dimPattern[1],
+                       Trhs.dimPattern[0] == 1 ? 1 : dynsize,
+                       Trhs.dimPattern[1] == 1 ? 1 : dynsize,
                        Trhs.storageOrder) TypeOfResultMatrix;
     else
         alias void TypeOfResultMatrix;
