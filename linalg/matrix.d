@@ -1262,6 +1262,59 @@ unittest // Matrix += and -=
     }
 }
 
+unittest // Matrix + and -
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Matrix + and -");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    immutable int[] src1 = [1, 2, 3, 4, 5, 6];
+    immutable int[] src2 = [11, 22, 33, 44, 55, 66];
+    {
+        auto a = Matrix!(int, 2, 3)(src1);
+        auto b = Matrix!(int, 2, 3)(src2);
+        auto c = a + b;
+        assert(cast(int[][]) c == [[12, 24, 36],
+                                   [48, 60, 72]]);
+        c = b - a;
+        assert(cast(int[][]) c == [[10, 20, 30],
+                                   [40, 50, 60]]);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(src1, 2, 3);
+        auto b = Matrix!(int, 2, 3)(src2);
+        auto c = a + b;
+        assert(cast(int[][]) c == [[12, 24, 36],
+                                   [48, 60, 72]]);
+        c = b - a;
+        assert(cast(int[][]) c == [[10, 20, 30],
+                                   [40, 50, 60]]);
+    }
+    {
+        auto a = Matrix!(int, 2, 3)(src1);
+        auto b = Matrix!(int, dynsize, dynsize)(src2, 2, 3);
+        auto c = a + b;
+        assert(cast(int[][]) c == [[12, 24, 36],
+                                   [48, 60, 72]]);
+        c = b - a;
+        assert(cast(int[][]) c == [[10, 20, 30],
+                                   [40, 50, 60]]);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(src1, 2, 3);
+        auto b = Matrix!(int, dynsize, dynsize)(src2, 2, 3);
+        auto c = a + b;
+        assert(cast(int[][]) c == [[12, 24, 36],
+                                   [48, 60, 72]]);
+        c = b - a;
+        assert(cast(int[][]) c == [[10, 20, 30],
+                                   [40, 50, 60]]);
+    }
+}
+
 version(oldUnittests)
 {
     unittest // Static
