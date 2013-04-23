@@ -235,39 +235,22 @@ struct StorageRegular1D(T, size_t dim_)
             return _dim;
         }
 
-        auto opIndex() pure
+        auto opIndex() pure inout
         {
             debug(slice) debugOP.writeln("slice");
-            return StorageRegular1D!(ElementType, dynsize)(
+            return inout(StorageRegular1D!(ElementType, dynsize))(
                 _container[], length, _stride);
         }
 
-        //XXX: DMD issue 9983
-        auto opIndex() pure const
-        {
-            debug(slice) debugOP.writeln("slice");
-            return StorageRegular1D!(const(ElementType), dynsize)(
-                _container[], length, _stride);
-        }
-
-        auto opIndex(size_t i) pure inout
+        ref auto opIndex(size_t i) pure inout
         {
             return _container[_mapIndex(i)];
         }
 
-        auto opIndex(Slice s) pure
+        auto opIndex(Slice s) pure inout
         {
             debug(slice) debugOP.writeln("slice ", s);
-            return StorageRegular1D!(ElementType, dynsize)(
-                _container[_mapIndex(s.lo).._mapIndex(s.upReal)],
-                s.length, _stride);
-        }
-
-        //XXX: DMD issue 9983
-        auto opIndex(Slice s) pure const
-        {
-            debug(slice) debugOP.writeln("slice ", s);
-            return StorageRegular1D!(const(ElementType), dynsize)(
+            return inout(StorageRegular1D!(ElementType, dynsize))(
                 _container[_mapIndex(s.lo).._mapIndex(s.upReal)],
                 s.length, _stride);
         }
@@ -285,7 +268,7 @@ struct StorageRegular1D(T, size_t dim_)
             debugOP.writeln("...");
             mixin(debugIndentScope);
         }
-        auto result = StorageRegular1D!(ElementType, dynsize)(_dim);
+        auto result = StorageRegular1D!(Unqual!ElementType, dynsize)(_dim);
         copy(this, result);
         return result;
     }
@@ -300,13 +283,13 @@ struct StorageRegular1D(T, size_t dim_)
     {
         @property auto byElement() pure
         {
-            return ByElement!(ElementType, 1, true)(
+            return ByElement!(ElementType, 1)(
                 _container, _dim, _stride);
         }
 
         @property auto byElement() pure const
         {
-            return ByElement!(ElementType, 1, false)(
+            return ByElement!(const(ElementType), 1)(
                 _container, _dim, _stride);
         }
     }
