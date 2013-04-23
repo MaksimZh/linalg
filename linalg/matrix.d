@@ -169,7 +169,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                         "storage<%X>", &(this.storage));
                     mixin(debugIndentScope);
                 }
-                this(StorageType(array));
+                this(inout(StorageType)(array));
             }
 
             /** Allocate new vector of given length */
@@ -253,7 +253,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                         "storage<%X>", &(this.storage));
                     mixin(debugIndentScope);
                 }
-                this(StorageType(array, [nrows, ncols]));
+                this(inout(StorageType)(array, [nrows, ncols]));
             }
         }
     }
@@ -345,64 +345,64 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 
         static if(isVector)
         {
-            ref inout auto opIndex() pure inout
+            ref auto opIndex() pure inout
             {
-                return Matrix!(ElementType,
-                               dimPattern[0] == 1 ? 1 : dynsize,
-                               dimPattern[1] == 1 ? 1 : dynsize,
-                               storageOrder, false)(storage.opIndex());
+                return inout(Matrix!(ElementType,
+                                     dimPattern[0] == 1 ? 1 : dynsize,
+                                     dimPattern[1] == 1 ? 1 : dynsize,
+                                     storageOrder, false))(storage.opIndex());
             }
 
-            ref inout auto opIndex(size_t i) pure inout
+            ref auto opIndex(size_t i) pure inout
             {
                 return storage[i];
             }
 
-            ref inout auto opIndex(Slice s) pure inout
+            ref auto opIndex(Slice s) pure inout
             {
-                return Matrix!(ElementType,
-                               dimPattern[0] == 1 ? 1 : dynsize,
-                               dimPattern[1] == 1 ? 1 : dynsize,
-                               storageOrder, false)(storage.opIndex(s));
+                return inout(Matrix!(ElementType,
+                                     dimPattern[0] == 1 ? 1 : dynsize,
+                                     dimPattern[1] == 1 ? 1 : dynsize,
+                                     storageOrder, false))(storage.opIndex(s));
             }
         }
         else
         {
-            ref inout auto opIndex() pure inout
+            ref auto opIndex() pure inout
             {
-                return Matrix!(ElementType,
-                               dimPattern[0] == 1 ? 1 : dynsize,
-                               dimPattern[1] == 1 ? 1 : dynsize,
-                               storageOrder, false)(storage.opIndex());
+                return inout(Matrix!(ElementType,
+                                     dimPattern[0] == 1 ? 1 : dynsize,
+                                     dimPattern[1] == 1 ? 1 : dynsize,
+                                     storageOrder, false))(storage.opIndex());
             }
 
-            ref inout auto opIndex(size_t irow, size_t icol) pure inout
+            ref auto opIndex(size_t irow, size_t icol) pure inout
             {
                 return storage[irow, icol];
             }
 
-            ref inout auto opIndex(Slice srow, size_t icol) pure inout
+            ref auto opIndex(Slice srow, size_t icol) pure inout
             {
-                return Matrix!(ElementType,
-                               dynsize, 1,
-                               storageOrder, false)(
-                    storage.opIndex(srow, icol));
+                return inout(Matrix!(ElementType,
+                                     dynsize, 1,
+                                     storageOrder, false))(
+                                         storage.opIndex(srow, icol));
             }
 
-            ref inout auto opIndex(size_t irow, Slice scol) pure inout
+            ref auto opIndex(size_t irow, Slice scol) pure inout
             {
-                return Matrix!(ElementType,
-                               1, dynsize,
-                               storageOrder, false)(
-                    storage.opIndex(irow, scol));
+                return inout(Matrix!(ElementType,
+                                     1, dynsize,
+                                     storageOrder, false))(
+                                         storage.opIndex(irow, scol));
             }
 
-            ref inout auto opIndex(Slice srow, Slice scol) pure inout
+            ref auto opIndex(Slice srow, Slice scol) pure inout
             {
-                return Matrix!(ElementType,
-                               dynsize, dynsize,
-                               storageOrder, false)(
-                    storage.opIndex(srow, scol));
+                return inout(Matrix!(ElementType,
+                                     dynsize, dynsize,
+                                     storageOrder, false))(
+                                         storage.opIndex(srow, scol));
             }
         }
     }
