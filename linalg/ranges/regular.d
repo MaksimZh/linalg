@@ -425,21 +425,21 @@ version(unittest)
 {
     struct Foo2(T)
     {
-        const StorageRegular2D!(T, StorageOrder.row,
-                                dynsize, dynsize) storage;
+        StorageRegular2D!(T, StorageOrder.row,
+                          dynsize, dynsize) storage;
 
-        this(const StorageRegular2D!(T, StorageOrder.row,
-                                     dynsize, dynsize) storage) const
+        this(StorageRegular2D!(T, StorageOrder.row,
+                               dynsize, dynsize) storage)
         {
             this.storage = storage;
         }
 
-        auto eval() pure const
+        auto eval() pure
         {
             return cast(T[][]) storage;
         }
 
-        string toString() const
+        string toString()
         {
             return to!string(cast(T[][]) storage);
         }
@@ -455,7 +455,7 @@ unittest
     }
     else debug mixin(debugSilentScope);
 
-    auto rng = ByBlock!(int, Foo2!int, StorageOrder.row, false)(
+    auto rng = ByBlock!(int, Foo2!int, StorageOrder.row)(
         array(iota(24)), [4, 6], [6, 1], [2, 3]);
     int[][][] result = [];
     foreach(r; rng)

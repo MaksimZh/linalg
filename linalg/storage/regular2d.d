@@ -317,12 +317,12 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             return dim[dimIndex];
         }
 
-        ref inout auto opIndex() pure inout
+        auto opIndex() pure inout
         {
             debug(slice) debugOP.writeln("slice");
-            return StorageRegular2D!(ElementType, storageOrder,
-                                     dynsize, dynsize)(
-                                         _container[], _dim, _stride);
+            return inout(StorageRegular2D!(ElementType, storageOrder,
+                                           dynsize, dynsize))(
+                                               _container[], _dim, _stride);
         }
 
         ref inout auto opIndex(size_t irow, size_t icol) pure inout
@@ -333,36 +333,37 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         ref inout auto opIndex(Slice srow, size_t icol) pure inout
         {
             debug(slice) debugOP.writeln("slice ", srow, ", ", icol);
-            return StorageRegular1D!(ElementType, dynsize)(
+            return inout(StorageRegular1D!(ElementType, dynsize))(
                 _container[_mapIndex(srow.lo, icol)
-                          ..
-                          _mapIndex(srow.upReal - 1, icol) + 1],
+                           ..
+                           _mapIndex(srow.upReal - 1, icol) + 1],
                 srow.length, _stride[0] * srow.stride);
         }
 
         ref inout auto opIndex(size_t irow, Slice scol) pure inout
         {
             debug(slice) debugOP.writeln("slice ", irow, ", ", scol);
-            return StorageRegular1D!(ElementType, dynsize)(
+            return inout(StorageRegular1D!(ElementType, dynsize))(
                 _container[_mapIndex(irow, scol.lo)
-                          ..
-                          _mapIndex(irow, scol.upReal - 1) + 1],
+                           ..
+                           _mapIndex(irow, scol.upReal - 1) + 1],
                 scol.length, _stride[1] * scol.stride);
         }
 
         ref inout auto opIndex(Slice srow, Slice scol) pure inout
         {
             debug(slice) debugOP.writeln("slice ", srow, ", ", scol);
-            return StorageRegular2D!(ElementType, storageOrder,
-                                     dynsize, dynsize)(
-                                         _container[_mapIndex(srow.lo, scol.lo)
-                                                   ..
-                                                   _mapIndex(srow.upReal - 1,
-                                                             scol.upReal - 1)
-                                                   + 1],
-                                         [srow.length, scol.length],
-                                         [_stride[0] * srow.stride,
-                                          _stride[1] * scol.stride]);
+            return inout(StorageRegular2D!(
+                             ElementType, storageOrder,
+                             dynsize, dynsize))(
+                                 _container[_mapIndex(srow.lo, scol.lo)
+                                            ..
+                                            _mapIndex(srow.upReal - 1,
+                                                      scol.upReal - 1)
+                                            + 1],
+                                 [srow.length, scol.length],
+                                 [_stride[0] * srow.stride,
+                                  _stride[1] * scol.stride]);
         }
     }
 
@@ -391,19 +392,19 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
     {
         @property auto byElement() pure
         {
-            return ByElement!(ElementType, 2, true)(
+            return ByElement!(ElementType, 2)(
                 _container, _dim, _stride);
         }
 
         @property auto byElement() pure const
         {
-            return ByElement!(ElementType, 2, false)(
+            return ByElement!(const(ElementType), 2)(
                 _container, _dim, _stride);
         }
 
         @property auto byRow()() pure
         {
-            return ByLine!(ElementType, void, true)(
+            return ByLine!(ElementType, void)(
                 _container,
                 [_dim[0], _dim[1]],
                 [_stride[0], _stride[1]]);
@@ -411,7 +412,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
         @property auto byRow()() pure const
         {
-            return ByLine!(ElementType, void, false)(
+            return ByLine!(const(ElementType), void)(
                 _container,
                 [_dim[0], _dim[1]],
                 [_stride[0], _stride[1]]);
@@ -419,7 +420,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
         @property auto byCol()() pure
         {
-            return ByLine!(ElementType, void, true)(
+            return ByLine!(ElementType, void)(
                 _container,
                 [_dim[1], _dim[0]],
                 [_stride[1], _stride[0]]);
@@ -427,7 +428,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
         @property auto byCol()() pure const
         {
-            return ByLine!(ElementType, void, false)(
+            return ByLine!(const(ElementType), void)(
                 _container,
                 [_dim[1], _dim[0]],
                 [_stride[1], _stride[0]]);
@@ -435,7 +436,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
         @property auto byRow(ResultType)() pure
         {
-            return ByLine!(ElementType, ResultType, true)(
+            return ByLine!(ElementType, ResultType)(
                 _container,
                 [_dim[0], _dim[1]],
                 [_stride[0], _stride[1]]);
@@ -443,7 +444,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
         @property auto byRow(ResultType)() pure const
         {
-            return ByLine!(ElementType, ResultType, false)(
+            return ByLine!(const(ElementType), ResultType)(
                 _container,
                 [_dim[0], _dim[1]],
                 [_stride[0], _stride[1]]);
@@ -451,7 +452,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
         @property auto byCol(ResultType)() pure
         {
-            return ByLine!(ElementType, ResultType, true)(
+            return ByLine!(ElementType, ResultType)(
                 _container,
                 [_dim[1], _dim[0]],
                 [_stride[1], _stride[0]]);
@@ -459,7 +460,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
         @property auto byCol(ResultType)() pure const
         {
-            return ByLine!(ElementType, ResultType, false)(
+            return ByLine!(const(ElementType), ResultType)(
                 _container,
                 [_dim[1], _dim[0]],
                 [_stride[1], _stride[0]]);
@@ -467,25 +468,25 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
         @property auto byBlock()(size_t[2] subdim) pure
         {
-            return ByBlock!(ElementType, void, storageOrder, true)(
+            return ByBlock!(ElementType, void, storageOrder)(
                 _container, _dim, _stride, subdim);
         }
 
         @property auto byBlock()(size_t[2] subdim) pure const
         {
-            return ByBlock!(ElementType, void, storageOrder, false)(
+            return ByBlock!(const(ElementType), void, storageOrder)(
                 _container, _dim, _stride, subdim);
         }
 
         @property auto byBlock(ResultType)(size_t[2] subdim) pure
         {
-            return ByBlock!(ElementType, ResultType, storageOrder, true)(
+            return ByBlock!(ElementType, ResultType, storageOrder)(
                 _container, _dim, _stride, subdim);
         }
 
         @property auto byBlock(ResultType)(size_t[2] subdim) pure const
         {
-            return ByBlock!(ElementType, ResultType, storageOrder, false)(
+            return ByBlock!(const(ElementType), ResultType, storageOrder)(
                 _container, _dim, _stride, subdim);
         }
     }
