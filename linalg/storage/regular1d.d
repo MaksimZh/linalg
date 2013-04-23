@@ -341,9 +341,6 @@ unittest // Static
     foreach(ref t; d.byElement)
         t = 4;
     assert(cast(int[]) d == [4, 4, 4, 4]);
-    foreach(ref t; ib.byElement)
-        t = 4;
-    assert(cast(int[]) ib == [0, 1, 2, 3]);
 
     // Indices
     assert(b[0] == 0);
@@ -411,9 +408,6 @@ unittest // Dynamic
     foreach(ref t; d.byElement)
         t = 4;
     assert(cast(int[]) d == [4, 4, 4, 4]);
-    foreach(ref t; ib.byElement)
-        t = 4;
-    assert(cast(int[]) ib == [0, 1, 2, 3]);
 
     // Indices
     assert(b[0] == 0);

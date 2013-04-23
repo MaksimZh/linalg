@@ -557,11 +557,6 @@ unittest // Static
     assert(cast(int[][]) d == [[14, 14, 14, 14],
                                [14, 14, 14, 14],
                                [14, 14, 14, 14]]);
-    foreach(ref t; ib.byElement)
-        t = 4;
-    assert(cast(int[][]) ib == [[0, 1, 2, 3],
-                                [4, 5, 6, 7],
-                                [8, 9, 10, 11]]);
 
     // Indices
     assert(b[0, 0] == 0);
@@ -667,11 +662,6 @@ unittest // Dynamic
     assert(cast(int[][]) d == [[14, 14, 14, 14],
                                [14, 14, 14, 14],
                                [14, 14, 14, 14]]);
-    foreach(ref t; ib.byElement)
-        t = 4;
-    assert(cast(int[][]) ib == [[0, 1, 2, 3],
-                                [4, 5, 6, 7],
-                                [8, 9, 10, 11]]);
 
     // Indices
     assert(b[0, 0] == 0);
