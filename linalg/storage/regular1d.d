@@ -77,7 +77,7 @@ struct StorageRegular1D(T, size_t dim_)
     /* Constructors */
     static if(isStatic)
     {
-        inout this()(inout ElementType[] array) pure
+        inout this(inout ElementType[] array) pure
             in
             {
                 assert(array.length == _container.length);
@@ -101,7 +101,7 @@ struct StorageRegular1D(T, size_t dim_)
     }
     else
     {
-        this()(size_t dim)
+        this(size_t dim)
         {
             debug(storage)
             {
@@ -120,7 +120,7 @@ struct StorageRegular1D(T, size_t dim_)
             _reallocate();
         }
 
-        inout this()(inout ElementType[] array) pure
+        inout this(inout ElementType[] array) pure
         {
             debug(storage)
             {
@@ -138,7 +138,7 @@ struct StorageRegular1D(T, size_t dim_)
             this(array, array.length, 1);
         }
 
-        inout this()(inout ElementType[] array,
+        inout this(inout ElementType[] array,
                      size_t dim, size_t stride) pure
         {
             debug(storage)
@@ -235,22 +235,39 @@ struct StorageRegular1D(T, size_t dim_)
             return _dim;
         }
 
-        ref inout auto opIndex() pure inout
+        auto opIndex() pure
         {
             debug(slice) debugOP.writeln("slice");
             return StorageRegular1D!(ElementType, dynsize)(
                 _container[], length, _stride);
         }
 
-        ref inout auto opIndex(size_t i) pure inout
+        //XXX: DMD issue 9983
+        auto opIndex() pure const
+        {
+            debug(slice) debugOP.writeln("slice");
+            return StorageRegular1D!(const(ElementType), dynsize)(
+                _container[], length, _stride);
+        }
+
+        auto opIndex(size_t i) pure inout
         {
             return _container[_mapIndex(i)];
         }
 
-        ref inout auto opIndex(Slice s) pure inout
+        auto opIndex(Slice s) pure
         {
             debug(slice) debugOP.writeln("slice ", s);
             return StorageRegular1D!(ElementType, dynsize)(
+                _container[_mapIndex(s.lo).._mapIndex(s.upReal)],
+                s.length, _stride);
+        }
+
+        //XXX: DMD issue 9983
+        auto opIndex(Slice s) pure const
+        {
+            debug(slice) debugOP.writeln("slice ", s);
+            return StorageRegular1D!(const(ElementType), dynsize)(
                 _container[_mapIndex(s.lo).._mapIndex(s.upReal)],
                 s.length, _stride);
         }
