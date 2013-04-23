@@ -268,19 +268,19 @@ version(unittest)
 {
     struct Foo(T)
     {
-        const StorageRegular1D!(T, dynsize) storage;
+        StorageRegular1D!(T, dynsize) storage;
 
-        this(const StorageRegular1D!(T, dynsize) storage) const
+        this(StorageRegular1D!(T, dynsize) storage)
         {
             this.storage = storage;
         }
 
-        auto eval() pure const
+        auto eval() pure
         {
             return cast(T[]) storage;
         }
 
-        string toString() const
+        string toString()
         {
             return to!string(cast(T[]) storage);
         }
@@ -296,7 +296,8 @@ unittest
     }
     else debug mixin(debugSilentScope);
 
-    auto rng = ByLine!(int, Foo!int, false)(array(iota(24)), [6, 4], [4, 1]);
+    auto rng = ByLine!(int, Foo!int)(
+        array(iota(24)), [6, 4], [4, 1]);
     int[][] result = [];
     foreach(r; rng)
         result ~= [r.eval()];
@@ -317,7 +318,8 @@ unittest
     }
     else debug mixin(debugSilentScope);
 
-    auto rng = ByLine!(int, Foo!int, false)(array(iota(24)), [4, 6], [1, 4]);
+    auto rng = ByLine!(int, Foo!int)(
+        array(iota(24)), [4, 6], [1, 4]);
     int[][] result = [];
     foreach(r; rng)
         result ~= [r.eval()];
