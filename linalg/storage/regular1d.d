@@ -139,7 +139,7 @@ struct StorageRegular1D(T, size_t dim_)
         }
 
         inout this(inout ElementType[] array,
-                     size_t dim, size_t stride) pure
+                   size_t dim, size_t stride) pure
         {
             debug(storage)
             {

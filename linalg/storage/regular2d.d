@@ -106,7 +106,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
     /* Constructors */
     static if(isStatic)
     {
-        inout this(inout ElementType[] array) pure
+        inout this()(inout ElementType[] array) pure
             in
             {
                 assert(array.length == _container.length);
@@ -130,7 +130,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
     }
     else
     {
-        this(in size_t[2] dim)
+        this()(in size_t[2] dim)
         {
             debug(storage)
             {
@@ -149,7 +149,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             _reallocate();
         }
 
-        inout this(inout ElementType[] array, in size_t[2] dim) pure
+        inout this()(inout ElementType[] array, in size_t[2] dim) pure
         {
             debug(storage)
             {
@@ -168,8 +168,8 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             this(array, dim, calcStrides!storageOrder(dim));
         }
 
-        inout this(inout ElementType[] array,
-                   in size_t[2] dim, in size_t[2] stride) pure
+        inout this()(inout ElementType[] array,
+                     in size_t[2] dim, in size_t[2] stride) pure
         {
             debug(storage)
             {
