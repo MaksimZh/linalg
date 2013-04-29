@@ -111,7 +111,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     /* Creates matrix for storage. For internal use only.
      * Public because used by ranges.
      */
-    inout this(inout StorageType storage) pure
+     this( StorageType storage) pure
     {
         debug(matrix)
         {
@@ -133,7 +133,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     static if(isStatic)
     {
         /** Create static shallow copy of array and wrap it. */
-        inout this(inout ElementType[] array) pure
+         this( ElementType[] array) pure
         {
             debug(matrix)
             {
@@ -156,7 +156,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         static if(isVector)
         {
             /** Create vector wrapping array */
-            inout this(inout ElementType[] array) pure
+             this( ElementType[] array) pure
             {
                 debug(matrix)
                 {
@@ -169,7 +169,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                         "storage<%X>", &(this.storage));
                     mixin(debugIndentScope);
                 }
-                this(inout(StorageType)(array));
+                this((StorageType)(array));
             }
 
             /** Allocate new vector of given length */
@@ -237,7 +237,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             }
 
             /** Wrap array with a matrix with given dimensions */
-            inout this(inout ElementType[] array,
+             this( ElementType[] array,
                        size_t nrows, size_t ncols) pure
             {
                 debug(matrix)
@@ -253,7 +253,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                         "storage<%X>", &(this.storage));
                     mixin(debugIndentScope);
                 }
-                this(inout(StorageType)(array, [nrows, ncols]));
+                this((StorageType)(array, [nrows, ncols]));
             }
         }
     }
@@ -266,22 +266,22 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         static if(shape == MatrixShape.matrix)
         {
             /** Dimensions of matrix */
-            @property size_t nrows() pure const { return storage.nrows; }
-            @property size_t ncols() pure const { return storage.ncols; } //ditto
+            @property size_t nrows() pure  { return storage.nrows; }
+            @property size_t ncols() pure  { return storage.ncols; } //ditto
         }
         else static if(shape == MatrixShape.row)
         {
             enum size_t nrows = 1;
-            @property size_t ncols() pure const { return storage.length; }
+            @property size_t ncols() pure  { return storage.length; }
         }
         else static if(shape == MatrixShape.col)
         {
-            @property size_t nrows() pure const { return storage.length; }
+            @property size_t nrows() pure  { return storage.length; }
             enum size_t ncols = 1;
         }
         else static assert(false);
         /** Dimensions of matrix */
-        @property size_t[2] dim() pure const { return [nrows, ncols]; }
+        @property size_t[2] dim() pure  { return [nrows, ncols]; }
 
         /** Test dimensions for compatibility */
         bool isCompatDim(in size_t[2] dim) pure
@@ -324,7 +324,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
          * Whether matrix is empty (not allocated).
          * Always false for static matrix.
          */
-        @property bool empty() pure const
+        @property bool empty() pure 
         {
             static if(isStatic)
                 return false;
@@ -338,29 +338,29 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         //NOTE: depends on DMD pull-request 443
         mixin sliceOverload;
 
-        size_t opDollar(size_t dimIndex)() pure const
+        size_t opDollar(size_t dimIndex)() pure 
         {
             return storage.opDollar!dimIndex;
         }
 
         static if(isVector)
         {
-            ref auto opIndex() pure inout
+            ref auto opIndex() pure 
             {
-                return inout(Matrix!(ElementType,
+                return (Matrix!(ElementType,
                                      dimPattern[0] == 1 ? 1 : dynsize,
                                      dimPattern[1] == 1 ? 1 : dynsize,
                                      storageOrder, false))(storage.opIndex());
             }
 
-            ref auto opIndex(size_t i) pure inout
+            ref auto opIndex(size_t i) pure 
             {
                 return storage[i];
             }
 
-            ref auto opIndex(Slice s) pure inout
+            ref auto opIndex(Slice s) pure 
             {
-                return inout(Matrix!(ElementType,
+                return (Matrix!(ElementType,
                                      dimPattern[0] == 1 ? 1 : dynsize,
                                      dimPattern[1] == 1 ? 1 : dynsize,
                                      storageOrder, false))(storage.opIndex(s));
@@ -368,38 +368,38 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         }
         else
         {
-            ref auto opIndex() pure inout
+            ref auto opIndex() pure 
             {
-                return inout(Matrix!(ElementType,
+                return (Matrix!(ElementType,
                                      dimPattern[0] == 1 ? 1 : dynsize,
                                      dimPattern[1] == 1 ? 1 : dynsize,
                                      storageOrder, false))(storage.opIndex());
             }
 
-            ref auto opIndex(size_t irow, size_t icol) pure inout
+            ref auto opIndex(size_t irow, size_t icol) pure 
             {
                 return storage[irow, icol];
             }
 
-            ref auto opIndex(Slice srow, size_t icol) pure inout
+            ref auto opIndex(Slice srow, size_t icol) pure 
             {
-                return inout(Matrix!(ElementType,
+                return (Matrix!(ElementType,
                                      dynsize, 1,
                                      storageOrder, false))(
                                          storage.opIndex(srow, icol));
             }
 
-            ref auto opIndex(size_t irow, Slice scol) pure inout
+            ref auto opIndex(size_t irow, Slice scol) pure 
             {
-                return inout(Matrix!(ElementType,
+                return (Matrix!(ElementType,
                                      1, dynsize,
                                      storageOrder, false))(
                                          storage.opIndex(irow, scol));
             }
 
-            ref auto opIndex(Slice srow, Slice scol) pure inout
+            ref auto opIndex(Slice srow, Slice scol) pure 
             {
-                return inout(Matrix!(ElementType,
+                return (Matrix!(ElementType,
                                      dynsize, dynsize,
                                      storageOrder, false))(
                                          storage.opIndex(srow, scol));
@@ -410,13 +410,13 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     /* Cast to built-in array */
     static if(isVector)
     {
-        auto opCast(Tcast)() pure const
+        auto opCast(Tcast)() pure 
             if(is(Tcast == ElementType[]))
         {
             return cast(Tcast) storage;
         }
 
-        auto opCast(Tcast)() pure const
+        auto opCast(Tcast)() pure 
             if(is(Tcast == ElementType[][]))
         {
             return cast(Tcast)
@@ -429,14 +429,14 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     }
     else
     {
-        ElementType[][] opCast() pure const
+        ElementType[][] opCast() pure 
         {
             return cast(typeof(return)) storage;
         }
     }
 
     /** Create shallow copy of matrix */
-    @property auto dup() pure const
+    @property auto dup() pure 
     {
         debug(storage)
         {
@@ -454,7 +454,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     public // Operations
     {
         static if(isStatic)
-            ref auto opAssign(Tsource)(auto ref const Tsource source) pure
+            ref auto opAssign(Tsource)(auto ref  Tsource source) pure
                 if(isMatrix!Tsource)
             {
                 debug(matrix)
@@ -494,7 +494,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         /* Unary operations
          */
 
-        ref auto opUnary(string op)() pure inout
+        ref auto opUnary(string op)() pure 
             if(op == "+")
         {
             debug(matrix)
@@ -507,7 +507,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             return this;
         }
 
-        ref auto opUnary(string op)() pure const
+        ref auto opUnary(string op)() pure 
             if(op == "-")
         {
             debug(matrix)
@@ -531,7 +531,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
          */
 
         ref auto opOpAssign(string op, Tsource)(
-            auto ref const Tsource source) pure
+            auto ref  Tsource source) pure
             if(isMatrix!Tsource && (op == "+" || op == "-"))
         {
             debug(matrix)
@@ -564,7 +564,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         }
 
         auto opBinary(string op, Trhs)(
-            auto ref const Trhs rhs) pure const
+            auto ref  Trhs rhs) pure 
             if(isMatrix!Trhs && (op == "+" || op == "-"))
         {
             debug(matrix)
@@ -606,7 +606,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
          */
 
         ref auto opOpAssign(string op, Tsource)(
-            auto ref const Tsource source) pure
+            auto ref  Tsource source) pure
             if(!(isMatrix!Tsource) && (op == "*" || op == "/")
                && is(TypeOfOp!(ElementType, op, Tsource) == ElementType))
         {
@@ -624,7 +624,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         }
 
         auto opBinary(string op, Trhs)(
-            auto ref const Trhs rhs) pure const
+            auto ref  Trhs rhs) pure 
             if(!(isMatrix!Trhs) && (op == "*" || op == "/"))
         {
             debug(matrix)
@@ -647,7 +647,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
          * can be non-commutative
          */
         auto opBinaryRight(string op, Tlhs)(
-            auto ref const Tlhs lhs) pure const
+            auto ref  Tlhs lhs) pure 
             if(!(isMatrix!Tlhs) && op == "*")
         {
             debug(matrix)
@@ -670,7 +670,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
          */
 
         ref auto opOpAssign(string op, Tsource)(
-            auto ref const Tsource source) pure
+            auto ref  Tsource source) pure
             if(isMatrix!Tsource && op == "*")
         {
             debug(matrix)
@@ -685,7 +685,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         }
 
         auto opBinary(string op, Trhs)(
-            auto ref const Trhs rhs) pure const
+            auto ref  Trhs rhs) pure 
             if(isMatrix!Trhs && op == "*")
         {
             debug(matrix)
@@ -784,7 +784,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
          * Return transposed matrix for real matrix or
          * conjugated and transposed matrix for complex matrix.
          */
-        @property ref auto conj() pure const
+        @property ref auto conj() pure 
         {
             debug(matrix)
             {
@@ -809,7 +809,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             return storage.byElement();
         }
 
-        @property auto byElement() pure const
+        @property auto byElement() pure 
         {
             return storage.byElement();
         }
@@ -822,7 +822,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                                               storageOrder, false))();
             }
 
-            @property auto byRow() pure const
+            @property auto byRow() pure 
             {
                 return storage.byRow!(Matrix!(ElementType, 1, dynsize,
                                               storageOrder, false))();
@@ -834,7 +834,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                                               storageOrder, false))();
             }
 
-            @property auto byCol() pure const
+            @property auto byCol() pure 
             {
                 return storage.byCol!(Matrix!(ElementType, dynsize, 1,
                                               storageOrder, false))();
@@ -847,7 +847,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                                                 storageOrder, false))(subdim);
             }
 
-            @property auto byBlock(size_t[2] subdim) pure const
+            @property auto byBlock(size_t[2] subdim) pure 
             {
                 return storage.byBlock!(Matrix!(ElementType,
                                                 dynsize, dynsize,
@@ -903,8 +903,8 @@ public // Map function
      * Map pure function over matrix.
      */
     auto map(alias fun, Tsource, Targs...)(
-        const auto ref Tsource source,
-        const auto ref Targs args) pure
+         auto ref Tsource source,
+         auto ref Targs args) pure
         if(isMatrix!Tsource)
     {
         Matrix!(typeof(fun(source[0, 0], args)),

@@ -18,7 +18,7 @@ import linalg.operations.basic;
 
 /* Hermitian conjugation of vector */
 void conjMatrix(Tsource, Tdest)(
-    const auto ref Tsource source, auto ref Tdest dest) pure
+     auto ref Tsource source, auto ref Tdest dest) pure
     if(isStorageRegular1D!Tsource && isStorageRegular1D!Tdest)
     in
     {
@@ -48,7 +48,7 @@ body
 
 /* Hermitian conjugation */
 void conjMatrix(Tsource, Tdest)(
-    const auto ref Tsource source, auto ref Tdest dest) pure
+     auto ref Tsource source, auto ref Tdest dest) pure
     if(isStorageRegular2D!Tsource && isStorageRegular2D!Tdest)
     in
     {

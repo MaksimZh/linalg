@@ -38,7 +38,7 @@ template safeUnaryFun(alias fun)
 {
     static if (is(typeof(fun) : string))
     {
-        auto safeUnaryFun(ElementType)(auto ref const ElementType a) pure
+        auto safeUnaryFun(ElementType)(auto ref  ElementType a) pure
         {
             mixin("return (" ~ fun ~ ");");
         }
@@ -55,8 +55,8 @@ template safeBinaryFun(alias fun)
     static if (is(typeof(fun) : string))
     {
         auto safeBinaryFun(ElementTypeA, ElementTypeB)(
-            auto ref const ElementTypeA a,
-            auto ref const ElementTypeB b) pure
+            auto ref  ElementTypeA a,
+            auto ref  ElementTypeB b) pure
         {
             mixin("return (" ~ fun ~ ");");
         }

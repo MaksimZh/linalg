@@ -35,11 +35,11 @@ struct ByElement(ElementType, size_t rank)
     private
     {
         ElementType[] _data;
-        const size_t _dim;
-        const size_t _stride;
+         size_t _dim;
+         size_t _stride;
 
         ElementType* _ptr;
-        const ElementType* _ptrFin;
+         ElementType* _ptrFin;
     }
 
     this(ElementType[] data, size_t dim, size_t stride) pure
@@ -63,7 +63,7 @@ struct ByElement(ElementType, size_t rank)
         _ptrFin = _data.ptr + dim * stride;
     }
 
-    @property bool empty() pure const { return _ptr >= _ptrFin; }
+    @property bool empty() pure  { return _ptr >= _ptrFin; }
     @property ref ElementType front() pure { return *_ptr; }
     void popFront() pure { _ptr += _stride; }
 }
@@ -74,8 +74,8 @@ struct ByElement(ElementType, size_t rank)
 {
     private
     {
-        const size_t[2] _dim;
-        const size_t[2] _stride;
+         size_t[2] _dim;
+         size_t[2] _stride;
         ElementType[] _data;
 
         ElementType* _ptr;
@@ -106,7 +106,7 @@ struct ByElement(ElementType, size_t rank)
         _empty = false;
     }
 
-    @property bool empty() pure const { return _empty; }
+    @property bool empty() pure  { return _empty; }
     @property ref ElementType front() pure { return *_ptr; }
 
     void popFront() pure
@@ -161,8 +161,8 @@ struct ByElement(ElementType, size_t rank)
     //TODO: optimize for 2d
     private
     {
-        const size_t[] _dim;
-        const size_t[] _stride;
+         size_t[] _dim;
+         size_t[] _stride;
         ElementType[] _data;
 
         uint _rank;
@@ -199,7 +199,7 @@ struct ByElement(ElementType, size_t rank)
         _empty = false;
     }
 
-    @property bool empty() pure const { return _empty; }
+    @property bool empty() pure  { return _empty; }
     @property ref ElementType front() pure { return *_ptr; }
 
     void popFront() pure
@@ -229,13 +229,13 @@ struct ByLine(ElementType, ResultType)
     private
     {
         ElementType[] _data;
-        const size_t _dimExt;
-        const size_t _strideExt;
-        const size_t _dimInt;
-        const size_t _strideInt;
+         size_t _dimExt;
+         size_t _strideExt;
+         size_t _dimInt;
+         size_t _strideInt;
 
         ElementType* _ptr;
-        const ElementType* _ptrFin;
+         ElementType* _ptrFin;
     }
 
     this(ElementType[] data, in size_t[2] dim, in size_t[2] stride) pure
@@ -249,7 +249,7 @@ struct ByLine(ElementType, ResultType)
         _ptrFin = _data.ptr + dim[0] * stride[0];
     }
 
-    @property bool empty() pure const { return _ptr >= _ptrFin; }
+    @property bool empty() pure  { return _ptr >= _ptrFin; }
 
     @property auto front() pure
     {
@@ -336,11 +336,11 @@ struct ByBlock(ElementType, ResultType, StorageOrder storageOrder)
 {
     private
     {
-        const size_t[2] _dim;
-        const size_t[2] _stride;
-        const size_t[2] _substride;
-        const size_t[2] _subdim;
-        const size_t _len;
+         size_t[2] _dim;
+         size_t[2] _stride;
+         size_t[2] _substride;
+         size_t[2] _subdim;
+         size_t _len;
         ElementType[] _data;
 
         ElementType* _ptr;
@@ -384,7 +384,7 @@ struct ByBlock(ElementType, ResultType, StorageOrder storageOrder)
         _empty = false;
     }
 
-    @property bool empty() pure const { return _empty; }
+    @property bool empty() pure  { return _empty; }
 
     @property auto front() pure
     {
