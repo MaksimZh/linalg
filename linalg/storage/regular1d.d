@@ -239,7 +239,7 @@ struct StorageRegular1D(T, size_t dim_)
         {
             debug(slice) debugOP.writeln("slice");
             return inout(StorageRegular1D!(ElementType, dynsize))(
-                _container[], length, _stride);
+                cast(inout)_container[], length, _stride);
         }
 
         ref auto opIndex(size_t i) pure inout
@@ -251,7 +251,7 @@ struct StorageRegular1D(T, size_t dim_)
         {
             debug(slice) debugOP.writeln("slice ", s);
             return inout(StorageRegular1D!(ElementType, dynsize))(
-                _container[_mapIndex(s.lo).._mapIndex(s.upReal)],
+                cast(inout)_container[_mapIndex(s.lo).._mapIndex(s.upReal)],
                 s.length, _stride);
         }
     }

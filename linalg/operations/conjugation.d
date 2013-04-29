@@ -70,8 +70,8 @@ body
         mixin(debugIndentScope);
     }
 
-    auto isource = source.byRow;
-    auto idest = dest.byCol;
+    auto isource = source.byRow();
+    auto idest = dest.byCol();
     while(!(isource.empty))
     {
         conjMatrix(isource.front, idest.front);
