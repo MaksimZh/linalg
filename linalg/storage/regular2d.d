@@ -192,7 +192,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             _stride = stride;
         }
 
-         this(Tsource)(ref  Tsource source) pure
+         this(Tsource)(ref Tsource source) pure
             if(isStorageRegular1D!Tsource)
         {
             debug(storage)
@@ -216,7 +216,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                 this(source.container, [source.dim, 1], [source.stride, 1]);
         }
 
-         this(Tsource)(ref  Tsource source) pure
+         this(Tsource)(ref Tsource source) pure
             if(isStorageRegular2D!Tsource)
         {
             debug(storage)
@@ -325,12 +325,12 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                                                _container[], _dim, _stride);
         }
 
-        ref  auto opIndex(size_t irow, size_t icol) pure
+        ref auto opIndex(size_t irow, size_t icol) pure
         {
             return _container[_mapIndex(irow, icol)];
         }
 
-        ref  auto opIndex(Slice srow, size_t icol) pure
+        ref auto opIndex(Slice srow, size_t icol) pure
         {
             debug(slice) debugOP.writeln("slice ", srow, ", ", icol);
             return StorageRegular1D!(ElementType, dynsize)(
@@ -340,7 +340,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                 srow.length, _stride[0] * srow.stride);
         }
 
-        ref  auto opIndex(size_t irow, Slice scol) pure
+        ref auto opIndex(size_t irow, Slice scol) pure
         {
             debug(slice) debugOP.writeln("slice ", irow, ", ", scol);
             return StorageRegular1D!(ElementType, dynsize)(
@@ -350,7 +350,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                 scol.length, _stride[1] * scol.stride);
         }
 
-        ref  auto opIndex(Slice srow, Slice scol) pure
+        ref auto opIndex(Slice srow, Slice scol) pure
         {
             debug(slice) debugOP.writeln("slice ", srow, ", ", scol);
             return StorageRegular2D!(

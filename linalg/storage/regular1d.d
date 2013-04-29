@@ -171,7 +171,7 @@ struct StorageRegular1D(T, size_t dim_)
         @property size_t stride() pure  { return _stride; }
 
         /* Test dimensions for compatibility */
-        bool isCompatDim(in size_t dim) pure 
+        bool isCompatDim(in size_t dim) pure
         {
             static if(isStatic)
             {
@@ -222,32 +222,32 @@ struct StorageRegular1D(T, size_t dim_)
     public // Slices and indices support
     {
         //NOTE: depends on DMD pull-request 443
-        private size_t _mapIndex(size_t i) pure 
+        private size_t _mapIndex(size_t i) pure
         {
             return i * _stride;
         }
 
         mixin sliceOverload;
 
-        size_t opDollar(size_t dimIndex)() pure 
+        size_t opDollar(size_t dimIndex)() pure
         {
             static assert(dimIndex == 0);
             return _dim;
         }
 
-        auto opIndex() pure 
+        auto opIndex() pure
         {
             debug(slice) debugOP.writeln("slice");
             return StorageRegular1D!(ElementType, dynsize)(
                 cast()_container[], length, _stride);
         }
 
-        ref auto opIndex(size_t i) pure 
+        ref auto opIndex(size_t i) pure
         {
             return _container[_mapIndex(i)];
         }
 
-        auto opIndex(Slice s) pure 
+        auto opIndex(Slice s) pure
         {
             debug(slice) debugOP.writeln("slice ", s);
             return StorageRegular1D!(ElementType, dynsize)(
@@ -259,7 +259,7 @@ struct StorageRegular1D(T, size_t dim_)
     /* Makes copy of the data and returns new storage referring to it.
        The storage returned is always dynamic.
     */
-    @property ref auto dup() pure 
+    @property ref auto dup() pure
     {
         debug(storage)
         {
@@ -274,7 +274,7 @@ struct StorageRegular1D(T, size_t dim_)
     }
 
     /* Convert to built-in array */
-    ElementType[] opCast() pure 
+    ElementType[] opCast() pure
     {
         return toArray(_container, _dim, _stride);
     }
