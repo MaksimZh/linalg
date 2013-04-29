@@ -169,7 +169,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                         "storage<%X>", &(this.storage));
                     mixin(debugIndentScope);
                 }
-                this((StorageType)(array));
+                this(StorageType(array));
             }
 
             /** Allocate new vector of given length */
@@ -253,7 +253,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                         "storage<%X>", &(this.storage));
                     mixin(debugIndentScope);
                 }
-                this((StorageType)(array, [nrows, ncols]));
+                this(StorageType(array, [nrows, ncols]));
             }
         }
     }
@@ -347,10 +347,10 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         {
             ref auto opIndex() pure 
             {
-                return (Matrix!(ElementType,
+                return Matrix!(ElementType,
                                      dimPattern[0] == 1 ? 1 : dynsize,
                                      dimPattern[1] == 1 ? 1 : dynsize,
-                                     storageOrder, false))(storage.opIndex());
+                                     storageOrder, false)(storage.opIndex());
             }
 
             ref auto opIndex(size_t i) pure 
@@ -360,20 +360,20 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 
             ref auto opIndex(Slice s) pure 
             {
-                return (Matrix!(ElementType,
+                return Matrix!(ElementType,
                                      dimPattern[0] == 1 ? 1 : dynsize,
                                      dimPattern[1] == 1 ? 1 : dynsize,
-                                     storageOrder, false))(storage.opIndex(s));
+                                     storageOrder, false)(storage.opIndex(s));
             }
         }
         else
         {
             ref auto opIndex() pure 
             {
-                return (Matrix!(ElementType,
+                return Matrix!(ElementType,
                                      dimPattern[0] == 1 ? 1 : dynsize,
                                      dimPattern[1] == 1 ? 1 : dynsize,
-                                     storageOrder, false))(storage.opIndex());
+                                     storageOrder, false)(storage.opIndex());
             }
 
             ref auto opIndex(size_t irow, size_t icol) pure 
@@ -383,25 +383,25 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 
             ref auto opIndex(Slice srow, size_t icol) pure 
             {
-                return (Matrix!(ElementType,
+                return Matrix!(ElementType,
                                      dynsize, 1,
-                                     storageOrder, false))(
+                                     storageOrder, false)(
                                          storage.opIndex(srow, icol));
             }
 
             ref auto opIndex(size_t irow, Slice scol) pure 
             {
-                return (Matrix!(ElementType,
+                return Matrix!(ElementType,
                                      1, dynsize,
-                                     storageOrder, false))(
+                                     storageOrder, false)(
                                          storage.opIndex(irow, scol));
             }
 
             ref auto opIndex(Slice srow, Slice scol) pure 
             {
-                return (Matrix!(ElementType,
+                return Matrix!(ElementType,
                                      dynsize, dynsize,
-                                     storageOrder, false))(
+                                     storageOrder, false)(
                                          storage.opIndex(srow, scol));
             }
         }
@@ -809,20 +809,9 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             return storage.byElement();
         }
 
-        @property auto byElement() pure 
-        {
-            return storage.byElement();
-        }
-
         static if(!isVector)
         {
             @property auto byRow() pure
-            {
-                return storage.byRow!(Matrix!(ElementType, 1, dynsize,
-                                              storageOrder, false))();
-            }
-
-            @property auto byRow() pure 
             {
                 return storage.byRow!(Matrix!(ElementType, 1, dynsize,
                                               storageOrder, false))();
@@ -834,20 +823,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                                               storageOrder, false))();
             }
 
-            @property auto byCol() pure 
-            {
-                return storage.byCol!(Matrix!(ElementType, dynsize, 1,
-                                              storageOrder, false))();
-            }
-
             @property auto byBlock(size_t[2] subdim) pure
-            {
-                return storage.byBlock!(Matrix!(ElementType,
-                                                dynsize, dynsize,
-                                                storageOrder, false))(subdim);
-            }
-
-            @property auto byBlock(size_t[2] subdim) pure 
             {
                 return storage.byBlock!(Matrix!(ElementType,
                                                 dynsize, dynsize,
@@ -977,7 +953,7 @@ unittest // Constructors, cast
     }
     else debug mixin(debugSilentScope);
 
-    immutable int[] a = [1, 2, 3, 4, 5, 6];
+    int[] a = [1, 2, 3, 4, 5, 6];
 
     assert(cast(int[][]) Matrix!(int, dynsize, dynsize)(
                StorageRegular2D!(int, StorageOrder.row, dynsize, dynsize)(
@@ -1023,7 +999,7 @@ unittest // Storage direct access
     }
     else debug mixin(debugSilentScope);
 
-    immutable int[] src = [1, 2, 3, 4, 5, 6];
+    int[] src = [1, 2, 3, 4, 5, 6];
 
     auto a = Matrix!(int, dynsize, dynsize, StorageOrder.row)(src, 2, 3);
     assert(a.storage.container.ptr == src.ptr);
@@ -1070,7 +1046,7 @@ unittest // Copying
     }
     else debug mixin(debugSilentScope);
 
-    immutable int[] src = [1, 2, 3, 4, 5, 6];
+    int[] src = [1, 2, 3, 4, 5, 6];
     int[] msrc = src.dup;
 
     {
@@ -1187,7 +1163,7 @@ unittest // Unary + and -
     }
     else debug mixin(debugSilentScope);
 
-    immutable int[] src = [1, 2, 3, 4, 5, 6];
+    int[] src = [1, 2, 3, 4, 5, 6];
     {
         auto a = Matrix!(int, 2, 3)(src);
         assert(cast(int[][]) (+a) == [[1, 2, 3],
@@ -1213,8 +1189,8 @@ unittest // Matrix += and -=
     }
     else debug mixin(debugSilentScope);
 
-    immutable int[] src1 = [1, 2, 3, 4, 5, 6];
-    immutable int[] src2 = [7, 8, 9, 10, 11, 12];
+    int[] src1 = [1, 2, 3, 4, 5, 6];
+    int[] src2 = [7, 8, 9, 10, 11, 12];
     /*NOTE
      * One has to use src1.dup even if a is static.
      * Will be resolved when mutable matrices referring
@@ -1271,8 +1247,8 @@ unittest // Matrix + and -
     }
     else debug mixin(debugSilentScope);
 
-    immutable int[] src1 = [1, 2, 3, 4, 5, 6];
-    immutable int[] src2 = [11, 22, 33, 44, 55, 66];
+    int[] src1 = [1, 2, 3, 4, 5, 6];
+    int[] src2 = [11, 22, 33, 44, 55, 66];
     {
         auto a = Matrix!(int, 2, 3)(src1);
         auto b = Matrix!(int, 2, 3)(src2);
@@ -1324,7 +1300,7 @@ unittest // Matrix *= scalar
     }
     else debug mixin(debugSilentScope);
 
-    immutable int[] src = [1, 2, 3, 4, 5, 6];
+    int[] src = [1, 2, 3, 4, 5, 6];
     /*NOTE
      * One has to use src.dup even if a is static.
      * Will be resolved when mutable matrices referring
@@ -1359,7 +1335,7 @@ unittest // Matrix * scalar
     }
     else debug mixin(debugSilentScope);
 
-    immutable int[] src = [1, 2, 3, 4, 5, 6];
+    int[] src = [1, 2, 3, 4, 5, 6];
     {
         auto a = Matrix!(int, 2, 3)(src);
         auto b = a * 2;
@@ -1405,8 +1381,8 @@ unittest // Matrix *=
      * immutable data are implemented.
      */
     {
-        immutable int[] src1 = [1, 2, 3, 4];
-        immutable int[] src2 = [7, 8, 9, 10];
+        int[] src1 = [1, 2, 3, 4];
+        int[] src2 = [7, 8, 9, 10];
         auto a = Matrix!(int, 2, 2)(src1.dup);
         auto b = Matrix!(int, 2, 2)(src2);
         a *= b;
@@ -1414,8 +1390,8 @@ unittest // Matrix *=
                                    [57, 64]]);
     }
     {
-        immutable int[] src1 = [1, 2, 3, 4, 5, 6];
-        immutable int[] src2 = [7, 8, 9, 10, 11, 12];
+        int[] src1 = [1, 2, 3, 4, 5, 6];
+        int[] src2 = [7, 8, 9, 10, 11, 12];
         auto a = Matrix!(int, dynsize, dynsize)(src1.dup, 2, 3);
         auto b = Matrix!(int, 3, 2)(src2);
         a *= b;
@@ -1423,8 +1399,8 @@ unittest // Matrix *=
                                    [139, 154]]);
     }
     {
-        immutable int[] src1 = [1, 2, 3, 4];
-        immutable int[] src2 = [7, 8, 9, 10];
+        int[] src1 = [1, 2, 3, 4];
+        int[] src2 = [7, 8, 9, 10];
         auto a = Matrix!(int, 2, 2)(src1.dup);
         auto b = Matrix!(int, dynsize, dynsize)(src2, 2, 2);
         a *= b;
@@ -1432,8 +1408,8 @@ unittest // Matrix *=
                                    [57, 64]]);
     }
     {
-        immutable int[] src1 = [1, 2, 3, 4, 5, 6];
-        immutable int[] src2 = [7, 8, 9, 10, 11, 12];
+        int[] src1 = [1, 2, 3, 4, 5, 6];
+        int[] src2 = [7, 8, 9, 10, 11, 12];
         auto a = Matrix!(int, dynsize, dynsize)(src1.dup, 2, 3);
         auto b = Matrix!(int, dynsize, dynsize)(src2, 3, 2);
         a *= b;
@@ -1451,8 +1427,8 @@ unittest // Matrix *
     }
     else debug mixin(debugSilentScope);
 
-    immutable int[] src1 = [1, 2, 3, 4, 5, 6];
-    immutable int[] src2 = [7, 8, 9, 10, 11, 12];
+    int[] src1 = [1, 2, 3, 4, 5, 6];
+    int[] src2 = [7, 8, 9, 10, 11, 12];
     {
         auto a = Matrix!(int, 2, 3)(src1);
         auto b = Matrix!(int, 3, 2)(src2);
@@ -1492,7 +1468,7 @@ unittest // Ranges
     }
     else debug mixin(debugSilentScope);
 
-    immutable int[] src = [1, 2, 3, 4, 5, 6];
+    int[] src = [1, 2, 3, 4, 5, 6];
     {
         auto a = Matrix!(int, 2, 3)(src);
         {
@@ -1517,7 +1493,7 @@ unittest // Ranges
                               [3, 6]]);
         }
         {
-            immutable int[] src1 = [1, 2, 3, 4, 5, 6,
+            int[] src1 = [1, 2, 3, 4, 5, 6,
                                     7, 8, 9, 10, 11, 12,
                                     13, 14, 15, 16, 17, 18,
                                     19, 20, 21, 22, 23, 24];
@@ -1559,7 +1535,7 @@ unittest // Ranges
                               [3, 6]]);
         }
         {
-            immutable int[] src1 = [1, 2, 3, 4, 5, 6,
+            int[] src1 = [1, 2, 3, 4, 5, 6,
                                     7, 8, 9, 10, 11, 12,
                                     13, 14, 15, 16, 17, 18,
                                     19, 20, 21, 22, 23, 24];

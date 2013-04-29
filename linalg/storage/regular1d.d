@@ -238,7 +238,7 @@ struct StorageRegular1D(T, size_t dim_)
         auto opIndex() pure 
         {
             debug(slice) debugOP.writeln("slice");
-            return (StorageRegular1D!(ElementType, dynsize))(
+            return StorageRegular1D!(ElementType, dynsize)(
                 cast()_container[], length, _stride);
         }
 
@@ -250,7 +250,7 @@ struct StorageRegular1D(T, size_t dim_)
         auto opIndex(Slice s) pure 
         {
             debug(slice) debugOP.writeln("slice ", s);
-            return (StorageRegular1D!(ElementType, dynsize))(
+            return StorageRegular1D!(ElementType, dynsize)(
                 cast()_container[_mapIndex(s.lo).._mapIndex(s.upReal)],
                 s.length, _stride);
         }
@@ -286,12 +286,6 @@ struct StorageRegular1D(T, size_t dim_)
             return ByElement!(ElementType, 1)(
                 _container, _dim, _stride);
         }
-
-        @property auto byElement() pure 
-        {
-            return ByElement!((ElementType), 1)(
-                _container, _dim, _stride);
-        }
     }
 }
 
@@ -315,27 +309,14 @@ unittest // Static
     assert(cast(int[]) b == [0, 1, 2, 3]);
     assert(b.container == [0, 1, 2, 3]);
 
-    immutable auto ib = StorageRegular1D!(int, 4)([0, 1, 2, 3]);
-    assert(ib.length == 4);
-    assert(cast(int[]) ib == [0, 1, 2, 3]);
-    assert(ib.container == [0, 1, 2, 3]);
-
     // .dup
     auto d = b.dup;
     assert(cast(int[]) d == [0, 1, 2, 3]);
     assert(d.container !is b.container);
 
-    auto d1 = ib.dup;
-    assert(cast(int[]) d1 == [0, 1, 2, 3]);
-    assert(d1.container !is ib.container);
-
     // Range
     int[] tmp = [];
     foreach(t; b.byElement)
-        tmp ~= t;
-    assert(tmp == [0, 1, 2, 3]);
-    tmp = [];
-    foreach(t; ib.byElement)
         tmp ~= t;
     assert(tmp == [0, 1, 2, 3]);
     foreach(ref t; d.byElement)
@@ -373,36 +354,14 @@ unittest // Dynamic
     assert(cast(int[]) c == [0, 3]);
     assert(c.container == [0, 1, 2, 3]);
 
-    immutable auto ia = StorageRegular1D!(int, dynsize)(4);
-    assert(ia.length == 4);
-    assert(cast(int[]) ia == [int.init, int.init, int.init, int.init]);
-    assert(ia.container == [int.init, int.init, int.init, int.init]);
-
-    immutable auto ib = StorageRegular1D!(int, dynsize)([0, 1, 2, 3]);
-    assert(ib.length == 4);
-    assert(cast(int[]) ib == [0, 1, 2, 3]);
-    assert(ib.container == [0, 1, 2, 3]);
-
-    immutable auto ic = StorageRegular1D!(int, dynsize)([0, 1, 2, 3], 2, 3);
-    assert(ic.length == 2);
-    assert(cast(int[]) ic == [0, 3]);
-    assert(ic.container == [0, 1, 2, 3]);
-
     // .dup
     auto d = b.dup;
     assert(cast(int[]) d == [0, 1, 2, 3]);
     assert(d.container !is b.container);
-    auto d1 = ic.dup;
-    assert(cast(int[]) d1 == [0, 3]);
-    assert(d1.container !is ic.container);
 
     // Range
     int[] tmp = [];
     foreach(t; b.byElement)
-        tmp ~= t;
-    assert(tmp == [0, 1, 2, 3]);
-    tmp = [];
-    foreach(t; ib.byElement)
         tmp ~= t;
     assert(tmp == [0, 1, 2, 3]);
     foreach(ref t; d.byElement)
