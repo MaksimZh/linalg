@@ -17,7 +17,7 @@ import linalg.storage.regular1d;
 import linalg.storage.regular2d;
 
 /* Copy data between storages */
-void copy(Tsource, Tdest)(const auto ref Tsource source,
+void copy(Tsource, Tdest)( auto ref Tsource source,
                           auto ref Tdest dest) pure
     if((isStorageRegular2D!Tsource && isStorageRegular2D!Tdest)
         || (isStorageRegular1D!Tsource && isStorageRegular1D!Tdest))
@@ -55,9 +55,9 @@ body
  * of arguments
  */
 void map(alias fun, Tsource, Tdest, Targs...)(
-    const auto ref Tsource source,
+     auto ref Tsource source,
     auto ref Tdest dest,
-    const auto ref Targs args) pure
+     auto ref Targs args) pure
     if((isStorageRegular2D!Tsource && isStorageRegular2D!Tdest)
         || (isStorageRegular1D!Tsource && isStorageRegular1D!Tdest))
     in
@@ -108,8 +108,8 @@ body
  * and copy it to the third storage
  */
 void zip(alias fun, TsourceA, TsourceB, Tdest)(
-    const ref TsourceA sourceA,
-    const ref TsourceB sourceB,
+     ref TsourceA sourceA,
+     ref TsourceB sourceB,
     ref Tdest dest) pure
     if((isStorageRegular2D!TsourceA && isStorageRegular2D!TsourceB
         && isStorageRegular2D!Tdest)

@@ -29,103 +29,86 @@ version(unittest)
  * By-element iteration that goes like in folded loops:
  * foreach(i0; 0..dim0){ foreach(i1; 0..dim1){ ... }}
  */
-struct ByElement(ElementType, size_t rank, bool mutable = true)
+struct ByElement(ElementType, size_t rank)
     if(rank == 1)
 {
     private
     {
-        static if(mutable)
-            ElementType[] _data;
-        else
-            const ElementType[] _data;
-        const size_t _dim;
-        const size_t _stride;
+        ElementType[] _data;
+         size_t _dim;
+         size_t _stride;
 
-        static if(mutable)
-            ElementType* _ptr;
-        else
-            const(ElementType)* _ptr;
-        const ElementType* _ptrFin;
+        ElementType* _ptr;
+         ElementType* _ptrFin;
     }
 
-    mixin("this(" ~ (mutable ? "" : "in ")
-          ~ "ElementType[] data, size_t dim, size_t stride) pure
+    this(ElementType[] data, size_t dim, size_t stride) pure
+    {
+        debug(range)
         {
-            debug(range)
-            {
-                debugOP.writeln(\"ByElement!(1).this()\");
-                mixin(debugIndentScope);
-                debugOP.writefln(\"data = <%X>, %d\",
-                                 data.ptr, data.length);
-                debugOP.writeln(\"dim = \", dim);
-                debugOP.writeln(\"stride = \", stride);
-                debugOP.writeln(\"...\");
-                mixin(debugIndentScope);
-            }
-
-            _data = data;
-            _dim = dim;
-            _stride = stride;
-            _ptr = _data.ptr;
-            _ptrFin = _data.ptr + dim * stride;
+            debugOP.writeln("ByElement!(1).this()");
+            mixin(debugIndentScope);
+            debugOP.writefln("data = <%X>, %d",
+                             data.ptr, data.length);
+            debugOP.writeln("dim = ", dim);
+            debugOP.writeln("stride = ", stride);
+            debugOP.writeln("...");
+            mixin(debugIndentScope);
         }
-    ");
 
-    @property bool empty() pure const { return _ptr >= _ptrFin; }
-    mixin("@property " ~ (mutable ? "ref " : "")
-          ~ "ElementType front() pure { return *_ptr; }");
+        _data = data;
+        _dim = dim;
+        _stride = stride;
+        _ptr = _data.ptr;
+        _ptrFin = _data.ptr + dim * stride;
+    }
+
+    @property bool empty() pure  { return _ptr >= _ptrFin; }
+    @property ref ElementType front() pure { return *_ptr; }
     void popFront() pure { _ptr += _stride; }
 }
 
 //ditto
-struct ByElement(ElementType, size_t rank, bool mutable = true)
+struct ByElement(ElementType, size_t rank)
     if(rank == 2)
 {
     private
     {
-        const size_t[2] _dim;
-        const size_t[2] _stride;
-        static if(mutable)
-            ElementType[] _data;
-        else
-            const ElementType[] _data;
+         size_t[2] _dim;
+         size_t[2] _stride;
+        ElementType[] _data;
 
-        static if(mutable)
-            ElementType* _ptr;
-        else
-            const(ElementType)* _ptr;
+        ElementType* _ptr;
         size_t _i, _j;
         bool _empty;
     }
 
-    mixin("this(" ~ (mutable ? "" : "in ")
-          ~ "ElementType[] data, size_t[2] dim, size_t[2] stride) pure
+    this(ElementType[] data, size_t[2] dim, size_t[2] stride) pure
+    {
+        debug(range)
         {
-            debug(range)
-            {
-                debugOP.writeln(\"ByElement!(2).this()\");
-                mixin(debugIndentScope);
-                debugOP.writefln(\"data = <%X>, %d\",
-                                 data.ptr, data.length);
-                debugOP.writeln(\"dim = \", dim);
-                debugOP.writeln(\"stride = \", stride);
-                debugOP.writeln(\"...\");
-                mixin(debugIndentScope);
-            }
-
-            _dim = dim;
-            _stride = stride;
-            _data = data;
-            _ptr = _data.ptr;
-            _i = 0;
-            _j = 0;
-            _empty = false;
+            debugOP.writeln("ByElement!(2).this()");
+            mixin(debugIndentScope);
+            debugOP.writefln("data = <%X>, %d",
+                             data.ptr, data.length);
+            debugOP.writeln("dim = ", dim);
+            debugOP.writeln("stride = ", stride);
+            debugOP.writeln("...");
+            mixin(debugIndentScope);
         }
-    ");
 
-    @property bool empty() pure const { return _empty; }
-    mixin("@property " ~ (mutable ? "ref " : "")
-          ~ "ElementType front() pure { return *_ptr; }");
+        _dim = dim;
+        _stride = stride;
+        _data = data;
+        _ptr = _data.ptr;
+        _i = 0;
+        _j = 0;
+        _empty = false;
+    }
+
+    @property bool empty() pure  { return _empty; }
+    @property ref ElementType front() pure { return *_ptr; }
+
     void popFront() pure
     {
         if(_j == _dim[1] - 1)
@@ -172,61 +155,52 @@ struct ByElement(ElementType, size_t rank, bool mutable = true)
 }
 
 //ditto
-struct ByElement(ElementType, size_t rank, bool mutable = true)
+struct ByElement(ElementType, size_t rank)
     if(rank > 2)
 {
     //TODO: optimize for 2d
     private
     {
-        const size_t[] _dim;
-        const size_t[] _stride;
-        static if(mutable)
-            ElementType[] _data;
-        else
-            const ElementType[] _data;
+         size_t[] _dim;
+         size_t[] _stride;
+        ElementType[] _data;
 
         uint _rank;
-        static if(mutable)
-            ElementType* _ptr;
-        else
-            const(ElementType)* _ptr;
+        ElementType* _ptr;
         size_t[] _index;
         bool _empty;
     }
 
-    mixin("this(" ~ (mutable ? "" : "in ")
-          ~ "ElementType[] data, in size_t[] dim, in size_t[] stride) pure
-            in
-            {
-                assert(stride.length == dim.length);
-            }
-        body
+    this(ElementType[] data, in size_t[] dim, in size_t[] stride) pure
+        in
         {
-            debug(range)
-            {
-                debugOP.writefln(\"ByElement!(%d).this()\", rank);
-                mixin(debugIndentScope);
-                debugOP.writefln(\"data = <%X>, %d\",
-                                 data.ptr, data.length);
-                debugOP.writeln(\"dim = \", dim);
-                debugOP.writeln(\"stride = \", stride);
-                debugOP.writeln(\"...\");
-                mixin(debugIndentScope);
-            }
-
-            _dim = dim;
-            _stride = stride;
-            _data = data;
-            _rank = cast(uint) dim.length;
-            _ptr = _data.ptr;
-            _index = new size_t[_rank];
-            _empty = false;
+            assert(stride.length == dim.length);
         }
-    ");
+    body
+    {
+        debug(range)
+        {
+            debugOP.writefln("ByElement!(%d).this()", rank);
+            mixin(debugIndentScope);
+            debugOP.writefln("data = <%X>, %d",
+                             data.ptr, data.length);
+            debugOP.writeln("dim = ", dim);
+            debugOP.writeln("stride = ", stride);
+            debugOP.writeln("...");
+            mixin(debugIndentScope);
+        }
 
-    @property bool empty() pure const { return _empty; }
-    mixin("@property " ~ (mutable ? "ref " : "")
-          ~ "ElementType front() pure { return *_ptr; }");
+        _dim = dim;
+        _stride = stride;
+        _data = data;
+        _rank = cast(uint) dim.length;
+        _ptr = _data.ptr;
+        _index = new size_t[_rank];
+        _empty = false;
+    }
+
+    @property bool empty() pure  { return _empty; }
+    @property ref ElementType front() pure { return *_ptr; }
 
     void popFront() pure
     {
@@ -250,55 +224,43 @@ struct ByElement(ElementType, size_t rank, bool mutable = true)
 /*
  * Iteration by row or column (depending on strides)
  */
-struct ByLine(ElementType, ResultType, bool mutable = true)
+struct ByLine(ElementType, ResultType)
 {
     private
     {
-        static if(mutable)
-            ElementType[] _data;
-        else
-            const ElementType[] _data;
-        const size_t _dimExt;
-        const size_t _strideExt;
-        const size_t _dimInt;
-        const size_t _strideInt;
+        ElementType[] _data;
+         size_t _dimExt;
+         size_t _strideExt;
+         size_t _dimInt;
+         size_t _strideInt;
 
-        static if(mutable)
-            ElementType* _ptr;
-        else
-            const(ElementType)* _ptr;
-        const ElementType* _ptrFin;
+        ElementType* _ptr;
+         ElementType* _ptrFin;
     }
 
-    mixin("this(" ~ (mutable ? "" : "in ")
-          ~ "ElementType[] data,
-             in size_t[2] dim, in size_t[2] stride) pure
-        {
-            _data = data;
-            _dimExt = dim[0];
-            _strideExt = stride[0];
-            _dimInt = dim[1];
-            _strideInt = stride[1];
-            _ptr = _data.ptr;
-            _ptrFin = _data.ptr + dim[0] * stride[0];
-        }
-    ");
+    this(ElementType[] data, in size_t[2] dim, in size_t[2] stride) pure
+    {
+        _data = data;
+        _dimExt = dim[0];
+        _strideExt = stride[0];
+        _dimInt = dim[1];
+        _strideInt = stride[1];
+        _ptr = _data.ptr;
+        _ptrFin = _data.ptr + dim[0] * stride[0];
+    }
 
-    @property bool empty() pure const { return _ptr >= _ptrFin; }
-    mixin(format("@property %s%s%s front() pure
-                  {
-                      return %s(StorageRegular1D!(ElementType, dynsize)(
-                                    _ptr[0..((_dimInt - 1) * _strideInt + 1)],
-                                    _dimInt, _strideInt));
-                  }",
-                 mutable ? "" : "const(",
-                 is(ResultType == void)
-                 ? "StorageRegular1D!(ElementType, dynsize)"
-                 : "ResultType",
-                 mutable ? "" : ")",
-                 is(ResultType == void)
-                 ? ""
-                 : "ResultType"));
+    @property bool empty() pure  { return _ptr >= _ptrFin; }
+
+    @property auto front() pure
+    {
+        return mixin((is(ResultType == void)
+                      ? ""
+                      : "ResultType")
+                     ~ "(StorageRegular1D!(ElementType, dynsize)(
+                             _ptr[0..((_dimInt - 1) * _strideInt + 1)],
+                             _dimInt, _strideInt))");
+    }
+
     void popFront() pure { _ptr += _strideExt; }
 }
 
@@ -306,19 +268,19 @@ version(unittest)
 {
     struct Foo(T)
     {
-        const StorageRegular1D!(T, dynsize) storage;
+        StorageRegular1D!(T, dynsize) storage;
 
-        this(const StorageRegular1D!(T, dynsize) storage) const
+        this(StorageRegular1D!(T, dynsize) storage)
         {
             this.storage = storage;
         }
 
-        auto eval() pure const
+        auto eval() pure
         {
             return cast(T[]) storage;
         }
 
-        string toString() const
+        string toString()
         {
             return to!string(cast(T[]) storage);
         }
@@ -334,7 +296,8 @@ unittest
     }
     else debug mixin(debugSilentScope);
 
-    auto rng = ByLine!(int, Foo!int, false)(array(iota(24)), [6, 4], [4, 1]);
+    auto rng = ByLine!(int, Foo!int)(
+        array(iota(24)), [6, 4], [4, 1]);
     int[][] result = [];
     foreach(r; rng)
         result ~= [r.eval()];
@@ -355,7 +318,8 @@ unittest
     }
     else debug mixin(debugSilentScope);
 
-    auto rng = ByLine!(int, Foo!int, false)(array(iota(24)), [4, 6], [1, 4]);
+    auto rng = ByLine!(int, Foo!int)(
+        array(iota(24)), [4, 6], [1, 4]);
     int[][] result = [];
     foreach(r; rng)
         result ~= [r.eval()];
@@ -368,84 +332,71 @@ unittest
 /*
  * Iteration by matrix block
  */
-struct ByBlock(ElementType, ResultType, StorageOrder storageOrder,
-               bool mutable = true)
+struct ByBlock(ElementType, ResultType, StorageOrder storageOrder)
 {
     private
     {
-        const size_t[2] _dim;
-        const size_t[2] _stride;
-        const size_t[2] _substride;
-        const size_t[2] _subdim;
-        const size_t _len;
-        static if(mutable)
-            ElementType[] _data;
-        else
-            const ElementType[] _data;
+         size_t[2] _dim;
+         size_t[2] _stride;
+         size_t[2] _substride;
+         size_t[2] _subdim;
+         size_t _len;
+        ElementType[] _data;
 
-        static if(mutable)
-            ElementType* _ptr;
-        else
-            const(ElementType)* _ptr;
+        ElementType* _ptr;
         size_t _i, _j;
         bool _empty;
     }
 
-    mixin("this(" ~ (mutable ? "" : "in ")
-          ~ "ElementType[] data, size_t[2] dim, size_t[2] stride,
-            size_t[2] subdim) pure
-            in
-            {
-                assert(dim[0] % subdim[0] == 0);
-                assert(dim[1] % subdim[1] == 0);
-            }
-        body
+    this(ElementType[] data, size_t[2] dim, size_t[2] stride,
+         size_t[2] subdim) pure
+        in
         {
-            debug(range)
-            {
-                debugOP.writeln(\"ByBlock.this()\");
-                mixin(debugIndentScope);
-                debugOP.writefln(\"data = <%X>, %d\",
-                                 data.ptr, data.length);
-                debugOP.writeln(\"dim = \", dim);
-                debugOP.writeln(\"stride = \", stride);
-                debugOP.writeln(\"subdim = \", subdim);
-                debugOP.writeln(\"...\");
-                mixin(debugIndentScope);
-            }
-
-            _substride = stride;
-            _subdim = subdim;
-            _dim = [dim[0] / subdim[0], dim[1] / subdim[1]];
-            _stride = [stride[0] * subdim[0], stride[1] * subdim[1]];
-            _len = (_subdim[0] - 1) * _substride[0]
-                + (_subdim[1] - 1) * _substride[1]
-                + 1;
-            _data = data;
-            _ptr = _data.ptr;
-            _i = 0;
-            _j = 0;
-            _empty = false;
+            assert(dim[0] % subdim[0] == 0);
+            assert(dim[1] % subdim[1] == 0);
         }
-    ");
-
-    @property bool empty() pure const { return _empty; }
-    mixin(format("@property %s%s%s front() pure
+    body
+    {
+        debug(range)
         {
-            return %s(StorageRegular2D!(ElementType, storageOrder,
-                        dynsize, dynsize)(
-                          _ptr[0.._len],
-                          _subdim, _substride));
-        }",
-                 mutable ? "" : "const(",
-                 is(ResultType == void)
-                 ? "StorageRegular2D!(ElementType, storageOrder,
-                                      dynsize, dynsize)"
-                 : "ResultType",
-                 mutable ? "" : ")",
-                 is(ResultType == void)
-                 ? ""
-                 : "ResultType"));
+            debugOP.writeln("ByBlock.this()");
+            mixin(debugIndentScope);
+            debugOP.writefln("data = <%X>, %d",
+                             data.ptr, data.length);
+            debugOP.writeln("dim = ", dim);
+            debugOP.writeln("stride = ", stride);
+            debugOP.writeln("subdim = ", subdim);
+            debugOP.writeln("...");
+            mixin(debugIndentScope);
+        }
+
+        _substride = stride;
+        _subdim = subdim;
+        _dim = [dim[0] / subdim[0], dim[1] / subdim[1]];
+        _stride = [stride[0] * subdim[0], stride[1] * subdim[1]];
+        _len = (_subdim[0] - 1) * _substride[0]
+            + (_subdim[1] - 1) * _substride[1]
+            + 1;
+        _data = data;
+        _ptr = _data.ptr;
+        _i = 0;
+        _j = 0;
+        _empty = false;
+    }
+
+    @property bool empty() pure  { return _empty; }
+
+    @property auto front() pure
+    {
+        return mixin((is(ResultType == void)
+                      ? ""
+                      : "ResultType")
+                     ~ "(StorageRegular2D!(ElementType, storageOrder,
+                                           dynsize, dynsize)(
+                                               _ptr[0.._len],
+                                               _subdim, _substride))");
+    }
+
     void popFront() pure
     {
         if(_j == _dim[1] - 1)
@@ -474,21 +425,21 @@ version(unittest)
 {
     struct Foo2(T)
     {
-        const StorageRegular2D!(T, StorageOrder.row,
-                                dynsize, dynsize) storage;
+        StorageRegular2D!(T, StorageOrder.row,
+                          dynsize, dynsize) storage;
 
-        this(const StorageRegular2D!(T, StorageOrder.row,
-                                     dynsize, dynsize) storage) const
+        this(StorageRegular2D!(T, StorageOrder.row,
+                               dynsize, dynsize) storage)
         {
             this.storage = storage;
         }
 
-        auto eval() pure const
+        auto eval() pure
         {
             return cast(T[][]) storage;
         }
 
-        string toString() const
+        string toString()
         {
             return to!string(cast(T[][]) storage);
         }
@@ -504,7 +455,7 @@ unittest
     }
     else debug mixin(debugSilentScope);
 
-    auto rng = ByBlock!(int, Foo2!int, StorageOrder.row, false)(
+    auto rng = ByBlock!(int, Foo2!int, StorageOrder.row)(
         array(iota(24)), [4, 6], [6, 1], [2, 3]);
     int[][][] result = [];
     foreach(r; rng)

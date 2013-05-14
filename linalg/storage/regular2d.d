@@ -106,7 +106,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
     /* Constructors */
     static if(isStatic)
     {
-        inout this()(inout ElementType[] array) pure
+         this()( ElementType[] array) pure
             in
             {
                 assert(array.length == _container.length);
@@ -149,7 +149,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             _reallocate();
         }
 
-        inout this()(inout ElementType[] array, in size_t[2] dim) pure
+         this()( ElementType[] array, in size_t[2] dim) pure
         {
             debug(storage)
             {
@@ -168,7 +168,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             this(array, dim, calcStrides!storageOrder(dim));
         }
 
-        inout this()(inout ElementType[] array,
+         this()( ElementType[] array,
                      in size_t[2] dim, in size_t[2] stride) pure
         {
             debug(storage)
@@ -192,7 +192,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             _stride = stride;
         }
 
-        inout this(Tsource)(ref inout Tsource source) pure
+         this(Tsource)(ref Tsource source) pure
             if(isStorageRegular1D!Tsource)
         {
             debug(storage)
@@ -216,7 +216,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                 this(source.container, [source.dim, 1], [source.stride, 1]);
         }
 
-        inout this(Tsource)(ref inout Tsource source) pure
+         this(Tsource)(ref Tsource source) pure
             if(isStorageRegular2D!Tsource)
         {
             debug(storage)
@@ -240,16 +240,16 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
     public // Dimensions and memory
     {
-        @property auto container() pure inout { return _container[]; }
-        @property size_t[2] dim() pure const { return _dim; }
-        @property size_t[2] stride() pure const { return _stride; }
+        @property auto container() pure  { return _container[]; }
+        @property size_t[2] dim() pure  { return _dim; }
+        @property size_t[2] stride() pure  { return _stride; }
 
-        @property size_t nrows() pure const { return _dim[0]; }
-        @property size_t ncols() pure const { return _dim[1]; }
+        @property size_t nrows() pure  { return _dim[0]; }
+        @property size_t ncols() pure  { return _dim[1]; }
 
 
         /* Test dimensions for compatibility */
-        bool isCompatDim(in size_t[] dim) pure const
+        bool isCompatDim(in size_t[] dim) pure
         {
             static if(isStatic)
             {
@@ -305,68 +305,69 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
     public // Slices and indices support
     {
         //NOTE: depends on DMD pull-request 443
-        private size_t _mapIndex(size_t irow, size_t icol) pure const
+        private size_t _mapIndex(size_t irow, size_t icol) pure
         {
             return irow * _stride[0] + icol * _stride[1];
         }
 
         mixin sliceOverload;
 
-        size_t opDollar(size_t dimIndex)() pure const
+        size_t opDollar(size_t dimIndex)() pure
         {
             return dim[dimIndex];
         }
 
-        ref inout auto opIndex() pure inout
+        auto opIndex() pure
         {
             debug(slice) debugOP.writeln("slice");
             return StorageRegular2D!(ElementType, storageOrder,
-                                     dynsize, dynsize)(
-                                         _container[], _dim, _stride);
+                                           dynsize, dynsize)(
+                                               _container[], _dim, _stride);
         }
 
-        ref inout auto opIndex(size_t irow, size_t icol) pure inout
+        ref auto opIndex(size_t irow, size_t icol) pure
         {
             return _container[_mapIndex(irow, icol)];
         }
 
-        ref inout auto opIndex(Slice srow, size_t icol) pure inout
+        ref auto opIndex(Slice srow, size_t icol) pure
         {
             debug(slice) debugOP.writeln("slice ", srow, ", ", icol);
             return StorageRegular1D!(ElementType, dynsize)(
                 _container[_mapIndex(srow.lo, icol)
-                          ..
-                          _mapIndex(srow.upReal - 1, icol) + 1],
+                           ..
+                           _mapIndex(srow.upReal - 1, icol) + 1],
                 srow.length, _stride[0] * srow.stride);
         }
 
-        ref inout auto opIndex(size_t irow, Slice scol) pure inout
+        ref auto opIndex(size_t irow, Slice scol) pure
         {
             debug(slice) debugOP.writeln("slice ", irow, ", ", scol);
             return StorageRegular1D!(ElementType, dynsize)(
                 _container[_mapIndex(irow, scol.lo)
-                          ..
-                          _mapIndex(irow, scol.upReal - 1) + 1],
+                           ..
+                           _mapIndex(irow, scol.upReal - 1) + 1],
                 scol.length, _stride[1] * scol.stride);
         }
 
-        ref inout auto opIndex(Slice srow, Slice scol) pure inout
+        ref auto opIndex(Slice srow, Slice scol) pure
         {
             debug(slice) debugOP.writeln("slice ", srow, ", ", scol);
-            return StorageRegular2D!(ElementType, storageOrder,
-                                     dynsize, dynsize)(
-                                         _container[_mapIndex(srow.lo, scol.lo)
-                                                   ..
-                                                   _mapIndex(srow.upReal - 1,
-                                                             scol.upReal - 1)
-                                                   + 1],
-                                         [srow.length, scol.length],
-                                         [_stride[0] * srow.stride,
-                                          _stride[1] * scol.stride]);
+            return StorageRegular2D!(
+                             ElementType, storageOrder,
+                             dynsize, dynsize)(
+                                 _container[_mapIndex(srow.lo, scol.lo)
+                                            ..
+                                            _mapIndex(srow.upReal - 1,
+                                                      scol.upReal - 1)
+                                            + 1],
+                                 [srow.length, scol.length],
+                                 [_stride[0] * srow.stride,
+                                  _stride[1] * scol.stride]);
         }
     }
 
-    @property auto dup() pure const
+    @property auto dup() pure
     {
         debug(storage)
         {
@@ -382,7 +383,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
     }
 
     /* Convert to built-in array */
-    ElementType[][] opCast() pure const
+    ElementType[][] opCast() pure
     {
         return toArray(_container, _dim, _stride);
     }
@@ -391,27 +392,13 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
     {
         @property auto byElement() pure
         {
-            return ByElement!(ElementType, 2, true)(
-                _container, _dim, _stride);
-        }
-
-        @property auto byElement() pure const
-        {
-            return ByElement!(ElementType, 2, false)(
+            return ByElement!(ElementType, 2)(
                 _container, _dim, _stride);
         }
 
         @property auto byRow()() pure
         {
-            return ByLine!(ElementType, void, true)(
-                _container,
-                [_dim[0], _dim[1]],
-                [_stride[0], _stride[1]]);
-        }
-
-        @property auto byRow()() pure const
-        {
-            return ByLine!(ElementType, void, false)(
+            return ByLine!(ElementType, void)(
                 _container,
                 [_dim[0], _dim[1]],
                 [_stride[0], _stride[1]]);
@@ -419,15 +406,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
         @property auto byCol()() pure
         {
-            return ByLine!(ElementType, void, true)(
-                _container,
-                [_dim[1], _dim[0]],
-                [_stride[1], _stride[0]]);
-        }
-
-        @property auto byCol()() pure const
-        {
-            return ByLine!(ElementType, void, false)(
+            return ByLine!(ElementType, void)(
                 _container,
                 [_dim[1], _dim[0]],
                 [_stride[1], _stride[0]]);
@@ -435,15 +414,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
         @property auto byRow(ResultType)() pure
         {
-            return ByLine!(ElementType, ResultType, true)(
-                _container,
-                [_dim[0], _dim[1]],
-                [_stride[0], _stride[1]]);
-        }
-
-        @property auto byRow(ResultType)() pure const
-        {
-            return ByLine!(ElementType, ResultType, false)(
+            return ByLine!(ElementType, ResultType)(
                 _container,
                 [_dim[0], _dim[1]],
                 [_stride[0], _stride[1]]);
@@ -451,15 +422,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
         @property auto byCol(ResultType)() pure
         {
-            return ByLine!(ElementType, ResultType, true)(
-                _container,
-                [_dim[1], _dim[0]],
-                [_stride[1], _stride[0]]);
-        }
-
-        @property auto byCol(ResultType)() pure const
-        {
-            return ByLine!(ElementType, ResultType, false)(
+            return ByLine!(ElementType, ResultType)(
                 _container,
                 [_dim[1], _dim[0]],
                 [_stride[1], _stride[0]]);
@@ -467,25 +430,13 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
         @property auto byBlock()(size_t[2] subdim) pure
         {
-            return ByBlock!(ElementType, void, storageOrder, true)(
-                _container, _dim, _stride, subdim);
-        }
-
-        @property auto byBlock()(size_t[2] subdim) pure const
-        {
-            return ByBlock!(ElementType, void, storageOrder, false)(
+            return ByBlock!(ElementType, void, storageOrder)(
                 _container, _dim, _stride, subdim);
         }
 
         @property auto byBlock(ResultType)(size_t[2] subdim) pure
         {
-            return ByBlock!(ElementType, ResultType, storageOrder, true)(
-                _container, _dim, _stride, subdim);
-        }
-
-        @property auto byBlock(ResultType)(size_t[2] subdim) pure const
-        {
-            return ByBlock!(ElementType, ResultType, storageOrder, false)(
+            return ByBlock!(ElementType, ResultType, storageOrder)(
                 _container, _dim, _stride, subdim);
         }
     }
@@ -518,17 +469,6 @@ unittest // Static
                            4, 5, 6, 7,
                            8, 9, 10, 11]);
 
-    immutable auto ib = StorageRegular2D!(int, defaultStorageOrder,
-                                          3, 4)(
-                                              array(iota(12)));
-    assert([ib.nrows, ib.ncols] == [3, 4]);
-    assert(cast(int[][]) ib == [[0, 1, 2, 3],
-                                [4, 5, 6, 7],
-                                [8, 9, 10, 11]]);
-    assert(ib.container == [0, 1, 2, 3,
-                            4, 5, 6, 7,
-                            8, 9, 10, 11]);
-
     //.dup
     auto d = b.dup;
     assert(cast(int[][]) d == [[0, 1, 2, 3],
@@ -536,19 +476,9 @@ unittest // Static
                                [8, 9, 10, 11]]);
     assert(d.container !is b.container);
 
-    auto d1 = ib.dup;
-    assert(cast(int[][]) d1 == [[0, 1, 2, 3],
-                                [4, 5, 6, 7],
-                                [8, 9, 10, 11]]);
-    assert(d1.container !is ib.container);
-
     // Range
     int[] tmp = [];
     foreach(t; b.byElement)
-        tmp ~= t;
-    assert(tmp == array(iota(12)));
-    tmp = [];
-    foreach(t; ib.byElement)
         tmp ~= t;
     assert(tmp == array(iota(12)));
     foreach(ref t; d.byElement)
@@ -556,11 +486,6 @@ unittest // Static
     assert(cast(int[][]) d == [[14, 14, 14, 14],
                                [14, 14, 14, 14],
                                [14, 14, 14, 14]]);
-    foreach(ref t; ib.byElement)
-        t = 4;
-    assert(cast(int[][]) ib == [[0, 1, 2, 3],
-                                [4, 5, 6, 7],
-                                [8, 9, 10, 11]]);
 
     // Indices
     assert(b[0, 0] == 0);
@@ -609,37 +534,6 @@ unittest // Dynamic
                            4, 5, 6, 7,
                            8, 9, 10, 11]);
 
-    immutable auto ia = StorageRegular2D!(int, defaultStorageOrder,
-                                          dynsize, dynsize)([3, 4]);
-    assert([ia.nrows, ia.ncols] == [3, 4]);
-    assert(cast(int[][]) ia == [[int.init, int.init, int.init, int.init],
-                                [int.init, int.init, int.init, int.init],
-                                [int.init, int.init, int.init, int.init]]);
-    assert(ia.container == [int.init, int.init, int.init, int.init,
-                            int.init, int.init, int.init, int.init,
-                            int.init, int.init, int.init, int.init]);
-
-    immutable auto ib = StorageRegular2D!(int, defaultStorageOrder,
-                                          dynsize, dynsize)(
-                                              array(iota(12)), [3, 4]);
-    assert([ib.nrows, ib.ncols] == [3, 4]);
-    assert(cast(int[][]) ib == [[0, 1, 2, 3],
-                                [4, 5, 6, 7],
-                                [8, 9, 10, 11]]);
-    assert(ib.container == [0, 1, 2, 3,
-                            4, 5, 6, 7,
-                            8, 9, 10, 11]);
-
-    immutable auto ic = StorageRegular2D!(int, defaultStorageOrder,
-                                          dynsize, dynsize)(
-                                              array(iota(12)), [2, 2], [8, 3]);
-    assert([ic.nrows, ic.ncols] == [2, 2]);
-    assert(cast(int[][]) ic == [[0, 3],
-                                [8, 11]]);
-    assert(ic.container == [0, 1, 2, 3,
-                            4, 5, 6, 7,
-                            8, 9, 10, 11]);
-
     //.dup
     auto d = b.dup;
     assert(cast(int[][]) d == [[0, 1, 2, 3],
@@ -647,18 +541,10 @@ unittest // Dynamic
                                [8, 9, 10, 11]]);
     assert(d.container !is b.container);
 
-    auto d1 = ic.dup;
-    assert(cast(int[][]) d1 == [[0, 3],
-                                [8, 11]]);
-    assert(d1.container !is ib.container);
 
     // Range
     int[] tmp = [];
     foreach(t; b.byElement)
-        tmp ~= t;
-    assert(tmp == array(iota(12)));
-    tmp = [];
-    foreach(t; ib.byElement)
         tmp ~= t;
     assert(tmp == array(iota(12)));
     foreach(ref t; d.byElement)
@@ -666,11 +552,6 @@ unittest // Dynamic
     assert(cast(int[][]) d == [[14, 14, 14, 14],
                                [14, 14, 14, 14],
                                [14, 14, 14, 14]]);
-    foreach(ref t; ib.byElement)
-        t = 4;
-    assert(cast(int[][]) ib == [[0, 1, 2, 3],
-                                [4, 5, 6, 7],
-                                [8, 9, 10, 11]]);
 
     // Indices
     assert(b[0, 0] == 0);

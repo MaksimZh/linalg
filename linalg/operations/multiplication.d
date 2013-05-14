@@ -20,8 +20,8 @@ import linalg.storage.regular2d;
  * row * column
  */
 auto mulAsMatrices(TsourceA, TsourceB)(
-    const ref TsourceA sourceA,
-    const ref TsourceB sourceB) pure
+     ref TsourceA sourceA,
+     ref TsourceB sourceB) pure
     if(isStorageRegular1D!TsourceA && isStorageRegular1D!TsourceB)
 {
     debug(operations)
@@ -58,8 +58,8 @@ auto mulAsMatrices(TsourceA, TsourceB)(
  * matrix * column
  */
 void mulAsMatrices(TsourceA, TsourceB, Tdest)(
-    const ref TsourceA sourceA,
-    const ref TsourceB sourceB,
+     ref TsourceA sourceA,
+     ref TsourceB sourceB,
     ref Tdest dest) pure
     if(isStorageRegular2D!TsourceA && isStorageRegular1D!TsourceB
        && isStorageRegular1D!Tdest)
@@ -99,8 +99,8 @@ body
  * row * matrix
  */
 void mulAsMatrices(TsourceA, TsourceB, Tdest)(
-    const ref TsourceA sourceA,
-    const ref TsourceB sourceB,
+     ref TsourceA sourceA,
+     ref TsourceB sourceB,
     ref Tdest dest) pure
     if(isStorageRegular1D!TsourceA && isStorageRegular2D!TsourceB
        && isStorageRegular1D!Tdest)
@@ -140,8 +140,8 @@ body
  * matrix * matrix
  */
 void mulAsMatrices(TsourceA, TsourceB, Tdest)(
-    const ref TsourceA sourceA,
-    const ref TsourceB sourceB,
+     ref TsourceA sourceA,
+     ref TsourceB sourceB,
     ref Tdest dest) pure
     if(isStorageRegular2D!TsourceA && isStorageRegular2D!TsourceB
        && isStorageRegular2D!Tdest)

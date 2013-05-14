@@ -27,13 +27,13 @@ struct Slice
      * This number is not equal to length of referred array part
      * if stride is greater than 1
      */
-    @property size_t length() pure const
+    @property size_t length() pure
     {
         return (up - lo - 1) / stride + 1;
     }
 
     /* Real upper boundary in referred array with stride remainder dropped */
-    @property size_t upReal() pure const
+    @property size_t upReal() pure
     {
         return lo + (length - 1) * stride + 1;
     }
@@ -42,7 +42,7 @@ struct Slice
 /* Slice overload is the same for all storages, matrices and arrays */
 mixin template sliceOverload()
 {
-    Slice opSlice(size_t dimIndex)(size_t lo, size_t up) pure const
+    Slice opSlice(size_t dimIndex)(size_t lo, size_t up) pure
     {
         static assert(dimIndex == 0);
         return Slice(lo, up);
