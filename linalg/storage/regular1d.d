@@ -295,6 +295,49 @@ template isStorageRegular1D(T)
     enum bool isStorageRegular1D = isInstanceOf!(StorageRegular1D, T);
 }
 
+unittest // Type properties
+{
+    alias StorageRegular1D!(int, 3) Si3;
+    alias StorageRegular1D!(int, dynsize) Sid;
+
+    // dimPattern
+    static assert(Si3.dimPattern == 3);
+    static assert(Sid.dimPattern == dynsize);
+
+    // ElementType
+    static assert(is(Si3.ElementType == int));
+    static assert(is(Sid.ElementType == int));
+
+    // rank
+    static assert(Si3.rank == 1);
+    static assert(Sid.rank == 1);
+
+    // isStatic
+    static assert(Si3.isStatic);
+    static assert(!(Sid.isStatic));
+}
+
+unittest // Constructors, cast
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.storage.regular1d unittest: Constructors, cast");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    int[] a = [1, 2, 3, 4, 5, 6];
+
+    assert(cast(int[]) StorageRegular1D!(int, dynsize)(3)
+           == [int.init, int.init, int.init]);
+    assert(cast(int[]) StorageRegular1D!(int, 6)(a) == a);
+    assert(cast(int[]) StorageRegular1D!(int, dynsize)(a) == a);
+    assert(cast(int[]) StorageRegular1D!(int, dynsize)(a, 3, 2)
+           == [1, 3, 5]);
+}
+
+version(all) // Old unittests
+{
 unittest // Static
 {
     debug(unittests)
@@ -375,4 +418,5 @@ unittest // Dynamic
 
     assert(c[0] == 0);
     assert(c[1] == 3);
+}
 }
