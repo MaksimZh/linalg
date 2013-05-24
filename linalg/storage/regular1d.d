@@ -77,7 +77,7 @@ struct StorageRegular1D(T, size_t dim_)
     /* Constructors */
     static if(isStatic)
     {
-         this( ElementType[] array) pure
+        this(ElementType[] array) pure
             in
             {
                 assert(array.length == _container.length);
@@ -120,7 +120,7 @@ struct StorageRegular1D(T, size_t dim_)
             _reallocate();
         }
 
-         this( ElementType[] array) pure
+        this(ElementType[] array) pure
         {
             debug(storage)
             {
@@ -138,8 +138,8 @@ struct StorageRegular1D(T, size_t dim_)
             this(array, array.length, 1);
         }
 
-         this( ElementType[] array,
-                   size_t dim, size_t stride) pure
+        this(ElementType[] array,
+             size_t dim, size_t stride) pure
         {
             debug(storage)
             {
@@ -165,21 +165,21 @@ struct StorageRegular1D(T, size_t dim_)
 
     public // Dimensions and memory
     {
-        @property auto container() pure  { return _container[]; }
-        @property size_t dim() pure  { return _dim; }
+        @property auto container() pure { return _container[]; }
+        @property size_t dim() pure const { return _dim; }
         alias dim length;
-        @property size_t stride() pure  { return _stride; }
+        @property size_t stride() pure const { return _stride; }
 
         /* Test dimensions for compatibility */
-        bool isCompatDim(in size_t dim) pure
+        static bool isCompatDim(size_t dim) pure
         {
             static if(isStatic)
             {
-                return _dim == dimPattern;
+                return dim == dimPattern;
             }
             else
             {
-                return (_dim == dimPattern) || (dimPattern == dynsize);
+                return (dim == dimPattern) || (dimPattern == dynsize);
             }
         }
 
@@ -206,7 +206,7 @@ struct StorageRegular1D(T, size_t dim_)
                 _container = new ElementType[_dim];
             }
 
-            void setDim(in size_t dim) pure
+            void setDim(size_t dim) pure
                 in
                 {
                     assert(isCompatDim(dim));
@@ -222,14 +222,14 @@ struct StorageRegular1D(T, size_t dim_)
     public // Slices and indices support
     {
         //NOTE: depends on DMD pull-request 443
-        private size_t _mapIndex(size_t i) pure
+        private size_t _mapIndex(size_t i) pure const
         {
             return i * _stride;
         }
 
         mixin sliceOverload;
 
-        size_t opDollar(size_t dimIndex)() pure
+        size_t opDollar(size_t dimIndex)() pure const
         {
             static assert(dimIndex == 0);
             return _dim;
@@ -274,7 +274,7 @@ struct StorageRegular1D(T, size_t dim_)
     }
 
     /* Convert to built-in array */
-    ElementType[] opCast() pure
+    ElementType[] opCast() pure const
     {
         return toArray(_container, _dim, _stride);
     }

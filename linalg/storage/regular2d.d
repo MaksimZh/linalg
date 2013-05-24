@@ -106,7 +106,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
     /* Constructors */
     static if(isStatic)
     {
-         this()( ElementType[] array) pure
+        this()(ElementType[] array) pure
             in
             {
                 assert(array.length == _container.length);
@@ -149,7 +149,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             _reallocate();
         }
 
-         this()( ElementType[] array, in size_t[2] dim) pure
+        this()(ElementType[] array, in size_t[2] dim) pure
         {
             debug(storage)
             {
@@ -168,8 +168,8 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             this(array, dim, calcStrides!storageOrder(dim));
         }
 
-         this()( ElementType[] array,
-                     in size_t[2] dim, in size_t[2] stride) pure
+        this()(ElementType[] array,
+               in size_t[2] dim, in size_t[2] stride) pure
         {
             debug(storage)
             {
@@ -192,7 +192,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             _stride = stride;
         }
 
-         this(Tsource)(ref Tsource source) pure
+        this(Tsource)(ref Tsource source) pure
             if(isStorageRegular1D!Tsource)
         {
             debug(storage)
@@ -216,7 +216,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                 this(source.container, [source.dim, 1], [source.stride, 1]);
         }
 
-         this(Tsource)(ref Tsource source) pure
+        this(Tsource)(ref Tsource source) pure
             if(isStorageRegular2D!Tsource)
         {
             debug(storage)
@@ -240,20 +240,20 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
     public // Dimensions and memory
     {
-        @property auto container() pure  { return _container[]; }
-        @property size_t[2] dim() pure  { return _dim; }
-        @property size_t[2] stride() pure  { return _stride; }
+        @property auto container() pure { return _container[]; }
+        @property size_t[2] dim() pure const { return _dim; }
+        @property size_t[2] stride() pure const { return _stride; }
 
-        @property size_t nrows() pure  { return _dim[0]; }
-        @property size_t ncols() pure  { return _dim[1]; }
+        @property size_t nrows() pure const { return _dim[0]; }
+        @property size_t ncols() pure const { return _dim[1]; }
 
 
         /* Test dimensions for compatibility */
-        bool isCompatDim(in size_t[] dim) pure
+        static bool isCompatDim(in size_t[2] dim) pure
         {
             static if(isStatic)
             {
-                return _dim == dim;
+                return dim == dimPattern;
             }
             else
             {
@@ -305,14 +305,14 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
     public // Slices and indices support
     {
         //NOTE: depends on DMD pull-request 443
-        private size_t _mapIndex(size_t irow, size_t icol) pure
+        private size_t _mapIndex(size_t irow, size_t icol) pure const
         {
             return irow * _stride[0] + icol * _stride[1];
         }
 
         mixin sliceOverload;
 
-        size_t opDollar(size_t dimIndex)() pure
+        size_t opDollar(size_t dimIndex)() pure const
         {
             return dim[dimIndex];
         }
@@ -383,7 +383,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
     }
 
     /* Convert to built-in array */
-    ElementType[][] opCast() pure
+    ElementType[][] opCast() pure const
     {
         return toArray(_container, _dim, _stride);
     }
