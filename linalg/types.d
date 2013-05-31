@@ -105,5 +105,5 @@ template zero(T)
         enum T zero = T.zero;
     else static if(is(typeof(T.zero()) == T))
         alias T.zero zero;
-    else static assert(false);
+    else static assert(false, T.stringof);
 }
