@@ -529,6 +529,51 @@ unittest // Constructors, cast
                [4, 5, 6]]);
 }
 
+unittest // Dimensions and memory
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.storage.regular2d unittest: Dimensions and memory");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    int[] src = [1, 2, 3, 4, 5, 6];
+
+    auto a = StorageRegular2D!(int, StorageOrder.row, dynsize, dynsize)(
+        src, [2, 3]);
+    assert(a.container.ptr == src.ptr);
+    assert(a.container == [1, 2, 3, 4, 5, 6]);
+    assert(a.dim == [2, 3]);
+    assert(a.stride == [3, 1]);
+    assert(a.nrows == 2);
+    assert(a.ncols == 3);
+
+    assert(StorageRegular2D!(int, StorageOrder.row, 2, 3
+               ).isCompatDim([2, 3]) == true);
+    assert(StorageRegular2D!(int, StorageOrder.row, 2, 3
+               ).isCompatDim([3, 4]) == false);
+    assert(StorageRegular2D!(int, StorageOrder.row, 2, dynsize
+               ).isCompatDim([2, 3]) == true);
+    assert(StorageRegular2D!(int, StorageOrder.row, 2, dynsize
+               ).isCompatDim([3, 4]) == false);
+    assert(StorageRegular2D!(int, StorageOrder.row, dynsize, dynsize
+               ).isCompatDim([2, 3]) == true);
+    assert(StorageRegular2D!(int, StorageOrder.row, dynsize, dynsize
+               ).isCompatDim([3, 4]) == true);
+    assert(a.isCompatDim([2, 3]) == true);
+    assert(a.isCompatDim([3, 4]) == true);
+
+    auto b = a.dup;
+    assert(b.container.ptr != a.container.ptr);
+    assert(b.container == [1, 2, 3, 4, 5, 6]);
+    assert(b.dim == [2, 3]);
+    assert(b.stride == [3, 1]);
+
+    b.setDim([3, 5]);
+    assert(b.dim == [3, 5]);
+}
+
 version(all) // Old unittests
 {
 unittest // Static
