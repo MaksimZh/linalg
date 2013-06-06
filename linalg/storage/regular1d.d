@@ -77,7 +77,7 @@ struct StorageRegular1D(T, size_t dim_)
     /* Constructors */
     static if(isStatic)
     {
-         this( ElementType[] array) pure
+        this(ElementType[] array) pure
             in
             {
                 assert(array.length == _container.length);
@@ -120,7 +120,7 @@ struct StorageRegular1D(T, size_t dim_)
             _reallocate();
         }
 
-         this( ElementType[] array) pure
+        this(ElementType[] array) pure
         {
             debug(storage)
             {
@@ -138,8 +138,8 @@ struct StorageRegular1D(T, size_t dim_)
             this(array, array.length, 1);
         }
 
-         this( ElementType[] array,
-                   size_t dim, size_t stride) pure
+        this(ElementType[] array,
+             size_t dim, size_t stride) pure
         {
             debug(storage)
             {
@@ -165,21 +165,21 @@ struct StorageRegular1D(T, size_t dim_)
 
     public // Dimensions and memory
     {
-        @property auto container() pure  { return _container[]; }
-        @property size_t dim() pure  { return _dim; }
+        @property auto container() pure { return _container[]; }
+        @property size_t dim() pure const { return _dim; }
         alias dim length;
-        @property size_t stride() pure  { return _stride; }
+        @property size_t stride() pure const { return _stride; }
 
         /* Test dimensions for compatibility */
-        bool isCompatDim(in size_t dim) pure
+        static bool isCompatDim(size_t dim) pure
         {
             static if(isStatic)
             {
-                return _dim == dimPattern;
+                return dim == dimPattern;
             }
             else
             {
-                return (_dim == dimPattern) || (dimPattern == dynsize);
+                return (dim == dimPattern) || (dimPattern == dynsize);
             }
         }
 
@@ -206,7 +206,7 @@ struct StorageRegular1D(T, size_t dim_)
                 _container = new ElementType[_dim];
             }
 
-            void setDim(in size_t dim) pure
+            void setDim(size_t dim) pure
                 in
                 {
                     assert(isCompatDim(dim));
@@ -222,14 +222,14 @@ struct StorageRegular1D(T, size_t dim_)
     public // Slices and indices support
     {
         //NOTE: depends on DMD pull-request 443
-        private size_t _mapIndex(size_t i) pure
+        private size_t _mapIndex(size_t i) pure const
         {
             return i * _stride;
         }
 
         mixin sliceOverload;
 
-        size_t opDollar(size_t dimIndex)() pure
+        size_t opDollar(size_t dimIndex)() pure const
         {
             static assert(dimIndex == 0);
             return _dim;
@@ -274,7 +274,7 @@ struct StorageRegular1D(T, size_t dim_)
     }
 
     /* Convert to built-in array */
-    ElementType[] opCast() pure
+    ElementType[] opCast() pure const
     {
         return toArray(_container, _dim, _stride);
     }
@@ -295,6 +295,125 @@ template isStorageRegular1D(T)
     enum bool isStorageRegular1D = isInstanceOf!(StorageRegular1D, T);
 }
 
+unittest // Type properties
+{
+    alias StorageRegular1D!(int, 3) Si3;
+    alias StorageRegular1D!(int, dynsize) Sid;
+
+    // dimPattern
+    static assert(Si3.dimPattern == 3);
+    static assert(Sid.dimPattern == dynsize);
+
+    // ElementType
+    static assert(is(Si3.ElementType == int));
+    static assert(is(Sid.ElementType == int));
+
+    // rank
+    static assert(Si3.rank == 1);
+    static assert(Sid.rank == 1);
+
+    // isStatic
+    static assert(Si3.isStatic);
+    static assert(!(Sid.isStatic));
+}
+
+unittest // Constructors, cast
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.storage.regular1d unittest: Constructors, cast");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    int[] a = [1, 2, 3, 4, 5, 6];
+
+    assert(cast(int[]) StorageRegular1D!(int, dynsize)(3)
+           == [int.init, int.init, int.init]);
+    assert(cast(int[]) StorageRegular1D!(int, 6)(a) == a);
+    assert(cast(int[]) StorageRegular1D!(int, dynsize)(a) == a);
+    assert(cast(int[]) StorageRegular1D!(int, dynsize)(a, 3, 2)
+           == [1, 3, 5]);
+}
+
+unittest // Dimensions and memory
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.storage.regular1d unittest: Dimensions and memory");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    int[] src = [1, 2, 3, 4, 5, 6];
+
+    auto a = StorageRegular1D!(int, dynsize)(src, 3, 2);
+    assert(a.container.ptr == src.ptr);
+    assert(a.container == [1, 2, 3, 4, 5, 6]);
+    assert(a.dim == 3);
+    assert(a.stride == 2);
+
+    assert(StorageRegular1D!(int, 3).isCompatDim(3) == true);
+    assert(StorageRegular1D!(int, 3).isCompatDim(4) == false);
+    assert(StorageRegular1D!(int, dynsize).isCompatDim(3) == true);
+    assert(StorageRegular1D!(int, dynsize).isCompatDim(4) == true);
+    assert(a.isCompatDim(3) == true);
+    assert(a.isCompatDim(4) == true);
+
+    auto b = a.dup;
+    assert(b.container.ptr != a.container.ptr);
+    assert(b.container == [1, 3, 5]);
+    assert(b.dim == 3);
+    assert(b.stride == 1);
+
+    a.setDim(5);
+    assert(a.dim == 5);
+}
+
+unittest // Indices and slices
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.storage.regular1d unittest: Indices and slices");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    debug debugOP.writeln("Waiting for pull request 443");
+}
+
+unittest // Ranges
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.storage.regular1d unittest: Ranges");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    int[] src = [1, 2, 3, 4, 5, 6];
+    {
+        auto a = StorageRegular1D!(int, 6)(src);
+        {
+            int[] result = [];
+            foreach(r; a.byElement)
+                result ~= [r];
+            assert(result == [1, 2, 3, 4, 5, 6]);
+        }
+    }
+    {
+        auto a = StorageRegular1D!(int, dynsize)(src, 3, 2);
+        {
+            int[] result = [];
+            foreach(r; a.byElement)
+                result ~= [r];
+            assert(result == [1, 3, 5]);
+        }
+    }
+}
+
+version(all) // Old unittests
+{
 unittest // Static
 {
     debug(unittests)
@@ -375,4 +494,5 @@ unittest // Dynamic
 
     assert(c[0] == 0);
     assert(c[1] == 3);
+}
 }

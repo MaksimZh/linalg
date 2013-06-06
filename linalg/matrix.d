@@ -487,7 +487,10 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 static if(!isStatic && canRealloc)
                     this.storage = typeof(this.storage)(source.storage);
                 else
-                    copy(source.storage, this.storage);
+                    if(source.empty)
+                        fill(zero!(Tsource.ElementType), this.storage);
+                    else
+                        copy(source.storage, this.storage);
                 return this;
             }
 

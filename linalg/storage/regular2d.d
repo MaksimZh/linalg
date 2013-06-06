@@ -106,7 +106,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
     /* Constructors */
     static if(isStatic)
     {
-         this()( ElementType[] array) pure
+        this()(ElementType[] array) pure
             in
             {
                 assert(array.length == _container.length);
@@ -149,7 +149,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             _reallocate();
         }
 
-         this()( ElementType[] array, in size_t[2] dim) pure
+        this()(ElementType[] array, in size_t[2] dim) pure
         {
             debug(storage)
             {
@@ -168,8 +168,8 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             this(array, dim, calcStrides!storageOrder(dim));
         }
 
-         this()( ElementType[] array,
-                     in size_t[2] dim, in size_t[2] stride) pure
+        this()(ElementType[] array,
+               in size_t[2] dim, in size_t[2] stride) pure
         {
             debug(storage)
             {
@@ -192,7 +192,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             _stride = stride;
         }
 
-         this(Tsource)(ref Tsource source) pure
+        this(Tsource)(auto ref Tsource source) pure
             if(isStorageRegular1D!Tsource)
         {
             debug(storage)
@@ -216,7 +216,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                 this(source.container, [source.dim, 1], [source.stride, 1]);
         }
 
-         this(Tsource)(ref Tsource source) pure
+        this(Tsource)(auto ref Tsource source) pure
             if(isStorageRegular2D!Tsource)
         {
             debug(storage)
@@ -240,20 +240,20 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
     public // Dimensions and memory
     {
-        @property auto container() pure  { return _container[]; }
-        @property size_t[2] dim() pure  { return _dim; }
-        @property size_t[2] stride() pure  { return _stride; }
+        @property auto container() pure { return _container[]; }
+        @property size_t[2] dim() pure const { return _dim; }
+        @property size_t[2] stride() pure const { return _stride; }
 
-        @property size_t nrows() pure  { return _dim[0]; }
-        @property size_t ncols() pure  { return _dim[1]; }
+        @property size_t nrows() pure const { return _dim[0]; }
+        @property size_t ncols() pure const { return _dim[1]; }
 
 
         /* Test dimensions for compatibility */
-        bool isCompatDim(in size_t[] dim) pure
+        static bool isCompatDim(in size_t[2] dim) pure
         {
             static if(isStatic)
             {
-                return _dim == dim;
+                return dim == dimPattern;
             }
             else
             {
@@ -305,14 +305,14 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
     public // Slices and indices support
     {
         //NOTE: depends on DMD pull-request 443
-        private size_t _mapIndex(size_t irow, size_t icol) pure
+        private size_t _mapIndex(size_t irow, size_t icol) pure const
         {
             return irow * _stride[0] + icol * _stride[1];
         }
 
         mixin sliceOverload;
 
-        size_t opDollar(size_t dimIndex)() pure
+        size_t opDollar(size_t dimIndex)() pure const
         {
             return dim[dimIndex];
         }
@@ -383,7 +383,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
     }
 
     /* Convert to built-in array */
-    ElementType[][] opCast() pure
+    ElementType[][] opCast() pure const
     {
         return toArray(_container, _dim, _stride);
     }
@@ -448,6 +448,244 @@ template isStorageRegular2D(T)
     enum bool isStorageRegular2D = isInstanceOf!(StorageRegular2D, T);
 }
 
+unittest // Type properties
+{
+    alias StorageRegular2D!(int, StorageOrder.row, 2, 3) Si23r;
+    alias StorageRegular2D!(int, StorageOrder.col, 2, 3) Si23c;
+    alias StorageRegular2D!(int, StorageOrder.row, 2, dynsize) Si2dr;
+    alias StorageRegular2D!(int, StorageOrder.row, dynsize, 3) Sid3r;
+    alias StorageRegular2D!(int, StorageOrder.row, dynsize, dynsize) Siddr;
+
+    // dimPattern
+    static assert(Si23r.dimPattern == [2, 3]);
+    static assert(Si23c.dimPattern == [2, 3]);
+    static assert(Si2dr.dimPattern == [2, dynsize]);
+    static assert(Sid3r.dimPattern == [dynsize, 3]);
+    static assert(Siddr.dimPattern == [dynsize, dynsize]);
+
+    // ElementType
+    static assert(is(Si23r.ElementType == int));
+    static assert(is(Siddr.ElementType == int));
+
+    // rank
+    static assert(Si23r.rank == 2);
+    static assert(Siddr.rank == 2);
+
+    // isStatic
+    static assert(Si23r.isStatic == true);
+    static assert(Si23c.isStatic == true);
+    static assert(Si2dr.isStatic == false);
+    static assert(Sid3r.isStatic == false);
+    static assert(Siddr.isStatic == false);
+}
+
+unittest // Constructors, cast
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.storage.regular2d unittest: Constructors, cast");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    int[] a = [1, 2, 3, 4, 5, 6];
+
+    assert(cast(int[][]) StorageRegular2D!(int, StorageOrder.row, 2, 3)(a)
+           == [[1, 2, 3],
+               [4, 5, 6]]);
+    assert(cast(int[][]) StorageRegular2D!(int, StorageOrder.col, 2, 3)(a)
+           == [[1, 3, 5],
+               [2, 4, 6]]);
+    assert(cast(int[][]) StorageRegular2D!(
+               int, StorageOrder.row, dynsize, dynsize)([2, 3])
+           == [[0, 0, 0],
+               [0, 0, 0]]);
+    assert(cast(int[][]) StorageRegular2D!(
+               int, StorageOrder.row, dynsize, dynsize)(a, [2, 3])
+           == [[1, 2, 3],
+               [4, 5, 6]]);
+    assert(cast(int[][]) StorageRegular2D!(
+               int, StorageOrder.row, dynsize, dynsize)(a, [2, 2], [3, 2])
+           == [[1, 3],
+               [4, 6]]);
+    assert(cast(int[][]) StorageRegular2D!(
+               int, StorageOrder.row, dynsize, dynsize)(
+                   StorageRegular1D!(int, dynsize)(a))
+           == [[1, 2, 3, 4, 5, 6]]);
+    assert(cast(int[][]) StorageRegular2D!(
+               int, StorageOrder.col, dynsize, dynsize)(
+                   StorageRegular1D!(int, dynsize)(a))
+           == [[1],
+               [2],
+               [3],
+               [4],
+               [5],
+               [6]]);
+    assert(cast(int[][]) StorageRegular2D!(
+               int, StorageOrder.row, dynsize, dynsize)(
+                   StorageRegular2D!(int, StorageOrder.row, dynsize, dynsize)(
+                       a, [2, 3]))
+           == [[1, 2, 3],
+               [4, 5, 6]]);
+}
+
+unittest // Dimensions and memory
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.storage.regular2d unittest: Dimensions and memory");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    int[] src = [1, 2, 3, 4, 5, 6];
+
+    auto a = StorageRegular2D!(int, StorageOrder.row, dynsize, dynsize)(
+        src, [2, 3]);
+    assert(a.container.ptr == src.ptr);
+    assert(a.container == [1, 2, 3, 4, 5, 6]);
+    assert(a.dim == [2, 3]);
+    assert(a.stride == [3, 1]);
+    assert(a.nrows == 2);
+    assert(a.ncols == 3);
+
+    assert(StorageRegular2D!(int, StorageOrder.row, 2, 3
+               ).isCompatDim([2, 3]) == true);
+    assert(StorageRegular2D!(int, StorageOrder.row, 2, 3
+               ).isCompatDim([3, 4]) == false);
+    assert(StorageRegular2D!(int, StorageOrder.row, 2, dynsize
+               ).isCompatDim([2, 3]) == true);
+    assert(StorageRegular2D!(int, StorageOrder.row, 2, dynsize
+               ).isCompatDim([3, 4]) == false);
+    assert(StorageRegular2D!(int, StorageOrder.row, dynsize, dynsize
+               ).isCompatDim([2, 3]) == true);
+    assert(StorageRegular2D!(int, StorageOrder.row, dynsize, dynsize
+               ).isCompatDim([3, 4]) == true);
+    assert(a.isCompatDim([2, 3]) == true);
+    assert(a.isCompatDim([3, 4]) == true);
+
+    auto b = a.dup;
+    assert(b.container.ptr != a.container.ptr);
+    assert(b.container == [1, 2, 3, 4, 5, 6]);
+    assert(b.dim == [2, 3]);
+    assert(b.stride == [3, 1]);
+
+    b.setDim([3, 5]);
+    assert(b.dim == [3, 5]);
+}
+
+unittest // Indices and slices
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.storage.regular2d unittest: Indices and slices");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    debug debugOP.writeln("Waiting for pull request 443");
+}
+
+unittest // Ranges
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.storage.regular2d unittest: Ranges");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    int[] src = [1, 2, 3, 4, 5, 6];
+    {
+        auto a = StorageRegular2D!(int, StorageOrder.row, 2, 3)(src);
+        {
+            int[] result = [];
+            foreach(r; a.byElement)
+                result ~= [r];
+            assert(result == [1, 2, 3, 4, 5, 6]);
+        }
+        {
+            int[][] result = [];
+            foreach(r; a.byRow)
+                result ~= [cast(int[]) r];
+            assert(result == [[1, 2, 3],
+                              [4, 5, 6]]);
+        }
+        {
+            int[][] result = [];
+            foreach(r; a.byCol)
+                result ~= [cast(int[]) r];
+            assert(result == [[1, 4],
+                              [2, 5],
+                              [3, 6]]);
+        }
+        {
+            int[] src1 = [1, 2, 3, 4, 5, 6,
+                          7, 8, 9, 10, 11, 12,
+                          13, 14, 15, 16, 17, 18,
+                          19, 20, 21, 22, 23, 24];
+            auto b = StorageRegular2D!(int, StorageOrder.row, 4, 6)(src1);
+            int[][][] result = [];
+            foreach(r; b.byBlock([2, 3]))
+                result ~= [cast(int[][]) r];
+            assert(result == [[[1, 2, 3],
+                               [7, 8, 9]],
+                              [[4, 5, 6],
+                               [10, 11, 12]],
+                              [[13, 14, 15],
+                               [19, 20, 21]],
+                              [[16, 17, 18],
+                               [22, 23, 24]]]);
+        }
+    }
+    {
+        auto a = StorageRegular2D!(int, StorageOrder.row, dynsize, dynsize)(
+            src, [2, 3]);
+        {
+            int[] result = [];
+            foreach(r; a.byElement)
+                result ~= [r];
+            assert(result == [1, 2, 3, 4, 5, 6]);
+        }
+        {
+            int[][] result = [];
+            foreach(r; a.byRow)
+                result ~= [cast(int[]) r];
+            assert(result == [[1, 2, 3],
+                              [4, 5, 6]]);
+        }
+        {
+            int[][] result = [];
+            foreach(r; a.byCol)
+                result ~= [cast(int[]) r];
+            assert(result == [[1, 4],
+                              [2, 5],
+                              [3, 6]]);
+        }
+        {
+            int[] src1 = [1, 2, 3, 4, 5, 6,
+                          7, 8, 9, 10, 11, 12,
+                          13, 14, 15, 16, 17, 18,
+                          19, 20, 21, 22, 23, 24];
+            auto b = StorageRegular2D!(int, StorageOrder.row, dynsize, dynsize)(
+                src1, [4, 6]);
+            int[][][] result = [];
+            foreach(r; b.byBlock([2, 3]))
+                result ~= [cast(int[][]) r];
+            assert(result == [[[1, 2, 3],
+                               [7, 8, 9]],
+                              [[4, 5, 6],
+                               [10, 11, 12]],
+                              [[13, 14, 15],
+                               [19, 20, 21]],
+                              [[16, 17, 18],
+                               [22, 23, 24]]]);
+        }
+    }
+}
+
+version(all) // Old unittests
+{
 unittest // Static
 {
     debug(unittests)
@@ -561,4 +799,5 @@ unittest // Dynamic
     assert(c[0, 0] == 0);
     assert(c[0, 1] == 3);
     assert(c[1, 1] == 11);
+}
 }

@@ -17,6 +17,30 @@ import linalg.storage.regular1d;
 import linalg.storage.regular2d;
 
 /* Copy data between storages */
+void fill(Tvalue, Tdest)(auto ref Tvalue value,
+                         auto ref Tdest dest) pure
+    if((isStorageRegular2D!Tdest || isStorageRegular1D!Tdest)
+       && is(Tvalue == Tdest.ElementType))
+{
+    debug(operations)
+    {
+        debugOP.writefln("operations.fill()");
+        mixin(debugIndentScope);
+        debugOP.writefln("to   <%X>, %d",
+                        dest.container.ptr,
+                        dest.container.length);
+        debugOP.writeln("...");
+        mixin(debugIndentScope);
+    }
+    auto idest = dest.byElement;
+    while(!(idest.empty))
+    {
+        idest.front = value;
+        idest.popFront();
+    }
+}
+
+/* Copy data between storages */
 void copy(Tsource, Tdest)( auto ref Tsource source,
                           auto ref Tdest dest) pure
     if((isStorageRegular2D!Tsource && isStorageRegular2D!Tdest)
