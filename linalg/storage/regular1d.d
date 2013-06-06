@@ -336,6 +336,40 @@ unittest // Constructors, cast
            == [1, 3, 5]);
 }
 
+unittest // Dimensions and memory
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.storage.regular1d unittest: Dimensions and memory");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    int[] src = [1, 2, 3, 4, 5, 6];
+
+    auto a = StorageRegular1D!(int, dynsize)(src, 3, 2);
+    assert(a.container.ptr == src.ptr);
+    assert(a.container == [1, 2, 3, 4, 5, 6]);
+    assert(a.dim == 3);
+    assert(a.stride == 2);
+
+    assert(StorageRegular1D!(int, 3).isCompatDim(3) == true);
+    assert(StorageRegular1D!(int, 3).isCompatDim(4) == false);
+    assert(StorageRegular1D!(int, dynsize).isCompatDim(3) == true);
+    assert(StorageRegular1D!(int, dynsize).isCompatDim(4) == true);
+    assert(a.isCompatDim(3) == true);
+    assert(a.isCompatDim(4) == true);
+
+    auto b = a.dup;
+    assert(b.container.ptr != a.container.ptr);
+    assert(b.container == [1, 3, 5]);
+    assert(b.dim == 3);
+    assert(b.stride == 1);
+
+    a.setDim(5);
+    assert(a.dim == 5);
+}
+
 version(all) // Old unittests
 {
 unittest // Static
