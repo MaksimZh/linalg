@@ -448,6 +448,39 @@ template isStorageRegular2D(T)
     enum bool isStorageRegular2D = isInstanceOf!(StorageRegular2D, T);
 }
 
+unittest // Type properties
+{
+    alias StorageRegular2D!(int, StorageOrder.row, 2, 3) Si23r;
+    alias StorageRegular2D!(int, StorageOrder.col, 2, 3) Si23c;
+    alias StorageRegular2D!(int, StorageOrder.row, 2, dynsize) Si2dr;
+    alias StorageRegular2D!(int, StorageOrder.row, dynsize, 3) Sid3r;
+    alias StorageRegular2D!(int, StorageOrder.row, dynsize, dynsize) Siddr;
+
+    // dimPattern
+    static assert(Si23r.dimPattern == [2, 3]);
+    static assert(Si23c.dimPattern == [2, 3]);
+    static assert(Si2dr.dimPattern == [2, dynsize]);
+    static assert(Sid3r.dimPattern == [dynsize, 3]);
+    static assert(Siddr.dimPattern == [dynsize, dynsize]);
+
+    // ElementType
+    static assert(is(Si23r.ElementType == int));
+    static assert(is(Siddr.ElementType == int));
+
+    // rank
+    static assert(Si23r.rank == 2);
+    static assert(Siddr.rank == 2);
+
+    // isStatic
+    static assert(Si23r.isStatic == true);
+    static assert(Si23c.isStatic == true);
+    static assert(Si2dr.isStatic == false);
+    static assert(Sid3r.isStatic == false);
+    static assert(Siddr.isStatic == false);
+}
+
+version(all) // Old unittests
+{
 unittest // Static
 {
     debug(unittests)
@@ -561,4 +594,5 @@ unittest // Dynamic
     assert(c[0, 0] == 0);
     assert(c[0, 1] == 3);
     assert(c[1, 1] == 11);
+}
 }
