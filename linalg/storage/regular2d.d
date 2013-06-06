@@ -192,7 +192,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             _stride = stride;
         }
 
-        this(Tsource)(ref Tsource source) pure
+        this(Tsource)(auto ref Tsource source) pure
             if(isStorageRegular1D!Tsource)
         {
             debug(storage)
@@ -216,7 +216,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                 this(source.container, [source.dim, 1], [source.stride, 1]);
         }
 
-        this(Tsource)(ref Tsource source) pure
+        this(Tsource)(auto ref Tsource source) pure
             if(isStorageRegular2D!Tsource)
         {
             debug(storage)
@@ -477,6 +477,56 @@ unittest // Type properties
     static assert(Si2dr.isStatic == false);
     static assert(Sid3r.isStatic == false);
     static assert(Siddr.isStatic == false);
+}
+
+unittest // Constructors, cast
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.storage.regular2d unittest: Constructors, cast");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    int[] a = [1, 2, 3, 4, 5, 6];
+
+    assert(cast(int[][]) StorageRegular2D!(int, StorageOrder.row, 2, 3)(a)
+           == [[1, 2, 3],
+               [4, 5, 6]]);
+    assert(cast(int[][]) StorageRegular2D!(int, StorageOrder.col, 2, 3)(a)
+           == [[1, 3, 5],
+               [2, 4, 6]]);
+    assert(cast(int[][]) StorageRegular2D!(
+               int, StorageOrder.row, dynsize, dynsize)([2, 3])
+           == [[0, 0, 0],
+               [0, 0, 0]]);
+    assert(cast(int[][]) StorageRegular2D!(
+               int, StorageOrder.row, dynsize, dynsize)(a, [2, 3])
+           == [[1, 2, 3],
+               [4, 5, 6]]);
+    assert(cast(int[][]) StorageRegular2D!(
+               int, StorageOrder.row, dynsize, dynsize)(a, [2, 2], [3, 2])
+           == [[1, 3],
+               [4, 6]]);
+    assert(cast(int[][]) StorageRegular2D!(
+               int, StorageOrder.row, dynsize, dynsize)(
+                   StorageRegular1D!(int, dynsize)(a))
+           == [[1, 2, 3, 4, 5, 6]]);
+    assert(cast(int[][]) StorageRegular2D!(
+               int, StorageOrder.col, dynsize, dynsize)(
+                   StorageRegular1D!(int, dynsize)(a))
+           == [[1],
+               [2],
+               [3],
+               [4],
+               [5],
+               [6]]);
+    assert(cast(int[][]) StorageRegular2D!(
+               int, StorageOrder.row, dynsize, dynsize)(
+                   StorageRegular2D!(int, StorageOrder.row, dynsize, dynsize)(
+                       a, [2, 3]))
+           == [[1, 2, 3],
+               [4, 5, 6]]);
 }
 
 version(all) // Old unittests
