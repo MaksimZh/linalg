@@ -370,6 +370,48 @@ unittest // Dimensions and memory
     assert(a.dim == 5);
 }
 
+unittest // Indices and slices
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.storage.regular1d unittest: Indices and slices");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    debug debugOP.writeln("Waiting for pull request 443");
+}
+
+unittest // Ranges
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.storage.regular1d unittest: Ranges");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    int[] src = [1, 2, 3, 4, 5, 6];
+    {
+        auto a = StorageRegular1D!(int, 6)(src);
+        {
+            int[] result = [];
+            foreach(r; a.byElement)
+                result ~= [r];
+            assert(result == [1, 2, 3, 4, 5, 6]);
+        }
+    }
+    {
+        auto a = StorageRegular1D!(int, dynsize)(src, 3, 2);
+        {
+            int[] result = [];
+            foreach(r; a.byElement)
+                result ~= [r];
+            assert(result == [1, 3, 5]);
+        }
+    }
+}
+
 version(all) // Old unittests
 {
 unittest // Static
