@@ -284,14 +284,14 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         @property size_t[2] dim() pure  { return [nrows, ncols]; }
 
         /** Test dimensions for compatibility */
-        bool isCompatDim(in size_t[2] dim) pure
+        static bool isCompatDim(in size_t[2] dim) pure
         {
             static if(shape == MatrixShape.matrix)
-                return storage.isCompatDim(dim);
+                return StorageType.isCompatDim(dim);
             else static if(shape == MatrixShape.row)
-                return dim[0] == 1 && storage.isCompatDim(dim[1]);
+                return dim[0] == 1 && StorageType.isCompatDim(dim[1]);
             else static if(shape == MatrixShape.col)
-                return dim[1] == 1 && storage.isCompatDim(dim[0]);
+                return dim[1] == 1 && StorageType.isCompatDim(dim[0]);
         }
 
         static if(!isStatic)
