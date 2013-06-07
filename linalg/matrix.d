@@ -133,7 +133,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     static if(isStatic)
     {
         /** Create static shallow copy of array and wrap it. */
-         this( ElementType[] array) pure
+        this(ElementType[] array) pure
         {
             debug(matrix)
             {
@@ -156,7 +156,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         static if(isVector)
         {
             /** Create vector wrapping array */
-             this( ElementType[] array) pure
+            this(ElementType[] array) pure
             {
                 debug(matrix)
                 {
@@ -237,8 +237,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             }
 
             /** Wrap array with a matrix with given dimensions */
-             this( ElementType[] array,
-                       size_t nrows, size_t ncols) pure
+            this(ElementType[] array,
+                 size_t nrows, size_t ncols) pure
             {
                 debug(matrix)
                 {
@@ -266,22 +266,22 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         static if(shape == MatrixShape.matrix)
         {
             /** Dimensions of matrix */
-            @property size_t nrows() pure  { return storage.nrows; }
-            @property size_t ncols() pure  { return storage.ncols; } //ditto
+            @property size_t nrows() pure { return storage.nrows; }
+            @property size_t ncols() pure { return storage.ncols; } //ditto
         }
         else static if(shape == MatrixShape.row)
         {
             enum size_t nrows = 1;
-            @property size_t ncols() pure  { return storage.length; }
+            @property size_t ncols() pure { return storage.length; }
         }
         else static if(shape == MatrixShape.col)
         {
-            @property size_t nrows() pure  { return storage.length; }
+            @property size_t nrows() pure { return storage.length; }
             enum size_t ncols = 1;
         }
         else static assert(false);
         /** Dimensions of matrix */
-        @property size_t[2] dim() pure  { return [nrows, ncols]; }
+        @property size_t[2] dim() pure { return [nrows, ncols]; }
 
         /** Test dimensions for compatibility */
         static bool isCompatDim(in size_t[2] dim) pure
