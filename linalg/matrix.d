@@ -144,9 +144,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
                 "storage<%X>", &(this.storage));
             mixin(debugIndentScope);
         }
-        //HACK: workaround for DMD issue 9665
-        *cast(StorageType*)&(this.storage) =
-            *cast(StorageType*)&storage;
+        this.storage = storage;
     }
 
     static if(isStatic)
@@ -164,10 +162,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
                     "storage<%X>", &(this.storage));
                 mixin(debugIndentScope);
             }
-            //HACK: workaround for DMD issue 9665
-            auto tmp = StorageType(array);
-            *cast(StorageType*)&storage =
-                *cast(StorageType*)&tmp;
+            storage = StorageType(array);
         }
     }
     else
@@ -472,46 +467,28 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
 
     public // Operations
     {
-        static if(isStatic)
-            ref auto opAssign(Tsource)(auto ref Tsource source) pure
-                if(isMatrix!Tsource)
+        ref auto opAssign(Tsource)(auto ref Tsource source) pure
+            if(isMatrix!Tsource)
+        {
+            debug(matrix)
             {
-                debug(matrix)
-                {
-                    debugOP.writefln("Matrix<%X>.opAssign()", &this);
-                    mixin(debugIndentScope);
-                    debugOP.writefln("source = <%X>", &source);
-                    debugOP.writeln("...");
-                    scope(exit) debug debugOP.writefln(
-                        "storage<%X>", &(this.storage));
-                    mixin(debugIndentScope);
-                }
-                copy(source.storage, this.storage);
-                return this;
+                debugOP.writefln("Matrix<%X>.opAssign()", &this);
+                mixin(debugIndentScope);
+                debugOP.writefln("source = <%X>", &source);
+                debugOP.writeln("...");
+                scope(exit) debug debugOP.writefln(
+                    "storage<%X>", &(this.storage));
+                mixin(debugIndentScope);
             }
-        else
-            ref auto opAssign(Tsource)(auto ref Tsource source) pure
-                if(isMatrix!Tsource)
-            {
-                debug(matrix)
-                {
-                    debugOP.writefln("Matrix<%X>.opAssign()", &this);
-                    mixin(debugIndentScope);
-                    debugOP.writefln("source = <%X>", &source);
-                    debugOP.writeln("...");
-                    scope(exit) debug debugOP.writefln(
-                        "storage<%X>", &(this.storage));
-                    mixin(debugIndentScope);
-                }
-                static if(memoryManag == MatrixMemory.dynamic)
-                    this.storage = typeof(this.storage)(source.storage);
+            static if(memoryManag == MatrixMemory.dynamic)
+                this.storage = typeof(this.storage)(source.storage);
+            else
+                if(source.empty)
+                    fill(zero!(Tsource.ElementType), this.storage);
                 else
-                    if(source.empty)
-                        fill(zero!(Tsource.ElementType), this.storage);
-                    else
-                        copy(source.storage, this.storage);
-                return this;
-            }
+                    copy(source.storage, this.storage);
+            return this;
+        }
 
         /* Unary operations
          */
