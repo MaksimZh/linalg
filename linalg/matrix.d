@@ -57,6 +57,16 @@ enum MatrixShape
     matrix
 }
 
+/**
+ * Memory management of matrix or vector
+ */
+enum MatrixMemory
+{
+    stat,
+    bound,
+    dynamic
+}
+
 /* Returns shape of matrix with given dimensions */
 private auto shapeForDim(size_t[2] dim)
 {
@@ -68,12 +78,23 @@ private auto shapeForDim(size_t[2] dim)
         return MatrixShape.matrix;
 }
 
+template Matrix(T, size_t nrows_, size_t ncols_,
+                StorageOrder storageOrder_ = defaultStorageOrder)
+{
+    alias BasicMatrix!(T, nrows_, ncols_, storageOrder_, false) Matrix;
+}
+
+template MatrixView(T, size_t nrows_, size_t ncols_,
+                    StorageOrder storageOrder_ = defaultStorageOrder)
+{
+    alias BasicMatrix!(T, nrows_, ncols_, storageOrder_, true) MatrixView;
+}
+
 /**
- * Matrix or vector.
+ * Matrix or vector or view.
  */
-struct Matrix(T, size_t nrows_, size_t ncols_,
-              StorageOrder storageOrder_ = defaultStorageOrder,
-              bool canRealloc = true)
+struct BasicMatrix(T, size_t nrows_, size_t ncols_,
+                   StorageOrder storageOrder_, bool isBound)
 {
     /** Dimensions pattern */
     enum size_t[2] dimPattern = [nrows_, ncols_];
@@ -83,20 +104,18 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
      */
     alias MatrixStorageType!(T, storageOrder_, nrows_, ncols_)
         StorageType;
-
+    /** Type of matrix elements */
+    alias StorageType.ElementType ElementType;
     /** Shape of the matrix or vector */
     enum auto shape = shapeForDim(dimPattern);
     /** Whether this is vector */
     enum bool isVector = shape != MatrixShape.matrix;
     /** Storage order */
     enum StorageOrder storageOrder = storageOrder_;
-    public // Forward type parameters
-    {
-        /** Type of matrix elements */
-        alias StorageType.ElementType ElementType;
-        /** Whether wraps static array or use dynamic allocation */
-        alias StorageType.isStatic isStatic;
-    }
+    enum MatrixMemory memoryManag =
+        StorageType.isStatic ? MatrixMemory.stat : (
+            isBound ? MatrixMemory.bound : MatrixMemory.dynamic);
+    enum bool isStatic = (memoryManag == MatrixMemory.stat);
 
     /**
      * Storage of matrix data.
@@ -111,7 +130,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     /* Creates matrix for storage. For internal use only.
      * Public because used by ranges.
      */
-     this( StorageType storage) pure
+    this(StorageType storage) pure
     {
         debug(matrix)
         {
@@ -125,9 +144,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 "storage<%X>", &(this.storage));
             mixin(debugIndentScope);
         }
-        //HACK: workaround for DMD issue 9665
-        *cast(StorageType*)&(this.storage) =
-            *cast(StorageType*)&storage;
+        this.storage = storage;
     }
 
     static if(isStatic)
@@ -145,10 +162,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                     "storage<%X>", &(this.storage));
                 mixin(debugIndentScope);
             }
-            //HACK: workaround for DMD issue 9665
-            auto tmp = StorageType(array);
-            *cast(StorageType*)&storage =
-                *cast(StorageType*)&tmp;
+            storage = StorageType(array);
         }
     }
     else
@@ -347,10 +361,10 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         {
             ref auto opIndex() pure
             {
-                return Matrix!(ElementType,
-                                     dimPattern[0] == 1 ? 1 : dynsize,
-                                     dimPattern[1] == 1 ? 1 : dynsize,
-                                     storageOrder, false)(storage.opIndex());
+                return MatrixView!(ElementType,
+                                   dimPattern[0] == 1 ? 1 : dynsize,
+                                   dimPattern[1] == 1 ? 1 : dynsize,
+                                   storageOrder)(storage.opIndex());
             }
 
             ref auto opIndex(size_t i) pure
@@ -360,20 +374,20 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 
             ref auto opIndex(Slice s) pure
             {
-                return Matrix!(ElementType,
-                                     dimPattern[0] == 1 ? 1 : dynsize,
-                                     dimPattern[1] == 1 ? 1 : dynsize,
-                                     storageOrder, false)(storage.opIndex(s));
+                return MatrixView!(ElementType,
+                                   dimPattern[0] == 1 ? 1 : dynsize,
+                                   dimPattern[1] == 1 ? 1 : dynsize,
+                                   storageOrder)(storage.opIndex(s));
             }
         }
         else
         {
             ref auto opIndex() pure
             {
-                return Matrix!(ElementType,
-                                     dimPattern[0] == 1 ? 1 : dynsize,
-                                     dimPattern[1] == 1 ? 1 : dynsize,
-                                     storageOrder, false)(storage.opIndex());
+                return MatrixView!(ElementType,
+                                   dimPattern[0] == 1 ? 1 : dynsize,
+                                   dimPattern[1] == 1 ? 1 : dynsize,
+                                   storageOrder)(storage.opIndex());
             }
 
             ref auto opIndex(size_t irow, size_t icol) pure
@@ -383,26 +397,26 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 
             ref auto opIndex(Slice srow, size_t icol) pure
             {
-                return Matrix!(ElementType,
-                                     dynsize, 1,
-                                     storageOrder, false)(
-                                         storage.opIndex(srow, icol));
+                return MatrixView!(ElementType,
+                                   dynsize, 1,
+                                   storageOrder)(
+                                       storage.opIndex(srow, icol));
             }
 
             ref auto opIndex(size_t irow, Slice scol) pure
             {
-                return Matrix!(ElementType,
-                                     1, dynsize,
-                                     storageOrder, false)(
-                                         storage.opIndex(irow, scol));
+                return MatrixView!(ElementType,
+                                   1, dynsize,
+                                   storageOrder)(
+                                       storage.opIndex(irow, scol));
             }
 
             ref auto opIndex(Slice srow, Slice scol) pure
             {
-                return Matrix!(ElementType,
-                                     dynsize, dynsize,
-                                     storageOrder, false)(
-                                         storage.opIndex(srow, scol));
+                return MatrixView!(ElementType,
+                                   dynsize, dynsize,
+                                   storageOrder)(
+                                       storage.opIndex(srow, scol));
             }
         }
     }
@@ -448,51 +462,33 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         return Matrix!(ElementType,
                        dimPattern[0] == 1 ? 1 : dynsize,
                        dimPattern[1] == 1 ? 1 : dynsize,
-                       storageOrder, true)(this.storage.dup);
+                       storageOrder)(this.storage.dup);
     }
 
     public // Operations
     {
-        static if(isStatic)
-            ref auto opAssign(Tsource)(auto ref Tsource source) pure
-                if(isMatrix!Tsource)
+        ref auto opAssign(Tsource)(auto ref Tsource source) pure
+            if(isMatrix!Tsource)
+        {
+            debug(matrix)
             {
-                debug(matrix)
-                {
-                    debugOP.writefln("Matrix<%X>.opAssign()", &this);
-                    mixin(debugIndentScope);
-                    debugOP.writefln("source = <%X>", &source);
-                    debugOP.writeln("...");
-                    scope(exit) debug debugOP.writefln(
-                        "storage<%X>", &(this.storage));
-                    mixin(debugIndentScope);
-                }
-                copy(source.storage, this.storage);
-                return this;
+                debugOP.writefln("Matrix<%X>.opAssign()", &this);
+                mixin(debugIndentScope);
+                debugOP.writefln("source = <%X>", &source);
+                debugOP.writeln("...");
+                scope(exit) debug debugOP.writefln(
+                    "storage<%X>", &(this.storage));
+                mixin(debugIndentScope);
             }
-        else
-            ref auto opAssign(Tsource)(auto ref Tsource source) pure
-                if(isMatrix!Tsource)
-            {
-                debug(matrix)
-                {
-                    debugOP.writefln("Matrix<%X>.opAssign()", &this);
-                    mixin(debugIndentScope);
-                    debugOP.writefln("source = <%X>", &source);
-                    debugOP.writeln("...");
-                    scope(exit) debug debugOP.writefln(
-                        "storage<%X>", &(this.storage));
-                    mixin(debugIndentScope);
-                }
-                static if(!isStatic && canRealloc)
-                    this.storage = typeof(this.storage)(source.storage);
+            static if(memoryManag == MatrixMemory.dynamic)
+                this.storage = typeof(this.storage)(source.storage);
+            else
+                if(source.empty)
+                    fill(zero!(Tsource.ElementType), this.storage);
                 else
-                    if(source.empty)
-                        fill(zero!(Tsource.ElementType), this.storage);
-                    else
-                        copy(source.storage, this.storage);
-                return this;
-            }
+                    copy(source.storage, this.storage);
+            return this;
+        }
 
         /* Unary operations
          */
@@ -520,8 +516,8 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 debugOP.writeln("...");
                 mixin(debugIndentScope);
             }
-            static if(isStatic)
-                Matrix dest;
+            static if(memoryManag == MatrixMemory.stat)
+                BasicMatrix dest;
             else
                 auto dest = Matrix!(ElementType,
                                     dimPattern[0], dimPattern[1],
@@ -550,15 +546,18 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
              * If matrix is empty (not allocated) then just assume it has
              * appropriate size and filled with zeros.
              */
-            static if(!isStatic && canRealloc)
+            static if(memoryManag == MatrixMemory.dynamic)
                 if(empty)
                 {
                     this.setDim([source.nrows, source.ncols]);
+                    static if(Tsource.memoryManag == MatrixMemory.dynamic)
+                        if(source.empty)
+                            return this;
                     linalg.operations.basic.map!(op ~ "a")(
                         source.storage, this.storage);
                     return this;
                 }
-            static if(!(Tsource.isStatic))
+            static if(Tsource.memoryManag == MatrixMemory.dynamic)
                 if(source.empty)
                     return this;
             linalg.operations.basic.zip!("a"~op~"b")(
@@ -581,19 +580,29 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 
             /*
              * If one of the operands is empty (not allocated) then
-             * return the other one with proper sign.
+             * return copy the other one with proper sign if it has proper type.
+             *
+             * Copy is needed since the result of binary operation
+             * is not expected to share memory with one of the operands.
              */
             alias TypeOfResultMatrix!(typeof(this), op, Trhs) Tresult;
-            static if(!isStatic && is(Tresult == Trhs))
+            // Left operand can be empty and right operand is of result type
+            static if(memoryManag == MatrixMemory.dynamic
+                      && is(Tresult == Trhs))
                 if(empty)
                     return mixin(op~"rhs").dup;
-            static if(!(Trhs.isStatic) && is(Tresult == typeof(this)))
+            // Right operand can be empty and left operand is of result type
+            static if(Trhs.memoryManag == MatrixMemory.dynamic
+                      && is(Tresult == typeof(this)))
                 if(rhs.empty)
                     return this.dup;
+            // Result can not be copy of any of the operands
             Tresult dest;
-            static if(!(typeof(dest).isStatic))
+            // Allocate memory for dynamic matrix
+            static if(Tresult.memoryManag == MatrixMemory.dynamic)
                 dest.setDim([this.nrows, this.ncols]);
-            if(empty)
+            // Calculate the result
+            if(this.empty)
                 linalg.operations.basic.map!((a, lhs) => mixin("lhs"~op~"a"))(
                     rhs.storage, dest.storage, zero!ElementType);
             else if(rhs.empty)
@@ -621,6 +630,9 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 debugOP.writeln("...");
                 mixin(debugIndentScope);
             }
+            static if(memoryManag == MatrixMemory.dynamic)
+                if(empty)
+                    return this;
             linalg.operations.basic.map!((a, b) => mixin("a"~op~"b"))(
                 this.storage, this.storage, source);
             return this;
@@ -639,7 +651,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 mixin(debugIndentScope);
             }
             TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
-            static if(!(typeof(dest).isStatic))
+            static if(typeof(dest).memoryManag == MatrixMemory.dynamic)
                 dest.setDim([this.nrows, this.ncols]);
             linalg.operations.basic.map!((a, rhs) => mixin("a"~op~"rhs"))(
                 this.storage, dest.storage, rhs);
@@ -662,7 +674,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 mixin(debugIndentScope);
             }
             TypeOfResultMatrix!(Tlhs, op, typeof(this)) dest;
-            static if(!(typeof(dest).isStatic))
+            static if(typeof(dest).memoryManag == MatrixMemory.dynamic)
                 dest.setDim([this.nrows, this.ncols]);
             linalg.operations.basic.map!((a, lhs) => mixin("lhs"~op~"a"))(
                 this.storage, dest.storage, lhs);
@@ -708,7 +720,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             else
             {
                 TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
-                static if(!(typeof(dest).isStatic))
+                static if(typeof(dest).memoryManag == MatrixMemory.dynamic)
                     dest.setDim([this.nrows, rhs.ncols]);
                 mulAsMatrices(this.storage, rhs.storage, dest.storage);
                 return dest;
@@ -798,7 +810,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
             }
 
             Matrix!(ElementType, dimPattern[1], dimPattern[0], storageOrder) dest;
-            static if(!(typeof(dest).isStatic))
+            static if(typeof(dest).memoryManag == MatrixMemory.dynamic)
                 dest.setDim([this.ncols, this.nrows]);
             conjMatrix(this.storage, dest.storage);
             return dest;
@@ -816,21 +828,21 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         {
             @property auto byRow() pure
             {
-                return storage.byRow!(Matrix!(ElementType, 1, dynsize,
-                                              storageOrder, false))();
+                return storage.byRow!(MatrixView!(ElementType, 1, dynsize,
+                                                  storageOrder))();
             }
 
             @property auto byCol() pure
             {
-                return storage.byCol!(Matrix!(ElementType, dynsize, 1,
-                                              storageOrder, false))();
+                return storage.byCol!(MatrixView!(ElementType, dynsize, 1,
+                                                  storageOrder))();
             }
 
             @property auto byBlock(size_t[2] subdim) pure
             {
-                return storage.byBlock!(Matrix!(ElementType,
-                                                dynsize, dynsize,
-                                                storageOrder, false))(subdim);
+                return storage.byBlock!(MatrixView!(ElementType,
+                                                    dynsize, dynsize,
+                                                    storageOrder))(subdim);
             }
         }
     }
@@ -839,7 +851,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 /** Detect whether $(D T) is matrix */
 template isMatrix(T)
 {
-    enum bool isMatrix = isInstanceOf!(Matrix, T);
+    enum bool isMatrix = isInstanceOf!(BasicMatrix, T);
 }
 
 /* Derive result type for matrix operations */
