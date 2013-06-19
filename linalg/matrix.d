@@ -810,7 +810,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             }
 
             Matrix!(ElementType, dimPattern[1], dimPattern[0], storageOrder) dest;
-            static if(!(typeof(dest).isStatic))
+            static if(typeof(dest).memoryManag == MatrixMemory.dynamic)
                 dest.setDim([this.ncols, this.nrows]);
             conjMatrix(this.storage, dest.storage);
             return dest;
