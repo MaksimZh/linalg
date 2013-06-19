@@ -516,7 +516,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
                 debugOP.writeln("...");
                 mixin(debugIndentScope);
             }
-            static if(isStatic)
+            static if(memoryManag == MatrixMemory.stat)
                 BasicMatrix dest;
             else
                 auto dest = Matrix!(ElementType,
@@ -550,11 +550,14 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
                 if(empty)
                 {
                     this.setDim([source.nrows, source.ncols]);
+                    static if(Tsource.memoryManag == MatrixMemory.dynamic)
+                        if(source.empty)
+                            return this;
                     linalg.operations.basic.map!(op ~ "a")(
                         source.storage, this.storage);
                     return this;
                 }
-            static if(!(Tsource.isStatic))
+            static if(Tsource.memoryManag == MatrixMemory.dynamic)
                 if(source.empty)
                     return this;
             linalg.operations.basic.zip!("a"~op~"b")(
