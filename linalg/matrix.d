@@ -78,12 +78,23 @@ private auto shapeForDim(size_t[2] dim)
         return MatrixShape.matrix;
 }
 
+template Matrix(T, size_t nrows_, size_t ncols_,
+                StorageOrder storageOrder_ = defaultStorageOrder)
+{
+    alias BasicMatrix!(T, nrows_, ncols_, storageOrder_, false) Matrix;
+}
+
+template MatrixView(T, size_t nrows_, size_t ncols_,
+                    StorageOrder storageOrder_ = defaultStorageOrder)
+{
+    alias BasicMatrix!(T, nrows_, ncols_, storageOrder_, true) MatrixView;
+}
+
 /**
- * Matrix or vector.
+ * Matrix or vector or view.
  */
-struct Matrix(T, size_t nrows_, size_t ncols_,
-              StorageOrder storageOrder_ = defaultStorageOrder,
-              bool isBound = false)
+struct BasicMatrix(T, size_t nrows_, size_t ncols_,
+                   StorageOrder storageOrder_, bool isBound)
 {
     /** Dimensions pattern */
     enum size_t[2] dimPattern = [nrows_, ncols_];
@@ -355,10 +366,10 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         {
             ref auto opIndex() pure
             {
-                return Matrix!(ElementType,
-                                     dimPattern[0] == 1 ? 1 : dynsize,
-                                     dimPattern[1] == 1 ? 1 : dynsize,
-                                     storageOrder, false)(storage.opIndex());
+                return MatrixView!(ElementType,
+                                   dimPattern[0] == 1 ? 1 : dynsize,
+                                   dimPattern[1] == 1 ? 1 : dynsize,
+                                   storageOrder)(storage.opIndex());
             }
 
             ref auto opIndex(size_t i) pure
@@ -368,20 +379,20 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 
             ref auto opIndex(Slice s) pure
             {
-                return Matrix!(ElementType,
-                                     dimPattern[0] == 1 ? 1 : dynsize,
-                                     dimPattern[1] == 1 ? 1 : dynsize,
-                                     storageOrder, false)(storage.opIndex(s));
+                return MatrixView!(ElementType,
+                                   dimPattern[0] == 1 ? 1 : dynsize,
+                                   dimPattern[1] == 1 ? 1 : dynsize,
+                                   storageOrder)(storage.opIndex(s));
             }
         }
         else
         {
             ref auto opIndex() pure
             {
-                return Matrix!(ElementType,
-                                     dimPattern[0] == 1 ? 1 : dynsize,
-                                     dimPattern[1] == 1 ? 1 : dynsize,
-                                     storageOrder, false)(storage.opIndex());
+                return MatrixView!(ElementType,
+                                   dimPattern[0] == 1 ? 1 : dynsize,
+                                   dimPattern[1] == 1 ? 1 : dynsize,
+                                   storageOrder)(storage.opIndex());
             }
 
             ref auto opIndex(size_t irow, size_t icol) pure
@@ -391,26 +402,26 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 
             ref auto opIndex(Slice srow, size_t icol) pure
             {
-                return Matrix!(ElementType,
-                                     dynsize, 1,
-                                     storageOrder, false)(
-                                         storage.opIndex(srow, icol));
+                return MatrixView!(ElementType,
+                                   dynsize, 1,
+                                   storageOrder)(
+                                       storage.opIndex(srow, icol));
             }
 
             ref auto opIndex(size_t irow, Slice scol) pure
             {
-                return Matrix!(ElementType,
-                                     1, dynsize,
-                                     storageOrder, false)(
-                                         storage.opIndex(irow, scol));
+                return MatrixView!(ElementType,
+                                   1, dynsize,
+                                   storageOrder)(
+                                       storage.opIndex(irow, scol));
             }
 
             ref auto opIndex(Slice srow, Slice scol) pure
             {
-                return Matrix!(ElementType,
-                                     dynsize, dynsize,
-                                     storageOrder, false)(
-                                         storage.opIndex(srow, scol));
+                return MatrixView!(ElementType,
+                                   dynsize, dynsize,
+                                   storageOrder)(
+                                       storage.opIndex(srow, scol));
             }
         }
     }
@@ -456,7 +467,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         return Matrix!(ElementType,
                        dimPattern[0] == 1 ? 1 : dynsize,
                        dimPattern[1] == 1 ? 1 : dynsize,
-                       storageOrder, true)(this.storage.dup);
+                       storageOrder)(this.storage.dup);
     }
 
     public // Operations
@@ -492,7 +503,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                         "storage<%X>", &(this.storage));
                     mixin(debugIndentScope);
                 }
-                static if(!isStatic && canRealloc)
+                static if(memoryManag == MatrixMemory.dynamic)
                     this.storage = typeof(this.storage)(source.storage);
                 else
                     if(source.empty)
@@ -529,7 +540,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
                 mixin(debugIndentScope);
             }
             static if(isStatic)
-                Matrix dest;
+                BasicMatrix dest;
             else
                 auto dest = Matrix!(ElementType,
                                     dimPattern[0], dimPattern[1],
@@ -558,7 +569,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
              * If matrix is empty (not allocated) then just assume it has
              * appropriate size and filled with zeros.
              */
-            static if(!isStatic && canRealloc)
+            static if(memoryManag == MatrixMemory.dynamic)
                 if(empty)
                 {
                     this.setDim([source.nrows, source.ncols]);
@@ -824,21 +835,21 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
         {
             @property auto byRow() pure
             {
-                return storage.byRow!(Matrix!(ElementType, 1, dynsize,
-                                              storageOrder, false))();
+                return storage.byRow!(MatrixView!(ElementType, 1, dynsize,
+                                                  storageOrder))();
             }
 
             @property auto byCol() pure
             {
-                return storage.byCol!(Matrix!(ElementType, dynsize, 1,
-                                              storageOrder, false))();
+                return storage.byCol!(MatrixView!(ElementType, dynsize, 1,
+                                                  storageOrder))();
             }
 
             @property auto byBlock(size_t[2] subdim) pure
             {
-                return storage.byBlock!(Matrix!(ElementType,
-                                                dynsize, dynsize,
-                                                storageOrder, false))(subdim);
+                return storage.byBlock!(MatrixView!(ElementType,
+                                                    dynsize, dynsize,
+                                                    storageOrder))(subdim);
             }
         }
     }
@@ -847,7 +858,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
 /** Detect whether $(D T) is matrix */
 template isMatrix(T)
 {
-    enum bool isMatrix = isInstanceOf!(Matrix, T);
+    enum bool isMatrix = isInstanceOf!(BasicMatrix, T);
 }
 
 /* Derive result type for matrix operations */
