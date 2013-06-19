@@ -580,19 +580,29 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
 
             /*
              * If one of the operands is empty (not allocated) then
-             * return the other one with proper sign.
+             * return copy the other one with proper sign if it has proper type.
+             *
+             * Copy is needed since the result of binary operation
+             * is not expected to share memory with one of the operands.
              */
             alias TypeOfResultMatrix!(typeof(this), op, Trhs) Tresult;
-            static if(!isStatic && is(Tresult == Trhs))
+            // Left operand can be empty and right operand is of result type
+            static if(memoryManag == MatrixMemory.dynamic
+                      && is(Tresult == Trhs))
                 if(empty)
                     return mixin(op~"rhs").dup;
-            static if(!(Trhs.isStatic) && is(Tresult == typeof(this)))
+            // Right operand can be empty and left operand is of result type
+            static if(Trhs.memoryManag == MatrixMemory.dynamic
+                      && is(Tresult == typeof(this)))
                 if(rhs.empty)
                     return this.dup;
+            // Result can not be copy of any of the operands
             Tresult dest;
-            static if(!(typeof(dest).isStatic))
+            // Allocate memory for dynamic matrix
+            static if(Tresult.memoryManag == MatrixMemory.dynamic)
                 dest.setDim([this.nrows, this.ncols]);
-            if(empty)
+            // Calculate the result
+            if(this.empty)
                 linalg.operations.basic.map!((a, lhs) => mixin("lhs"~op~"a"))(
                     rhs.storage, dest.storage, zero!ElementType);
             else if(rhs.empty)
