@@ -57,6 +57,16 @@ enum MatrixShape
     matrix
 }
 
+/**
+ * Memory management of matrix or vector
+ */
+enum MatrixMemory
+{
+    stat,
+    bound,
+    dynamic
+}
+
 /* Returns shape of matrix with given dimensions */
 private auto shapeForDim(size_t[2] dim)
 {
@@ -73,7 +83,7 @@ private auto shapeForDim(size_t[2] dim)
  */
 struct Matrix(T, size_t nrows_, size_t ncols_,
               StorageOrder storageOrder_ = defaultStorageOrder,
-              bool canRealloc = true)
+              bool isBound = false)
 {
     /** Dimensions pattern */
     enum size_t[2] dimPattern = [nrows_, ncols_];
@@ -83,20 +93,18 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
      */
     alias MatrixStorageType!(T, storageOrder_, nrows_, ncols_)
         StorageType;
-
+    /** Type of matrix elements */
+    alias StorageType.ElementType ElementType;
     /** Shape of the matrix or vector */
     enum auto shape = shapeForDim(dimPattern);
     /** Whether this is vector */
     enum bool isVector = shape != MatrixShape.matrix;
     /** Storage order */
     enum StorageOrder storageOrder = storageOrder_;
-    public // Forward type parameters
-    {
-        /** Type of matrix elements */
-        alias StorageType.ElementType ElementType;
-        /** Whether wraps static array or use dynamic allocation */
-        alias StorageType.isStatic isStatic;
-    }
+    enum MatrixMemory memoryManag =
+        StorageType.isStatic ? MatrixMemory.stat : (
+            isBound ? MatrixMemory.bound : MatrixMemory.dynamic);
+    enum bool isStatic = (memoryManag == MatrixMemory.stat);
 
     /**
      * Storage of matrix data.
@@ -111,7 +119,7 @@ struct Matrix(T, size_t nrows_, size_t ncols_,
     /* Creates matrix for storage. For internal use only.
      * Public because used by ranges.
      */
-     this( StorageType storage) pure
+    this(StorageType storage) pure
     {
         debug(matrix)
         {
