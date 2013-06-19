@@ -630,6 +630,9 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
                 debugOP.writeln("...");
                 mixin(debugIndentScope);
             }
+            static if(memoryManag == MatrixMemory.dynamic)
+                if(empty)
+                    return this;
             linalg.operations.basic.map!((a, b) => mixin("a"~op~"b"))(
                 this.storage, this.storage, source);
             return this;
@@ -648,7 +651,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
                 mixin(debugIndentScope);
             }
             TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
-            static if(!(typeof(dest).isStatic))
+            static if(typeof(dest).memoryManag == MatrixMemory.dynamic)
                 dest.setDim([this.nrows, this.ncols]);
             linalg.operations.basic.map!((a, rhs) => mixin("a"~op~"rhs"))(
                 this.storage, dest.storage, rhs);
@@ -671,7 +674,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
                 mixin(debugIndentScope);
             }
             TypeOfResultMatrix!(Tlhs, op, typeof(this)) dest;
-            static if(!(typeof(dest).isStatic))
+            static if(typeof(dest).memoryManag == MatrixMemory.dynamic)
                 dest.setDim([this.nrows, this.ncols]);
             linalg.operations.basic.map!((a, lhs) => mixin("lhs"~op~"a"))(
                 this.storage, dest.storage, lhs);
@@ -717,7 +720,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             else
             {
                 TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
-                static if(!(typeof(dest).isStatic))
+                static if(typeof(dest).memoryManag == MatrixMemory.dynamic)
                     dest.setDim([this.nrows, rhs.ncols]);
                 mulAsMatrices(this.storage, rhs.storage, dest.storage);
                 return dest;
