@@ -40,8 +40,41 @@ void fill(Tvalue, Tdest)(auto ref Tvalue value,
     }
 }
 
+/* Compare two storages */
+bool compare(TsourceA, TsourceB)(auto ref TsourceA sourceA,
+                                 auto ref TsourceB sourceB) pure
+    if((isStorageRegular2D!TsourceA && isStorageRegular2D!TsourceB)
+        || (isStorageRegular1D!TsourceA && isStorageRegular1D!TsourceB))
+{
+    debug(operations)
+    {
+        debugOP.writefln("operations.compare()");
+        mixin(debugIndentScope);
+        debugOP.writefln("from <%X>, %d",
+                        sourceA.container.ptr,
+                        sourceA.container.length);
+        debugOP.writefln("from <%X>, %d",
+                        sourceB.container.ptr,
+                        sourceB.container.length);
+        debugOP.writeln("...");
+        mixin(debugIndentScope);
+    }
+    if(sourceA.dim != sourceB.dim)
+        return false;
+    auto isourceA = sourceA.byElement;
+    auto isourceB = sourceB.byElement;
+    while(!(isourceA.empty))
+    {
+        if(isourceA.front != isourceB.front)
+            return false;
+        isourceA.popFront();
+        isourceB.popFront();
+    }
+    return true;
+}
+
 /* Copy data between storages */
-void copy(Tsource, Tdest)( auto ref Tsource source,
+void copy(Tsource, Tdest)(auto ref Tsource source,
                           auto ref Tdest dest) pure
     if((isStorageRegular2D!Tsource && isStorageRegular2D!Tdest)
         || (isStorageRegular1D!Tsource && isStorageRegular1D!Tdest))

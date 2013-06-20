@@ -512,6 +512,22 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             return this;
         }
 
+        bool opEquals(Tsource)(auto ref Tsource source) pure
+            if(isMatrix!Tsource)
+        {
+            debug(matrix)
+            {
+                debugOP.writefln("Matrix<%X>.opCmp()", &this);
+                mixin(debugIndentScope);
+                debugOP.writefln("source = <%X>", &source);
+                debugOP.writeln("...");
+                scope(exit) debug debugOP.writefln(
+                    "storage<%X>", &(this.storage));
+                mixin(debugIndentScope);
+            }
+            return compare(source.storage, this.storage);
+        }
+
         /* Unary operations
          */
 
@@ -1085,6 +1101,41 @@ unittest // Dimension control
     assert(b.ncols == 3);
     assert(b.dim == [2, 3]);
     assert(!(b.isCompatDim([22, 33])));
+}
+
+unittest // Comparison
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Comparison");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    int[] src1 = [1, 2, 3, 4, 5, 6];
+    int[] src2 = [6, 5, 4, 3, 2, 1];
+
+    {
+        auto a = Matrix!(int, 2, 3)(src1);
+        auto b = Matrix!(int, 2, 3)(src1);
+        auto c = Matrix!(int, 2, 3)(src2);
+        assert(a == b);
+        assert(a != c);
+    }
+    {
+        auto a = Matrix!(int, 2, 3)(src1);
+        auto b = Matrix!(int, dynsize, dynsize)(src1, 2, 3);
+        auto c = Matrix!(int, dynsize, dynsize)(src2, 2, 3);
+        assert(a == b);
+        assert(a != c);
+    }
+    {
+        auto a = Matrix!(int, dynsize, dynsize)(src1, 2, 3);
+        auto b = Matrix!(int, dynsize, dynsize)(src1, 2, 3);
+        auto c = Matrix!(int, dynsize, dynsize)(src2, 2, 3);
+        assert(a == b);
+        assert(a != c);
+    }
 }
 
 unittest // Copying
