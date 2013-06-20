@@ -130,7 +130,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
     /* Creates matrix for storage. For internal use only.
      * Public because used by ranges.
      */
-    this()(StorageType storage) pure
+    this()(auto ref StorageType storage) pure
     {
         debug(matrix)
         {
@@ -151,7 +151,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
      * If matrix is static then create a copy of the source.
      * Otherwise share the source data.
      */
-    this(Tsource)(ref Tsource source) pure
+    this(Tsource)(auto ref Tsource source) pure
         if(isMatrix!Tsource)
     {
         debug(matrix)
@@ -1034,7 +1034,6 @@ unittest // Constructors, cast
     }
     {
         Matrix!(int, dynsize, dynsize) mb = ma;
-        debug writeln(cast(int[][]) mb);
         assert(cast(int[][]) mb
                == [[1, 2, 3],
                    [4, 5, 6]]);
