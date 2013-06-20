@@ -130,7 +130,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
     /* Creates matrix for storage. For internal use only.
      * Public because used by ranges.
      */
-    this(StorageType storage) pure
+    this()(StorageType storage) pure
     {
         debug(matrix)
         {
@@ -147,10 +147,32 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         this.storage = storage;
     }
 
+    /**
+     * If matrix is static then create a copy of the source.
+     * Otherwise share the source data.
+     */
+    this(Tsource)(Tsource source) pure
+        if(isMatrix!Tsource)
+    {
+        debug(matrix)
+        {
+            debugOP.writefln("Matrix<%X>.this(matrix)", &this);
+            mixin(debugIndentScope);
+            debugOP.writefln("matrix.storage.container = <%X>, %d",
+                             source.storage.container.ptr,
+                             source.storage.container.length);
+            debugOP.writeln("...");
+            scope(exit) debug debugOP.writefln(
+                "storage<%X>", &(this.storage));
+            mixin(debugIndentScope);
+        }
+        this = source;
+    }
+
     static if(isStatic)
     {
         /** Create static shallow copy of array and wrap it. */
-        this(ElementType[] array) pure
+        this()(ElementType[] array) pure
         {
             debug(matrix)
             {
@@ -170,7 +192,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         static if(isVector)
         {
             /** Create vector wrapping array */
-            this(ElementType[] array) pure
+            this()(ElementType[] array) pure
             {
                 debug(matrix)
                 {
@@ -187,7 +209,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             }
 
             /** Allocate new vector of given length */
-            this(size_t dim) pure
+            this()(size_t dim) pure
             {
                 debug(matrix)
                 {
@@ -206,7 +228,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             /* This constructor allows set vector and matrix dimensions
              * uniformly to avoid spawning shape tests.
              */
-            this(size_t nrows, size_t ncols) pure
+            this()(size_t nrows, size_t ncols) pure
             {
                 debug(matrix)
                 {
@@ -234,7 +256,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         else
         {
             /** Allocate new matrix with given dimensions */
-            this(size_t nrows, size_t ncols) pure
+            this()(size_t nrows, size_t ncols) pure
             {
                 debug(matrix)
                 {
@@ -251,7 +273,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             }
 
             /** Wrap array with a matrix with given dimensions */
-            this(ElementType[] array,
+            this()(ElementType[] array,
                  size_t nrows, size_t ncols) pure
             {
                 debug(matrix)
@@ -975,6 +997,12 @@ unittest // Constructors, cast
                    a, [2, 3]))
            == [[1, 2, 3],
                [4, 5, 6]]);
+    {
+        auto ma = Matrix!(int, 2, 3)(a);
+        assert(cast(int[][]) Matrix!(int, 2, 3)(ma)
+               == [[1, 2, 3],
+                   [4, 5, 6]]);
+    }
     assert(cast(int[][]) Matrix!(int, 2, 3)(a)
            == [[1, 2, 3],
                [4, 5, 6]]);
