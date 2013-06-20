@@ -151,7 +151,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
      * If matrix is static then create a copy of the source.
      * Otherwise share the source data.
      */
-    this(Tsource)(Tsource source) pure
+    this(Tsource)(ref Tsource source) pure
         if(isMatrix!Tsource)
     {
         debug(matrix)
@@ -997,12 +997,6 @@ unittest // Constructors, cast
                    a, [2, 3]))
            == [[1, 2, 3],
                [4, 5, 6]]);
-    {
-        auto ma = Matrix!(int, 2, 3)(a);
-        assert(cast(int[][]) Matrix!(int, 2, 3)(ma)
-               == [[1, 2, 3],
-                   [4, 5, 6]]);
-    }
     assert(cast(int[][]) Matrix!(int, 2, 3)(a)
            == [[1, 2, 3],
                [4, 5, 6]]);
@@ -1031,6 +1025,20 @@ unittest // Constructors, cast
     assert(cast(int[][]) Matrix!(int, dynsize, dynsize)(a, 2, 3)
            == [[1, 2, 3],
                [4, 5, 6]]);
+    auto ma = Matrix!(int, 2, 3)(a);
+    {
+        Matrix!(int, 2, 3) mb = ma;
+        assert(cast(int[][]) mb
+               == [[1, 2, 3],
+                   [4, 5, 6]]);
+    }
+    {
+        Matrix!(int, dynsize, dynsize) mb = ma;
+        debug writeln(cast(int[][]) mb);
+        assert(cast(int[][]) mb
+               == [[1, 2, 3],
+                   [4, 5, 6]]);
+    }
 }
 
 unittest // Storage direct access
