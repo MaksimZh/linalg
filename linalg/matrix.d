@@ -1292,13 +1292,8 @@ unittest // Matrix += and -=
 
     int[] src1 = [1, 2, 3, 4, 5, 6];
     int[] src2 = [7, 8, 9, 10, 11, 12];
-    /*NOTE
-     * One has to use src1.dup even if a is static.
-     * Will be resolved when mutable matrices referring
-     * immutable data are implemented.
-     */
     {
-        auto a = Matrix!(int, 2, 3)(src1.dup);
+        auto a = Matrix!(int, 2, 3)(src1);
         auto b = Matrix!(int, 2, 3)(src2);
         a += b;
         assert(cast(int[][]) a == [[8, 10, 12],
@@ -1318,7 +1313,7 @@ unittest // Matrix += and -=
                                    [4, 5, 6]]);
     }
     {
-        auto a = Matrix!(int, 2, 3)(src1.dup);
+        auto a = Matrix!(int, 2, 3)(src1);
         auto b = Matrix!(int, dynsize, dynsize)(src2, 2, 3);
         a += b;
         assert(cast(int[][]) a == [[8, 10, 12],
@@ -1328,7 +1323,7 @@ unittest // Matrix += and -=
                                    [4, 5, 6]]);
     }
     {
-        auto a = Matrix!(int, dynsize, dynsize)(src1.dup, 2, 3);
+        auto a = Matrix!(int, dynsize, dynsize)(src1, 2, 3);
         auto b = Matrix!(int, dynsize, dynsize)(src2, 2, 3);
         a += b;
         assert(cast(int[][]) a == [[8, 10, 12],
@@ -1402,13 +1397,8 @@ unittest // Matrix *= scalar
     else debug mixin(debugSilentScope);
 
     int[] src = [1, 2, 3, 4, 5, 6];
-    /*NOTE
-     * One has to use src.dup even if a is static.
-     * Will be resolved when mutable matrices referring
-     * immutable data are implemented.
-     */
     {
-        auto a = Matrix!(int, 2, 3)(src.dup);
+        auto a = Matrix!(int, 2, 3)(src);
         a *= 2;
         assert(cast(int[][]) a == [[2, 4, 6],
                                    [8, 10, 12]]);
@@ -1417,7 +1407,7 @@ unittest // Matrix *= scalar
                                    [4, 5, 6]]);
     }
     {
-        auto a = Matrix!(int, dynsize, dynsize)(src.dup, 2, 3);
+        auto a = Matrix!(int, dynsize, dynsize)(src, 2, 3);
         a *= 2;
         assert(cast(int[][]) a == [[2, 4, 6],
                                    [8, 10, 12]]);
@@ -1476,15 +1466,10 @@ unittest // Matrix *=
     }
     else debug mixin(debugSilentScope);
 
-    /*NOTE
-     * One has to use src1.dup even if a is static.
-     * Will be resolved when mutable matrices referring
-     * immutable data are implemented.
-     */
     {
         int[] src1 = [1, 2, 3, 4];
         int[] src2 = [7, 8, 9, 10];
-        auto a = Matrix!(int, 2, 2)(src1.dup);
+        auto a = Matrix!(int, 2, 2)(src1);
         auto b = Matrix!(int, 2, 2)(src2);
         a *= b;
         assert(cast(int[][]) a == [[25, 28],
@@ -1493,7 +1478,7 @@ unittest // Matrix *=
     {
         int[] src1 = [1, 2, 3, 4, 5, 6];
         int[] src2 = [7, 8, 9, 10, 11, 12];
-        auto a = Matrix!(int, dynsize, dynsize)(src1.dup, 2, 3);
+        auto a = Matrix!(int, dynsize, dynsize)(src1, 2, 3);
         auto b = Matrix!(int, 3, 2)(src2);
         a *= b;
         assert(cast(int[][]) a == [[58, 64],
@@ -1502,7 +1487,7 @@ unittest // Matrix *=
     {
         int[] src1 = [1, 2, 3, 4];
         int[] src2 = [7, 8, 9, 10];
-        auto a = Matrix!(int, 2, 2)(src1.dup);
+        auto a = Matrix!(int, 2, 2)(src1);
         auto b = Matrix!(int, dynsize, dynsize)(src2, 2, 2);
         a *= b;
         assert(cast(int[][]) a == [[25, 28],
@@ -1511,7 +1496,7 @@ unittest // Matrix *=
     {
         int[] src1 = [1, 2, 3, 4, 5, 6];
         int[] src2 = [7, 8, 9, 10, 11, 12];
-        auto a = Matrix!(int, dynsize, dynsize)(src1.dup, 2, 3);
+        auto a = Matrix!(int, dynsize, dynsize)(src1, 2, 3);
         auto b = Matrix!(int, dynsize, dynsize)(src2, 3, 2);
         a *= b;
         assert(cast(int[][]) a == [[58, 64],
@@ -1692,11 +1677,7 @@ version(all) // Old unittests
         else debug mixin(debugSilentScope);
 
         int b = 2;
-        /*NOTE:
-         * One has to specify type of a.
-         * Otherwise type of destination container will be const somehow.
-         */
-        assert(cast(int[][]) map!((int a, b) => a*b)(
+        assert(cast(int[][]) map!((a, b) => a*b)(
                    Matrix!(int, 3, 4)(array(iota(12))), b)
                == [[0, 2, 4, 6],
                    [8, 10, 12, 14],
