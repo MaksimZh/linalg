@@ -5,8 +5,12 @@ LIBS=../../Applications/lapack-3.4.1/liblapack.a ../../Applications/lapack-3.4.1
 SOURCE=$(shell find ./linalg/ -name "*.d")
 DEBUGFLAGS=operations slice storage matrix range
 
-# Version without debug output from unittests
+# Version without debug output
 test: test.d $(SOURCE)
+	$(DMD) $^ $(LIBS) -debug -unittest -version=linalg_backend_lapack
+
+# Version without debug output from unittests
+testv: test.d $(SOURCE)
 	$(DMD) $^ $(LIBS) -debug $(addprefix -debug=, $(DEBUGFLAGS)) -unittest -version=linalg_backend_lapack
 
 # Version with debug output from unittests
