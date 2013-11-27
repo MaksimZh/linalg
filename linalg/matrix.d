@@ -886,7 +886,9 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
     }
 }
 
-/** Detect whether $(D T) is matrix */
+/**
+ * Detect whether T is matrix
+ */
 template isMatrix(T)
 {
     enum bool isMatrix = isInstanceOf!(BasicMatrix, T);

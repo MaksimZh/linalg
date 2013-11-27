@@ -289,7 +289,7 @@ struct StorageRegular1D(T, size_t dim_)
     }
 }
 
-/* Detect whether $(D T) is one-dimensional regular storage */
+/* Detect whether T is one-dimensional regular storage */
 template isStorageRegular1D(T)
 {
     enum bool isStorageRegular1D = isInstanceOf!(StorageRegular1D, T);
