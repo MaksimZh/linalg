@@ -29,6 +29,7 @@ import linalg.operations.basic;
 import linalg.operations.conjugation;
 import linalg.operations.multiplication;
 import linalg.operations.eigen;
+import linalg.operations.inversion;
 
 
 alias linalg.storage.slice.Slice Slice; //NOTE: waiting for proper slice support
@@ -547,6 +548,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         ref auto opUnary(string op)() pure
             if(op == "-")
         {
+            //FIXME: fails if -a has different type
             debug(matrix)
             {
                 debugOP.writefln("Matrix<%X>.opUnary("~op~")", &this);
@@ -584,20 +586,17 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
              * If matrix is empty (not allocated) then just assume it has
              * appropriate size and filled with zeros.
              */
+            static if(Tsource.memoryManag == MatrixMemory.dynamic)
+                if(source.empty)
+                    return this;
             static if(memoryManag == MatrixMemory.dynamic)
                 if(empty)
                 {
                     this.setDim([source.nrows, source.ncols]);
-                    static if(Tsource.memoryManag == MatrixMemory.dynamic)
-                        if(source.empty)
-                            return this;
                     linalg.operations.basic.map!(op ~ "a")(
                         source.storage, this.storage);
                     return this;
                 }
-            static if(Tsource.memoryManag == MatrixMemory.dynamic)
-                if(source.empty)
-                    return this;
             linalg.operations.basic.zip!("a"~op~"b")(
                 this.storage, source.storage, this.storage);
             return this;
@@ -634,7 +633,8 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
                       && is(Tresult == typeof(this)))
                 if(rhs.empty)
                     return this.dup;
-            // Result can not be copy of any of the operands
+
+            // Result can not be a copy of any of the operands
             Tresult dest;
             // Allocate memory for dynamic matrix
             static if(Tresult.memoryManag == MatrixMemory.dynamic)
@@ -766,68 +766,66 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         }
     }
 
-    public // Diagonalization
+    // Diagonalization
+    public static if(!isVector)
     {
-        static if(!isVector)
+        /**
+         * Return all eigenvalues.
+         *
+         * Only upper-triangle part is used.
+         * Contents of matrix will be modified.
+         */
+        auto symmEigenval()() pure
         {
-            /**
-             * Return all eigenvalues.
-             *
-             * Only upper-triangle part is used.
-             * Contents of matrix will be modified.
-             */
-            auto symmEigenval()() pure
+            debug(matrix)
             {
-                debug(matrix)
-                {
-                    debugOP.writefln("Matrix<%X>.symmEigenval()", &this);
-                    mixin(debugIndentScope);
-                    debugOP.writeln("...");
-                    mixin(debugIndentScope);
-                }
-
-                return matrixSymmEigenval(this.storage);
+                debugOP.writefln("Matrix<%X>.symmEigenval()", &this);
+                mixin(debugIndentScope);
+                debugOP.writeln("...");
+                mixin(debugIndentScope);
             }
 
-            /**
-             * Return eigenvalues in given range
-             * (ascending order, starts from 0, includes borders).
-             *
-             * Only upper-triangle part is used.
-             * Contents of matrix will be modified.
-             */
-            auto symmEigenval()(size_t ilo, size_t iup) pure
-            {
-                debug(matrix)
-                {
-                    debugOP.writefln("Matrix<%X>.symmEigenval()", &this);
-                    mixin(debugIndentScope);
-                    debugOP.writeln("...");
-                    mixin(debugIndentScope);
-                }
+            return matrixSymmEigenval(this.storage);
+        }
 
-                return matrixSymmEigenval(this.storage, ilo, iup);
+        /**
+         * Return eigenvalues in given range
+         * (ascending order, starts from 0, includes borders).
+         *
+         * Only upper-triangle part is used.
+         * Contents of matrix will be modified.
+         */
+        auto symmEigenval()(size_t ilo, size_t iup) pure
+        {
+            debug(matrix)
+            {
+                debugOP.writefln("Matrix<%X>.symmEigenval()", &this);
+                mixin(debugIndentScope);
+                debugOP.writeln("...");
+                mixin(debugIndentScope);
             }
 
-            /**
-             * Return eigenvalues in given range
-             * and corresponding eigenvectors.
-             *
-             * Only upper-triangle part is used.
-             * Contents of matrix will be modified.
-             */
-            auto symmEigenAll()(size_t ilo, size_t iup) pure
-            {
-                debug(matrix)
-                {
-                    debugOP.writefln("Matrix<%X>.symmEigenAll()", &this);
-                    mixin(debugIndentScope);
-                    debugOP.writeln("...");
-                    mixin(debugIndentScope);
-                }
+            return matrixSymmEigenval(this.storage, ilo, iup);
+        }
 
-                return matrixSymmEigenAll(this.storage, ilo, iup);
+        /**
+         * Return eigenvalues in given range
+         * and corresponding eigenvectors.
+         *
+         * Only upper-triangle part is used.
+         * Contents of matrix will be modified.
+         */
+        auto symmEigenAll()(size_t ilo, size_t iup) pure
+        {
+            debug(matrix)
+            {
+                debugOP.writefln("Matrix<%X>.symmEigenAll()", &this);
+                mixin(debugIndentScope);
+                debugOP.writeln("...");
+                mixin(debugIndentScope);
             }
+
+            return matrixSymmEigenAll(this.storage, ilo, iup);
         }
     }
 
@@ -839,6 +837,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
          */
         @property ref auto conj() pure
         {
+            //FIXME: Will fail if conjugation changes type
             debug(matrix)
             {
                 debugOP.writefln("Matrix<%X>.conj()", &this);
@@ -851,6 +850,22 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             static if(typeof(dest).memoryManag == MatrixMemory.dynamic)
                 dest.setDim([this.ncols, this.nrows]);
             conjMatrix(this.storage, dest.storage);
+            return dest;
+        }
+
+        ref auto inverse()() pure
+        {
+            debug(matrix)
+            {
+                debugOP.writefln("Matrix<%X>.inverse()", &this);
+                mixin(debugIndentScope);
+                debugOP.writeln("...");
+                mixin(debugIndentScope);
+            }
+
+            Matrix!(typeof(1 / this[0, 0]), dimPattern[0], dimPattern[1],
+                    storageOrder) dest;
+            matrixInverse(this.storage, dest.storage);
             return dest;
         }
     }
@@ -886,7 +901,9 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
     }
 }
 
-/** Detect whether $(D T) is matrix */
+/**
+ * Detect whether T is matrix
+ */
 template isMatrix(T)
 {
     enum bool isMatrix = isInstanceOf!(BasicMatrix, T);
@@ -1516,6 +1533,29 @@ unittest // Matrix *
     int[] src1 = [1, 2, 3, 4, 5, 6];
     int[] src2 = [7, 8, 9, 10, 11, 12];
     {
+        auto a = Matrix!(int, 1, 3)(src1[0..3]);
+        auto b = Matrix!(int, 3, 1)(src2[0..3]);
+        auto c = a * b;
+        assert(c == 1*7 + 2*8 + 3*9);
+        auto d = b * a;
+        assert(cast(int[][]) d == [[7*1, 7*2, 7*3],
+                                   [8*1, 8*2, 8*3],
+                                   [9*1, 9*2, 9*3]]);
+    }
+    {
+        auto a = Matrix!(int, 2, 3)(src1);
+        auto b = Matrix!(int, 3, 1)(src2[0..3]);
+        auto c = a * b;
+        assert(cast(int[][]) c == [[50],
+                                   [122]]);
+    }
+    {
+        auto a = Matrix!(int, 1, 3)(src1[0..3]);
+        auto b = Matrix!(int, 3, 2)(src2);
+        auto c = a * b;
+        assert(cast(int[][]) c == [[58, 64]]);
+    }
+    {
         auto a = Matrix!(int, 2, 3)(src1);
         auto b = Matrix!(int, 3, 2)(src2);
         auto c = a * b;
@@ -1641,84 +1681,99 @@ unittest // Ranges
     }
 }
 
-version(all) // Old unittests
+unittest // Diagonalization
 {
-    unittest // Diagonalization
+    debug(unittests)
     {
-        debug(unittests)
-        {
-            debugOP.writeln("linalg.matrix unittest: Diagonalization");
-            mixin(debugIndentScope);
-        }
-        else debug mixin(debugSilentScope);
-
-        version(linalg_backend_lapack)
-        {
-            alias Complex!double C;
-            auto a = Matrix!(C, 3, 3)(
-                [C(1, 0), C(0, 0), C(0, 0),
-                 C(0, 0), C(2, 0), C(0, 0),
-                 C(0, 0), C(0, 0), C(3, 0)]);
-            double[] val;
-            auto b = a.dup;
-            //FIXME: may fail for low precision
-            assert(a.symmEigenval() == [1, 2, 3]);
-            assert(b.symmEigenval(1, 2) == [2, 3]);
-        }
+        debugOP.writeln("linalg.matrix unittest: Diagonalization");
+        mixin(debugIndentScope);
     }
+    else debug mixin(debugSilentScope);
 
-    unittest // Map function
+    version(linalg_backend_lapack)
     {
-        debug(unittests)
-        {
-            debugOP.writeln("linalg.matrix unittest: Map function");
-            mixin(debugIndentScope);
-        }
-        else debug mixin(debugSilentScope);
-
-        int b = 2;
-        assert(cast(int[][]) map!((a, b) => a*b)(
-                   Matrix!(int, 3, 4)(array(iota(12))), b)
-               == [[0, 2, 4, 6],
-                   [8, 10, 12, 14],
-                   [16, 18, 20, 22]]);
-    }
-
-    unittest // Hermitian conjugation
-    {
-        debug(unittests)
-        {
-            debugOP.writeln("linalg.matrix unittest: Hermitian conjugation");
-            mixin(debugIndentScope);
-        }
-        else debug mixin(debugSilentScope);
-
-        assert(cast(int[][]) (Matrix!(int, 3, 4)(array(iota(12))).conj())
-               == [[0, 4, 8],
-                   [1, 5, 9],
-                   [2, 6, 10],
-                   [3, 7, 11]]);
-
         alias Complex!double C;
+        auto a = Matrix!(C, 3, 3)(
+            [C(1, 0), C(0, 0), C(0, 0),
+             C(0, 0), C(2, 0), C(0, 0),
+             C(0, 0), C(0, 0), C(3, 0)]);
+        double[] val;
+        auto b = a.dup;
         //FIXME: may fail for low precision
-        assert(cast(C[][]) (Matrix!(C, 2, 3)(
-                                [C(1, 1), C(1, 2), C(1, 3),
-                                 C(2, 1), C(2, 2), C(2, 3)]).conj())
-               == [[C(1, -1), C(2, -1)],
-                   [C(1, -2), C(2, -2)],
-                   [C(1, -3), C(2, -3)]]);
-
-        assert(cast(int[][]) (Matrix!(int, 1, 4)(array(iota(4))).conj())
-               == [[0],
-                   [1],
-                   [2],
-                   [3]]);
-
-        //FIXME: may fail for low precision
-        assert(cast(C[][]) (Matrix!(C, 1, 3)(
-                                [C(1, 1), C(1, 2), C(1, 3)]).conj())
-               == [[C(1, -1)],
-                   [C(1, -2)],
-                   [C(1, -3)]]);
+        assert(a.symmEigenval() == [1, 2, 3]);
+        assert(b.symmEigenval(1, 2) == [2, 3]);
     }
+}
+
+unittest // Map function
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Map function");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    int b = 2;
+    assert(cast(int[][]) map!((a, b) => a*b)(
+               Matrix!(int, 3, 4)(array(iota(12))), b)
+           == [[0, 2, 4, 6],
+               [8, 10, 12, 14],
+               [16, 18, 20, 22]]);
+}
+
+unittest // Hermitian conjugation
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Hermitian conjugation");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    assert(cast(int[][]) (Matrix!(int, 3, 4)(array(iota(12))).conj())
+           == [[0, 4, 8],
+               [1, 5, 9],
+               [2, 6, 10],
+               [3, 7, 11]]);
+
+    alias Complex!double C;
+    //FIXME: may fail for low precision
+    assert(cast(C[][]) (Matrix!(C, 2, 3)(
+                            [C(1, 1), C(1, 2), C(1, 3),
+                             C(2, 1), C(2, 2), C(2, 3)]).conj())
+           == [[C(1, -1), C(2, -1)],
+               [C(1, -2), C(2, -2)],
+               [C(1, -3), C(2, -3)]]);
+
+    assert(cast(int[][]) (Matrix!(int, 1, 4)(array(iota(4))).conj())
+           == [[0],
+               [1],
+               [2],
+               [3]]);
+
+    //FIXME: may fail for low precision
+    assert(cast(C[][]) (Matrix!(C, 1, 3)(
+                            [C(1, 1), C(1, 2), C(1, 3)]).conj())
+           == [[C(1, -1)],
+               [C(1, -2)],
+               [C(1, -3)]]);
+}
+
+unittest // Inversion
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Inversion");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+    auto a = Matrix!(double, 3, 3)([2, 0, 0,
+                                    0, 4, 0,
+                                    0, 0, 8]);
+
+    assert((cast(double[][]) (a.inverse())) ==
+           [[0.5, 0, 0],
+            [0, 0.25, 0],
+            [0, 0, 0.125]]);
 }

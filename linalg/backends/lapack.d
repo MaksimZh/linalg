@@ -19,6 +19,8 @@ import std.complex;
 import std.conv;
 import std.typecons;
 
+debug import std.stdio;
+
 private extern(C) void zheev_(in char* JOBZ,
                               in char* UPLO,
                               in int* N,
@@ -35,10 +37,13 @@ auto symmEigenval(ElementType)(ElementType[] mx, size_t dim) pure
 {
     int N = to!int(dim);
     int LDA = to!int(dim);
-    auto tmpval = new double[dim];
     int LWORK = 2*N;
+
+    //NOTE: GC allocation
+    auto tmpval = new double[dim];
     auto WORK = new Complex!double[LWORK];
     auto RWORK = new double[3*N - 2];
+
     int info;
     zheev_("N", "U",
            &N, mx.ptr, &LDA,
@@ -82,13 +87,16 @@ auto symmEigenval(ElementType)(ElementType[] mx, size_t dim,
     int IL = to!int(ilo + 1);
     int IU = to!int(iup + 1);
     int M;
-    auto tmpval = new double[dim];
     int LDZ = 1;
     int LWORK = 2*N;
+
+    //NOTE: GC allocation
+    auto tmpval = new double[dim];
     auto WORK = new Complex!double[LWORK];
     auto RWORK = new double[7*N];
     auto IWORK = new int[5*N];
     auto IFAIL = new int[N];
+
     int info;
     zheevx_("N", "I", "U",
             &N, mx.ptr, &LDA,
@@ -112,14 +120,17 @@ auto symmEigenAll(ElementType)(ElementType[] mx, size_t dim,
     int IL = to!int(ilo + 1);
     int IU = to!int(iup + 1);
     int M;
-    auto tmpval = new double[dim];
-    auto vec = new Complex!double[N * valNum];
     int LDZ = N;
     int LWORK = 2*N;
+
+    //NOTE: GC allocation
+    auto tmpval = new double[dim];
+    auto vec = new Complex!double[N * valNum];
     auto WORK = new Complex!double[LWORK];
     auto RWORK = new double[7*N];
     auto IWORK = new int[5*N];
     auto IFAIL = new int[N];
+
     int info;
     zheevx_("V", "I", "U",
             &N, mx.ptr, &LDA,
@@ -131,4 +142,37 @@ auto symmEigenAll(ElementType)(ElementType[] mx, size_t dim,
             WORK.ptr, &LWORK, RWORK.ptr, IWORK.ptr,
             IFAIL.ptr, &info);
     return tuple(tmpval[0..valNum], vec);
+}
+
+private extern(C) void dgetrf_(in int* M,
+                               in int* N,
+                               double* A,
+                               in int* LDA,
+                               int* IPIV,
+                               int* INFO) pure;
+
+private extern(C) void dgetri_(in int* N,
+                               double* A,
+                               in int* LDA,
+                               in int* IPIV,
+                               double* WORK,
+                               in int* LWORK,
+                               int* INFO) pure;
+
+void inverseMatrix(ElementType)(ElementType[] source, size_t dim,
+                                ElementType[] dest) pure
+    if(is(ElementType == double))
+{
+    int N = to!int(dim);
+    int LWORK = N * N;
+    int INFO;
+
+    //NOTE: GC allocation
+    auto IPIV = new int[N];
+    auto WORK = new double[LWORK];
+
+    dest[] = source[];
+    dgetrf_(&N, &N, dest.ptr, &N, IPIV.ptr, &INFO);
+    if(INFO > 0) {/*TODO: Matrix is singular*/}
+    dgetri_(&N, dest.ptr, &N, IPIV.ptr, WORK.ptr, &LWORK, &INFO);
 }

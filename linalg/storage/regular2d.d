@@ -442,7 +442,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
     }
 }
 
-/* Detect whether $(D T) is two-dimensional regular storage */
+/* Detect whether T is two-dimensional regular storage */
 template isStorageRegular2D(T)
 {
     enum bool isStorageRegular2D = isInstanceOf!(StorageRegular2D, T);
