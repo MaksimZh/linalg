@@ -29,6 +29,7 @@ import linalg.operations.basic;
 import linalg.operations.conjugation;
 import linalg.operations.multiplication;
 import linalg.operations.eigen;
+import linalg.operations.inversion;
 
 
 alias linalg.storage.slice.Slice Slice; //NOTE: waiting for proper slice support
@@ -851,6 +852,22 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             conjMatrix(this.storage, dest.storage);
             return dest;
         }
+
+        ref auto inverse()() pure
+        {
+            debug(matrix)
+            {
+                debugOP.writefln("Matrix<%X>.inverse()", &this);
+                mixin(debugIndentScope);
+                debugOP.writeln("...");
+                mixin(debugIndentScope);
+            }
+
+            Matrix!(typeof(1 / this[0, 0]), dimPattern[0], dimPattern[1],
+                    storageOrder) dest;
+            matrixInverse(this.storage, dest.storage);
+            return dest;
+        }
     }
 
     public // Ranges
@@ -1664,84 +1681,99 @@ unittest // Ranges
     }
 }
 
-version(all) // Old unittests
+unittest // Diagonalization
 {
-    unittest // Diagonalization
+    debug(unittests)
     {
-        debug(unittests)
-        {
-            debugOP.writeln("linalg.matrix unittest: Diagonalization");
-            mixin(debugIndentScope);
-        }
-        else debug mixin(debugSilentScope);
-
-        version(linalg_backend_lapack)
-        {
-            alias Complex!double C;
-            auto a = Matrix!(C, 3, 3)(
-                [C(1, 0), C(0, 0), C(0, 0),
-                 C(0, 0), C(2, 0), C(0, 0),
-                 C(0, 0), C(0, 0), C(3, 0)]);
-            double[] val;
-            auto b = a.dup;
-            //FIXME: may fail for low precision
-            assert(a.symmEigenval() == [1, 2, 3]);
-            assert(b.symmEigenval(1, 2) == [2, 3]);
-        }
+        debugOP.writeln("linalg.matrix unittest: Diagonalization");
+        mixin(debugIndentScope);
     }
+    else debug mixin(debugSilentScope);
 
-    unittest // Map function
+    version(linalg_backend_lapack)
     {
-        debug(unittests)
-        {
-            debugOP.writeln("linalg.matrix unittest: Map function");
-            mixin(debugIndentScope);
-        }
-        else debug mixin(debugSilentScope);
-
-        int b = 2;
-        assert(cast(int[][]) map!((a, b) => a*b)(
-                   Matrix!(int, 3, 4)(array(iota(12))), b)
-               == [[0, 2, 4, 6],
-                   [8, 10, 12, 14],
-                   [16, 18, 20, 22]]);
-    }
-
-    unittest // Hermitian conjugation
-    {
-        debug(unittests)
-        {
-            debugOP.writeln("linalg.matrix unittest: Hermitian conjugation");
-            mixin(debugIndentScope);
-        }
-        else debug mixin(debugSilentScope);
-
-        assert(cast(int[][]) (Matrix!(int, 3, 4)(array(iota(12))).conj())
-               == [[0, 4, 8],
-                   [1, 5, 9],
-                   [2, 6, 10],
-                   [3, 7, 11]]);
-
         alias Complex!double C;
+        auto a = Matrix!(C, 3, 3)(
+            [C(1, 0), C(0, 0), C(0, 0),
+             C(0, 0), C(2, 0), C(0, 0),
+             C(0, 0), C(0, 0), C(3, 0)]);
+        double[] val;
+        auto b = a.dup;
         //FIXME: may fail for low precision
-        assert(cast(C[][]) (Matrix!(C, 2, 3)(
-                                [C(1, 1), C(1, 2), C(1, 3),
-                                 C(2, 1), C(2, 2), C(2, 3)]).conj())
-               == [[C(1, -1), C(2, -1)],
-                   [C(1, -2), C(2, -2)],
-                   [C(1, -3), C(2, -3)]]);
-
-        assert(cast(int[][]) (Matrix!(int, 1, 4)(array(iota(4))).conj())
-               == [[0],
-                   [1],
-                   [2],
-                   [3]]);
-
-        //FIXME: may fail for low precision
-        assert(cast(C[][]) (Matrix!(C, 1, 3)(
-                                [C(1, 1), C(1, 2), C(1, 3)]).conj())
-               == [[C(1, -1)],
-                   [C(1, -2)],
-                   [C(1, -3)]]);
+        assert(a.symmEigenval() == [1, 2, 3]);
+        assert(b.symmEigenval(1, 2) == [2, 3]);
     }
+}
+
+unittest // Map function
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Map function");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    int b = 2;
+    assert(cast(int[][]) map!((a, b) => a*b)(
+               Matrix!(int, 3, 4)(array(iota(12))), b)
+           == [[0, 2, 4, 6],
+               [8, 10, 12, 14],
+               [16, 18, 20, 22]]);
+}
+
+unittest // Hermitian conjugation
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Hermitian conjugation");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+
+    assert(cast(int[][]) (Matrix!(int, 3, 4)(array(iota(12))).conj())
+           == [[0, 4, 8],
+               [1, 5, 9],
+               [2, 6, 10],
+               [3, 7, 11]]);
+
+    alias Complex!double C;
+    //FIXME: may fail for low precision
+    assert(cast(C[][]) (Matrix!(C, 2, 3)(
+                            [C(1, 1), C(1, 2), C(1, 3),
+                             C(2, 1), C(2, 2), C(2, 3)]).conj())
+           == [[C(1, -1), C(2, -1)],
+               [C(1, -2), C(2, -2)],
+               [C(1, -3), C(2, -3)]]);
+
+    assert(cast(int[][]) (Matrix!(int, 1, 4)(array(iota(4))).conj())
+           == [[0],
+               [1],
+               [2],
+               [3]]);
+
+    //FIXME: may fail for low precision
+    assert(cast(C[][]) (Matrix!(C, 1, 3)(
+                            [C(1, 1), C(1, 2), C(1, 3)]).conj())
+           == [[C(1, -1)],
+               [C(1, -2)],
+               [C(1, -3)]]);
+}
+
+unittest // Inversion
+{
+    debug(unittests)
+    {
+        debugOP.writeln("linalg.matrix unittest: Inversion");
+        mixin(debugIndentScope);
+    }
+    else debug mixin(debugSilentScope);
+    auto a = Matrix!(double, 3, 3)([2, 0, 0,
+                                    0, 4, 0,
+                                    0, 0, 8]);
+
+    assert((cast(double[][]) (a.inverse())) ==
+           [[0.5, 0, 0],
+            [0, 0.25, 0],
+            [0, 0, 0.125]]);
 }
