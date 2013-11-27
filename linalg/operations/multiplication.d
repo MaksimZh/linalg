@@ -20,9 +20,14 @@ import linalg.storage.regular2d;
  * row * column
  */
 auto mulAsMatrices(TsourceA, TsourceB)(
-     ref TsourceA sourceA,
-     ref TsourceB sourceB) pure
+    ref TsourceA sourceA,
+    ref TsourceB sourceB) pure
     if(isStorageRegular1D!TsourceA && isStorageRegular1D!TsourceB)
+    in
+    {
+        assert(sourceA.length == sourceB.length);
+    }
+body
 {
     debug(operations)
     {
@@ -55,18 +60,56 @@ auto mulAsMatrices(TsourceA, TsourceB)(
 
 /*
  * Matrix multiplication
+ * column * row
+ */
+void mulAsMatrices(TsourceA, TsourceB, Tdest)(
+    ref TsourceA sourceA,
+    ref TsourceB sourceB,
+    ref Tdest dest) pure
+    if(isStorageRegular1D!TsourceA && isStorageRegular1D!TsourceB
+       && isStorageRegular2D!Tdest)
+body
+{
+    debug(operations)
+    {
+        debugOP.writefln("operations.mulAsMatrices()");
+        mixin(debugIndentScope);
+        debugOP.writefln("from <%X>, %d",
+                         sourceA.container.ptr,
+                         sourceA.container.length);
+        debugOP.writefln("from <%X>, %d",
+                         sourceB.container.ptr,
+                         sourceB.container.length);
+        debugOP.writefln("to   <%X>, %d",
+                         dest.container.ptr,
+                         dest.container.length);
+        debugOP.writeln("...");
+        mixin(debugIndentScope);
+    }
+
+    auto idest = dest.byElement;
+    foreach(ref a; sourceA.byElement)
+        foreach(ref b; sourceB.byElement)
+        {
+            idest.front = a * b;
+            idest.popFront;
+        }
+}
+
+/*
+ * Matrix multiplication
  * matrix * column
  */
 void mulAsMatrices(TsourceA, TsourceB, Tdest)(
-     ref TsourceA sourceA,
-     ref TsourceB sourceB,
+    ref TsourceA sourceA,
+    ref TsourceB sourceB,
     ref Tdest dest) pure
     if(isStorageRegular2D!TsourceA && isStorageRegular1D!TsourceB
        && isStorageRegular1D!Tdest)
-        in
-        {
-            assert(sourceA.ncols == sourceB.length);
-        }
+    in
+    {
+        assert(sourceA.ncols == sourceB.length);
+    }
 body
 {
     debug(operations)
@@ -99,15 +142,15 @@ body
  * row * matrix
  */
 void mulAsMatrices(TsourceA, TsourceB, Tdest)(
-     ref TsourceA sourceA,
-     ref TsourceB sourceB,
+    ref TsourceA sourceA,
+    ref TsourceB sourceB,
     ref Tdest dest) pure
     if(isStorageRegular1D!TsourceA && isStorageRegular2D!TsourceB
        && isStorageRegular1D!Tdest)
-        in
-        {
-            assert(sourceA.length == sourceB.nrows);
-        }
+    in
+    {
+        assert(sourceA.length == sourceB.nrows);
+    }
 body
 {
     debug(operations)
@@ -140,15 +183,15 @@ body
  * matrix * matrix
  */
 void mulAsMatrices(TsourceA, TsourceB, Tdest)(
-     ref TsourceA sourceA,
-     ref TsourceB sourceB,
+    ref TsourceA sourceA,
+    ref TsourceB sourceB,
     ref Tdest dest) pure
     if(isStorageRegular2D!TsourceA && isStorageRegular2D!TsourceB
        && isStorageRegular2D!Tdest)
-        in
-        {
-            assert(sourceA.ncols == sourceB.nrows);
-        }
+    in
+    {
+        assert(sourceA.ncols == sourceB.nrows);
+    }
 body
 {
     debug(operations)

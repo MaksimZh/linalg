@@ -765,68 +765,66 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         }
     }
 
-    public // Diagonalization
+    // Diagonalization
+    public static if(!isVector)
     {
-        static if(!isVector)
+        /**
+         * Return all eigenvalues.
+         *
+         * Only upper-triangle part is used.
+         * Contents of matrix will be modified.
+         */
+        auto symmEigenval()() pure
         {
-            /**
-             * Return all eigenvalues.
-             *
-             * Only upper-triangle part is used.
-             * Contents of matrix will be modified.
-             */
-            auto symmEigenval()() pure
+            debug(matrix)
             {
-                debug(matrix)
-                {
-                    debugOP.writefln("Matrix<%X>.symmEigenval()", &this);
-                    mixin(debugIndentScope);
-                    debugOP.writeln("...");
-                    mixin(debugIndentScope);
-                }
-
-                return matrixSymmEigenval(this.storage);
+                debugOP.writefln("Matrix<%X>.symmEigenval()", &this);
+                mixin(debugIndentScope);
+                debugOP.writeln("...");
+                mixin(debugIndentScope);
             }
 
-            /**
-             * Return eigenvalues in given range
-             * (ascending order, starts from 0, includes borders).
-             *
-             * Only upper-triangle part is used.
-             * Contents of matrix will be modified.
-             */
-            auto symmEigenval()(size_t ilo, size_t iup) pure
-            {
-                debug(matrix)
-                {
-                    debugOP.writefln("Matrix<%X>.symmEigenval()", &this);
-                    mixin(debugIndentScope);
-                    debugOP.writeln("...");
-                    mixin(debugIndentScope);
-                }
+            return matrixSymmEigenval(this.storage);
+        }
 
-                return matrixSymmEigenval(this.storage, ilo, iup);
+        /**
+         * Return eigenvalues in given range
+         * (ascending order, starts from 0, includes borders).
+         *
+         * Only upper-triangle part is used.
+         * Contents of matrix will be modified.
+         */
+        auto symmEigenval()(size_t ilo, size_t iup) pure
+        {
+            debug(matrix)
+            {
+                debugOP.writefln("Matrix<%X>.symmEigenval()", &this);
+                mixin(debugIndentScope);
+                debugOP.writeln("...");
+                mixin(debugIndentScope);
             }
 
-            /**
-             * Return eigenvalues in given range
-             * and corresponding eigenvectors.
-             *
-             * Only upper-triangle part is used.
-             * Contents of matrix will be modified.
-             */
-            auto symmEigenAll()(size_t ilo, size_t iup) pure
-            {
-                debug(matrix)
-                {
-                    debugOP.writefln("Matrix<%X>.symmEigenAll()", &this);
-                    mixin(debugIndentScope);
-                    debugOP.writeln("...");
-                    mixin(debugIndentScope);
-                }
+            return matrixSymmEigenval(this.storage, ilo, iup);
+        }
 
-                return matrixSymmEigenAll(this.storage, ilo, iup);
+        /**
+         * Return eigenvalues in given range
+         * and corresponding eigenvectors.
+         *
+         * Only upper-triangle part is used.
+         * Contents of matrix will be modified.
+         */
+        auto symmEigenAll()(size_t ilo, size_t iup) pure
+        {
+            debug(matrix)
+            {
+                debugOP.writefln("Matrix<%X>.symmEigenAll()", &this);
+                mixin(debugIndentScope);
+                debugOP.writeln("...");
+                mixin(debugIndentScope);
             }
+
+            return matrixSymmEigenAll(this.storage, ilo, iup);
         }
     }
 
@@ -1517,6 +1515,29 @@ unittest // Matrix *
 
     int[] src1 = [1, 2, 3, 4, 5, 6];
     int[] src2 = [7, 8, 9, 10, 11, 12];
+    {
+        auto a = Matrix!(int, 1, 3)(src1[0..3]);
+        auto b = Matrix!(int, 3, 1)(src2[0..3]);
+        auto c = a * b;
+        assert(c == 1*7 + 2*8 + 3*9);
+        auto d = b * a;
+        assert(cast(int[][]) d == [[7*1, 7*2, 7*3],
+                                   [8*1, 8*2, 8*3],
+                                   [9*1, 9*2, 9*3]]);
+    }
+    {
+        auto a = Matrix!(int, 2, 3)(src1);
+        auto b = Matrix!(int, 3, 1)(src2[0..3]);
+        auto c = a * b;
+        assert(cast(int[][]) c == [[50],
+                                   [122]]);
+    }
+    {
+        auto a = Matrix!(int, 1, 3)(src1[0..3]);
+        auto b = Matrix!(int, 3, 2)(src2);
+        auto c = a * b;
+        assert(cast(int[][]) c == [[58, 64]]);
+    }
     {
         auto a = Matrix!(int, 2, 3)(src1);
         auto b = Matrix!(int, 3, 2)(src2);
