@@ -67,7 +67,7 @@ template safeBinaryFun(alias fun)
     }
 }
 
-/* Derive return type of unary function even if it given by string */
+/* Derive return type of unary function that can be given as string */
 template ReturnTypeOfUnaryFun(alias fun, ArgumentType)
 {
     alias ReturnType!((ArgumentType a) => safeUnaryFun!fun(a))

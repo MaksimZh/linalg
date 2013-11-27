@@ -547,6 +547,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         ref auto opUnary(string op)() pure
             if(op == "-")
         {
+            //FIXME: fails if -a has different type
             debug(matrix)
             {
                 debugOP.writefln("Matrix<%X>.opUnary("~op~")", &this);
@@ -584,20 +585,17 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
              * If matrix is empty (not allocated) then just assume it has
              * appropriate size and filled with zeros.
              */
+            static if(Tsource.memoryManag == MatrixMemory.dynamic)
+                if(source.empty)
+                    return this;
             static if(memoryManag == MatrixMemory.dynamic)
                 if(empty)
                 {
                     this.setDim([source.nrows, source.ncols]);
-                    static if(Tsource.memoryManag == MatrixMemory.dynamic)
-                        if(source.empty)
-                            return this;
                     linalg.operations.basic.map!(op ~ "a")(
                         source.storage, this.storage);
                     return this;
                 }
-            static if(Tsource.memoryManag == MatrixMemory.dynamic)
-                if(source.empty)
-                    return this;
             linalg.operations.basic.zip!("a"~op~"b")(
                 this.storage, source.storage, this.storage);
             return this;
@@ -634,7 +632,8 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
                       && is(Tresult == typeof(this)))
                 if(rhs.empty)
                     return this.dup;
-            // Result can not be copy of any of the operands
+
+            // Result can not be a copy of any of the operands
             Tresult dest;
             // Allocate memory for dynamic matrix
             static if(Tresult.memoryManag == MatrixMemory.dynamic)
@@ -839,6 +838,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
          */
         @property ref auto conj() pure
         {
+            //FIXME: Will fail if conjugation changes type
             debug(matrix)
             {
                 debugOP.writefln("Matrix<%X>.conj()", &this);
