@@ -572,18 +572,14 @@ struct BasicArray2D(T, size_t nrows_, size_t ncols_,
 
         ref auto opIndex(Slice srow, size_t icol) pure
         {
-            return ArrayView1D!(ElementType,
-								dynsize,
-								storageOrder)(
-									storage.opIndex(srow, icol));
+            return ArrayView1D!(ElementType, dynsize)(
+                storage.opIndex(srow, icol));
         }
 
         ref auto opIndex(size_t irow, Slice scol) pure
         {
-            return ArrayView1D!(ElementType,
-								dynsize,
-								storageOrder)(
-									storage.opIndex(irow, scol));
+            return ArrayView1D!(ElementType, dynsize)(
+                storage.opIndex(irow, scol));
         }
 
         ref auto opIndex(Slice srow, Slice scol) pure
@@ -608,6 +604,28 @@ struct BasicArray2D(T, size_t nrows_, size_t ncols_,
 						dynsize, dynsize,
 						storageOrder)(this.storage.dup);
     }
+
+    public // Operations
+    {
+        ref auto opAssign(Tsource)(auto ref Tsource source) pure
+            if(isArray2D!Tsource)
+        {
+            static if(!isStatic && !isBound)
+                this.storage = typeof(this.storage)(source.storage);
+            else
+                if(source.empty)
+                    fill(zero!(Tsource.ElementType), this.storage);
+                else
+                    copy(source.storage, this.storage);
+            return this;
+        }
+
+        bool opEquals(Tsource)(auto ref Tsource source) pure
+            if(isArray2D!Tsource)
+        {
+            return compare(source.storage, this.storage);
+        }
+    }
 }
 
 /**
@@ -616,4 +634,241 @@ struct BasicArray2D(T, size_t nrows_, size_t ncols_,
 template isArray2D(T)
 {
     enum bool isArray2D = isInstanceOf!(BasicArray2D, T);
+}
+
+unittest // Type properties
+{
+    alias Array2D!(int, 2, 3) Ai23;
+    alias Array2D!(int, 2, 3, StorageOrder.row) Ai23r;
+    alias Array2D!(int, 2, 3, StorageOrder.col) Ai23c;
+    alias Array2D!(int, dynsize, 3) Aid3;
+    alias Array2D!(int, 1, 3) Ai13;
+    alias Array2D!(int, 2, 1) Ai21;
+    alias Array2D!(int, dynsize, dynsize) Aidd;
+    alias Array2D!(int, 1, dynsize) Ai1d;
+    alias Array2D!(int, dynsize, 1) Aid1;
+
+    // dimPattern
+    static assert(Ai23.dimPattern == [2, 3]);
+    static assert(Aid3.dimPattern == [dynsize, 3]);
+
+    // storageOrder
+    static assert(Ai23.storageOrder == defaultStorageOrder);
+    static assert(Ai23r.storageOrder == StorageOrder.row);
+    static assert(Ai23c.storageOrder == StorageOrder.col);
+
+    // ElementType
+    static assert(is(Ai23.ElementType == int));
+
+    // isStatic
+    static assert(Ai23.isStatic);
+    static assert(!(Aid3.isStatic));
+    static assert(!(Ai1d.isStatic));
+    static assert(!(Aidd.isStatic));
+}
+
+unittest // Constructors, cast
+{
+    int[] a = [1, 2, 3, 4, 5, 6];
+
+    assert(cast(int[][]) Array2D!(int, dynsize, dynsize)(
+               StorageRegular2D!(int, StorageOrder.row, dynsize, dynsize)(
+                   a, [2, 3]))
+           == [[1, 2, 3],
+               [4, 5, 6]]);
+    assert(cast(int[][]) Array2D!(int, 2, 3)(a)
+           == [[1, 2, 3],
+               [4, 5, 6]]);
+    assert(cast(int[][]) Array2D!(int, 1, 3)(a[0..3])
+           == [[1, 2, 3]]);
+    assert(cast(int[][]) Array2D!(int, 3, 1)(a[0..3])
+           == [[1],
+               [2],
+               [3]]);
+    assert(cast(int[][]) Array2D!(int, 1, dynsize)(a[0..3], 1, 3)
+           == [[1, 2, 3]]);
+    assert(cast(int[][]) Array2D!(int, dynsize, 1)(a[0..3], 3, 1)
+           == [[1],
+               [2],
+               [3]]);
+    assert(cast(int[][]) Array2D!(int, 1, dynsize)(1, 3)
+           == [[0, 0, 0]]);
+    assert(cast(int[][]) Array2D!(int, dynsize, dynsize)(2, 3)
+           == [[0, 0, 0],
+               [0, 0, 0]]);
+    assert(cast(int[][]) Array2D!(int, dynsize, dynsize)(2, 3)
+           == [[0, 0, 0],
+               [0, 0, 0]]);
+    assert(cast(int[][]) Array2D!(int, dynsize, dynsize)(a, 2, 3)
+           == [[1, 2, 3],
+               [4, 5, 6]]);
+    auto ma = Array2D!(int, 2, 3)(a);
+    {
+        Array2D!(int, 2, 3) mb = ma;
+        assert(cast(int[][]) mb
+               == [[1, 2, 3],
+                   [4, 5, 6]]);
+    }
+    {
+        Array2D!(int, dynsize, dynsize) mb = ma;
+        assert(cast(int[][]) mb
+               == [[1, 2, 3],
+                   [4, 5, 6]]);
+    }
+}
+
+unittest // Storage direct access
+{
+    int[] src = [1, 2, 3, 4, 5, 6];
+
+    auto a = Array2D!(int, dynsize, dynsize, StorageOrder.row)(src, 2, 3);
+    assert(a.storage.container.ptr == src.ptr);
+    assert(a.storage.container == [1, 2, 3, 4, 5, 6]);
+    assert(a.storage.dim == [2, 3]);
+    assert(a.storage.stride == [3, 1]);
+}
+
+unittest // Dimension control
+{
+    Array2D!(int, dynsize, dynsize) a;
+    assert(a.empty);
+    assert(a.nrows == 0);
+    assert(a.ncols == 0);
+    assert(a.dim == [0, 0]);
+    a.setDim([2, 3]);
+    assert(!(a.empty));
+    assert(a.nrows == 2);
+    assert(a.ncols == 3);
+    assert(a.dim == [2, 3]);
+    assert(a.isCompatDim([22, 33]));
+
+    Array2D!(int, 2, 3) b;
+    assert(!(b.empty));
+    assert(b.nrows == 2);
+    assert(b.ncols == 3);
+    assert(b.dim == [2, 3]);
+    assert(!(b.isCompatDim([22, 33])));
+}
+
+unittest // Comparison
+{
+    int[] src1 = [1, 2, 3, 4, 5, 6];
+    int[] src2 = [6, 5, 4, 3, 2, 1];
+
+    {
+        auto a = Array2D!(int, 2, 3)(src1);
+        auto b = Array2D!(int, 2, 3)(src1);
+        auto c = Array2D!(int, 2, 3)(src2);
+        assert(a == b);
+        assert(a != c);
+    }
+    {
+        auto a = Array2D!(int, 2, 3)(src1);
+        auto b = Array2D!(int, dynsize, dynsize)(src1, 2, 3);
+        auto c = Array2D!(int, dynsize, dynsize)(src2, 2, 3);
+        assert(a == b);
+        assert(a != c);
+    }
+    {
+        auto a = Array2D!(int, dynsize, dynsize)(src1, 2, 3);
+        auto b = Array2D!(int, dynsize, dynsize)(src1, 2, 3);
+        auto c = Array2D!(int, dynsize, dynsize)(src2, 2, 3);
+        assert(a == b);
+        assert(a != c);
+    }
+}
+
+unittest // Copying
+{
+    int[] src = [1, 2, 3, 4, 5, 6];
+    int[] msrc = src.dup;
+
+    {
+        auto a = Array2D!(int, 2, 3)(src);
+        Array2D!(int, 2, 3) b;
+        auto c = (b = a);
+        assert(cast(int[][]) b == cast(int[][]) a);
+        assert(cast(int[][]) c == cast(int[][]) a);
+        assert(b.storage.container.ptr != a.storage.container.ptr);
+        assert(c.storage.container.ptr != a.storage.container.ptr);
+        assert(c.storage.container.ptr != b.storage.container.ptr);
+    }
+    {
+        auto a = Array2D!(int, 2, 3)(msrc);
+        Array2D!(int, dynsize, dynsize) b;
+        auto c = (b = a);
+        assert(cast(int[][]) b == cast(int[][]) a);
+        assert(cast(int[][]) c == cast(int[][]) a);
+        assert(b.storage.container.ptr == a.storage.container.ptr);
+        assert(c.storage.container.ptr == a.storage.container.ptr);
+    }
+    {
+        auto a = Array2D!(int, 2, 3)(src);
+        Array2D!(int, dynsize, dynsize) b;
+        auto c = (b = a.dup);
+        assert(cast(int[][]) b == cast(int[][]) a);
+        assert(cast(int[][]) c == cast(int[][]) a);
+        assert(b.storage.container.ptr != a.storage.container.ptr);
+        assert(c.storage.container.ptr == b.storage.container.ptr);
+    }
+    {
+        auto a = Array2D!(int, dynsize, dynsize)(msrc, 2, 3);
+        Array2D!(int, 2, 3) b;
+        auto c = (b = a);
+        assert(cast(int[][]) b == cast(int[][]) a);
+        assert(cast(int[][]) c == cast(int[][]) a);
+        assert(b.storage.container.ptr != a.storage.container.ptr);
+        assert(c.storage.container.ptr != a.storage.container.ptr);
+        assert(c.storage.container.ptr != b.storage.container.ptr);
+    }
+    {
+        auto a = Array2D!(int, dynsize, dynsize)(msrc, 2, 3);
+        Array2D!(int, dynsize, dynsize) b;
+        auto c = (b = a);
+        assert(cast(int[][]) b == cast(int[][]) a);
+        assert(cast(int[][]) c == cast(int[][]) a);
+        assert(b.storage.container.ptr == a.storage.container.ptr);
+        assert(c.storage.container.ptr == a.storage.container.ptr);
+    }
+    {
+        auto a = Array2D!(int, dynsize, dynsize)(msrc, 2, 3);
+        Array2D!(int, dynsize, dynsize) b;
+        auto c = (b = a.dup);
+        assert(cast(int[][]) b == cast(int[][]) a);
+        assert(cast(int[][]) c == cast(int[][]) a);
+        assert(b.storage.container.ptr != a.storage.container.ptr);
+        assert(c.storage.container.ptr == b.storage.container.ptr);
+    }
+}
+
+unittest // Regular indices
+{
+    auto a = Array2D!(int, 4, 6)(array(iota(24)));
+    assert(a[1, 2] == 8);
+    assert((a[1, 2] = 80) == 80);
+    assert(a[1, 2] == 80);
+    ++a[1, 2];
+    assert(a[1, 2] == 81);
+    a[1, 2] += 3;
+    assert(a[1, 2] == 84);
+}
+
+unittest // Slices
+{
+    auto a = Array2D!(int, 4, 6)(array(iota(24)));
+    assert(cast(int[]) a[1, Slice(1, 5, 3)]
+           == [7, 10]);
+    assert(cast(int[]) a[Slice(1, 4, 2), 1]
+           == [7, 19]);
+    assert(cast(int[][]) a[Slice(1, 4, 2), Slice(1, 5, 3)]
+           == [[7, 10],
+               [19, 22]]);
+
+    a[Slice(1, 4, 2), Slice(1, 5, 3)] =
+        Array2D!(int, 2, 2)(array(iota(101, 105)));
+    assert(cast(int[][]) a
+           == [[0, 1, 2, 3, 4, 5],
+               [6, 101, 8, 9, 102, 11],
+               [12, 13, 14, 15, 16, 17],
+               [18, 103, 20, 21, 104, 23]]);
 }
