@@ -161,6 +161,12 @@ struct StorageRegular1D(T, size_t dim_)
             _dim = dim;
             _stride = stride;
         }
+
+        this(Tsource)(auto ref Tsource source) pure
+            if(isStorageRegular1D!Tsource)
+        {
+            this(source.container, source.dim, source.stride);
+        }
     }
 
     public // Dimensions and memory
@@ -252,7 +258,7 @@ struct StorageRegular1D(T, size_t dim_)
             debug(slice) debugOP.writeln("slice ", s);
             return StorageRegular1D!(ElementType, dynsize)(
                 cast()_container[_mapIndex(s.lo).._mapIndex(s.upReal)],
-                s.length, _stride);
+                s.length, _stride * s.stride);
         }
     }
 
