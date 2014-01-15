@@ -1768,12 +1768,16 @@ unittest // Inversion
         mixin(debugIndentScope);
     }
     else debug mixin(debugSilentScope);
-    auto a = Matrix!(double, 3, 3)([2, 0, 0,
-                                    0, 4, 0,
-                                    0, 0, 8]);
 
-    assert((cast(double[][]) (a.inverse())) ==
-           [[0.5, 0, 0],
-            [0, 0.25, 0],
-            [0, 0, 0.125]]);
+    version(linalg_backend_lapack)
+    {
+        auto a = Matrix!(double, 3, 3)([2, 0, 0,
+                                        0, 4, 0,
+                                        0, 0, 8]);
+
+        assert((cast(double[][]) (a.inverse())) ==
+               [[0.5, 0, 0],
+                [0, 0.25, 0],
+                [0, 0, 0.125]]);
+    }
 }

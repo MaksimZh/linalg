@@ -36,12 +36,12 @@ alias linalg.storage.slice.Slice Slice; //NOTE: waiting for proper slice support
 ********************************************************************************
 */
 
-template Array1D(T, size_t dim)
+template Array1D(T, size_t dim = dynsize)
 {
     alias BasicArray1D!(T, dim, false) Array1D;
 }
 
-template ArrayView1D(T, size_t dim)
+template ArrayView1D(T, size_t dim = dynsize)
 {
     alias BasicArray1D!(T, dim, true) ArrayView1D;
 }
@@ -422,16 +422,16 @@ unittest // Slices
 ********************************************************************************
 */
 
-template Array2D(T, size_t nrows_, size_t ncols_,
+template Array2D(T, size_t nrows = dynsize, size_t ncols = dynsize,
                  StorageOrder storageOrder_ = defaultStorageOrder)
 {
-    alias BasicArray2D!(T, nrows_, ncols_, storageOrder_, false) Array2D;
+    alias BasicArray2D!(T, nrows, ncols, storageOrder_, false) Array2D;
 }
 
-template ArrayView2D(T, size_t nrows_, size_t ncols_,
+template ArrayView2D(T, size_t nrows = dynsize, size_t ncols = dynsize,
                      StorageOrder storageOrder_ = defaultStorageOrder)
 {
-    alias BasicArray2D!(T, nrows_, ncols_, storageOrder_, true) ArrayView2D;
+    alias BasicArray2D!(T, nrows, ncols, storageOrder_, true) ArrayView2D;
 }
 
 /**
