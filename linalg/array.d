@@ -243,6 +243,8 @@ unittest // Type properties
 
 unittest // Constructors, cast
 {
+    debug mixin(debugUnittestBlock("Constructors, cast"));
+    
     int[] a = [1, 2, 3];
 
     assert(cast(int[]) Array1D!(int, 3)(a)
@@ -266,12 +268,7 @@ unittest // Constructors, cast
 
 unittest // Storage direct access
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Storage direct access");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Storage direct access"));
 
     int[] src = [1, 2, 3, 4, 5, 6];
 
@@ -284,12 +281,7 @@ unittest // Storage direct access
 
 unittest // Dimension control
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Dimension control");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Dimension control"));
 
     Array1D!(int, dynsize) a;
     assert(a.empty);
@@ -307,6 +299,8 @@ unittest // Dimension control
 
 unittest // Comparison
 {
+    debug mixin(debugUnittestBlock("Comparison"));
+
     int[] src1 = [1, 2, 3];
     int[] src2 = [3, 2, 1];
 
@@ -335,6 +329,8 @@ unittest // Comparison
 
 unittest // Copying
 {
+    debug mixin(debugUnittestBlock("Copying"));
+
     int[] src = [1, 2, 3];
     int[] msrc = src.dup;
 
@@ -398,6 +394,8 @@ unittest // Copying
 
 unittest // Regular indices
 {
+    debug mixin(debugUnittestBlock("Regular indices"));
+
     auto a = Array1D!(int, 6)(array(iota(6)));
     assert(a[1] == 1);
     assert((a[1] = 10) == 10);
@@ -410,6 +408,8 @@ unittest // Regular indices
 
 unittest // Slices
 {
+    debug mixin(debugUnittestBlock("Slices"));
+
     auto a = Array1D!(int, 6)(array(iota(6)));
     assert(cast(int[]) a[Slice(1, 5, 3)] == [1, 4]);
     a[Slice(1, 5, 3)] = Array1D!(int, 2)([101, 104]);
@@ -669,6 +669,8 @@ unittest // Type properties
 
 unittest // Constructors, cast
 {
+    debug mixin(debugUnittestBlock("Constructors, cast"));
+
     int[] a = [1, 2, 3, 4, 5, 6];
 
     assert(cast(int[][]) Array2D!(int, dynsize, dynsize)(
@@ -719,6 +721,8 @@ unittest // Constructors, cast
 
 unittest // Storage direct access
 {
+    debug mixin(debugUnittestBlock("Storage direct access"));
+    
     int[] src = [1, 2, 3, 4, 5, 6];
 
     auto a = Array2D!(int, dynsize, dynsize, StorageOrder.row)(src, 2, 3);
@@ -730,6 +734,8 @@ unittest // Storage direct access
 
 unittest // Dimension control
 {
+    debug mixin(debugUnittestBlock("Dimension control"));
+    
     Array2D!(int, dynsize, dynsize) a;
     assert(a.empty);
     assert(a.nrows == 0);
@@ -752,6 +758,8 @@ unittest // Dimension control
 
 unittest // Comparison
 {
+    debug mixin(debugUnittestBlock("Comparison"));
+    
     int[] src1 = [1, 2, 3, 4, 5, 6];
     int[] src2 = [6, 5, 4, 3, 2, 1];
 
@@ -780,6 +788,8 @@ unittest // Comparison
 
 unittest // Copying
 {
+    debug mixin(debugUnittestBlock("Copying"));
+    
     int[] src = [1, 2, 3, 4, 5, 6];
     int[] msrc = src.dup;
 
@@ -843,6 +853,8 @@ unittest // Copying
 
 unittest // Regular indices
 {
+    debug mixin(debugUnittestBlock("Regular indices"));
+    
     auto a = Array2D!(int, 4, 6)(array(iota(24)));
     assert(a[1, 2] == 8);
     assert((a[1, 2] = 80) == 80);
@@ -855,6 +867,8 @@ unittest // Regular indices
 
 unittest // Slices
 {
+    debug mixin(debugUnittestBlock("Slices"));
+    
     auto a = Array2D!(int, 4, 6)(array(iota(24)));
     assert(cast(int[]) a[1, Slice(1, 5, 3)]
            == [7, 10]);

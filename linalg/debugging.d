@@ -17,6 +17,7 @@ public import std.stdio;
 
 import std.range;
 import std.algorithm;
+import std.format;
 
 /**
  * Structure that translate calls of output functions adding indentation
@@ -89,3 +90,45 @@ enum string debugIndentScope =
  */
 enum string debugSilentScope =
     "++debugOP.silentLevel; scope(exit) debug --debugOP.silentLevel;";
+
+/**
+ * Mixin this string to outline unittest block
+ */
+string debugUnittestBlock(string name)
+{
+    return "debug(unittests) {"
+        "debugOP.writeln(__MODULE__ ~ \" unittest: " ~ name ~ "\");"
+        "mixin(debugIndentScope);"
+        "} else debug mixin(debugSilentScope);";
+}
+
+/**
+ * Debug info output
+ */
+string dfsArray(T)(T[] a)
+{
+    auto writer = appender!string();
+    formattedWrite(writer, "%x:%dx%d", a.ptr, a.length, T.sizeof);
+    return writer.data;
+}
+
+void dfMemAbandon(T)(T[] a)
+{
+    if(a) debugOP.writefln("memory abandon: %s", dfsArray(a));
+}
+
+void dfMemReferred(T)(T[] a)
+{
+    if(a) debugOP.writefln("memory referred: %s", dfsArray(a));
+}
+
+void dfMemAllocated(T)(T[] a)
+{
+    if(a) debugOP.writefln("memory allocated: %s", dfsArray(a));
+}
+
+void dfMemCopied(T)(T[] a, T[] b)
+{
+    if(a) debugOP.writefln("memory copied: %s -> %s",
+                           dfsArray(a), dfsArray(b));
+}

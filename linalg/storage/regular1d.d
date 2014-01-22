@@ -4,7 +4,7 @@
  * Regular one-dimensional storage.
  *
  * Authors:    Maksim Sergeevich Zholudev
- * Copyright:  Copyright (c) 2013, Maksim Zholudev
+ * Copyright:  Copyright (c) 2013-2014 Maksim Zholudev
  * License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
  */
 module linalg.storage.regular1d;
@@ -84,37 +84,14 @@ struct StorageRegular1D(T, size_t dim_)
             }
         body
         {
-            debug(storage)
-            {
-                debugOP.writefln("StorageRegular1D<%X>.this()", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("array = <%X>, %d", array.ptr, array.length);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "_container = <%X>, %d",
-                    _container.ptr,
-                    _container.length);
-                mixin(debugIndentScope);
-            }
             _container = array;
+            debug(memory) dfMemCopied(array, _container);
         }
     }
     else
     {
         this(size_t dim)
         {
-            debug(storage)
-            {
-                debugOP.writefln("StorageRegular1D<%X>.this()", &this);
-                mixin(debugIndentScope);
-                debugOP.writeln("dim = ", dim);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "_container = <%X>, %d",
-                    _container.ptr,
-                    _container.length);
-                mixin(debugIndentScope);
-            }
             _dim = dim;
             _stride = 1;
             _reallocate();
@@ -122,44 +99,17 @@ struct StorageRegular1D(T, size_t dim_)
 
         this(ElementType[] array) pure
         {
-            debug(storage)
-            {
-                debugOP.writefln("StorageRegular1D<%X>.this()", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("array = <%X>, %d", array.ptr, array.length);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "_container<%X> = <%X>, %d",
-                    &(_container),
-                    _container.ptr,
-                    _container.length);
-                mixin(debugIndentScope);
-            }
             this(array, array.length, 1);
         }
 
         this(ElementType[] array,
              size_t dim, size_t stride) pure
         {
-            debug(storage)
-            {
-                debugOP.writefln("StorageRegular1D<%X>.this()", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("array = <%X>, %d",
-                                 array.ptr, array.length);
-                debugOP.writeln("dim = ", dim);
-                debugOP.writeln("stride = ", stride);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "_container<%X> = <%X>, %d",
-                    &(_container),
-                    _container.ptr,
-                    _container.length);
-                mixin(debugIndentScope);
-            }
+            debug(memory) dfMemAbandon(_container);
             _container = array;
             _dim = dim;
             _stride = stride;
+            debug(memory) dfMemReferred(_container);
         }
 
         this(Tsource)(auto ref Tsource source) pure
@@ -196,20 +146,10 @@ struct StorageRegular1D(T, size_t dim_)
              */
             private void _reallocate() pure
             {
-                debug(storage)
-                {
-                    debugOP.writefln("StorageRegular1D<%X>._reallocate()", &this);
-                    mixin(debugIndentScope);
-                    debugOP.writeln("...");
-                    scope(exit) debug debugOP.writefln(
-                        "_container<%X> = <%X>, %d",
-                        &(_container),
-                        _container.ptr,
-                        _container.length);
-                    mixin(debugIndentScope);
-                }
+                debug(memory) dfMemAbandon(_container);
                 _stride = 1;
                 _container = new ElementType[_dim];
+                debug(memory) dfMemAllocated(_container);
             }
 
             void setDim(size_t dim) pure
@@ -325,12 +265,7 @@ unittest // Type properties
 
 unittest // Constructors, cast
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.storage.regular1d unittest: Constructors, cast");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Constructors, cast"));
 
     int[] a = [1, 2, 3, 4, 5, 6];
 
@@ -344,12 +279,7 @@ unittest // Constructors, cast
 
 unittest // Dimensions and memory
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.storage.regular1d unittest: Dimensions and memory");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Dimensions and memory"));
 
     int[] src = [1, 2, 3, 4, 5, 6];
 
@@ -378,24 +308,13 @@ unittest // Dimensions and memory
 
 unittest // Indices and slices
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.storage.regular1d unittest: Indices and slices");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
-
+    debug mixin(debugUnittestBlock("Indices and slices"));
     debug debugOP.writeln("Waiting for pull request 443");
 }
 
 unittest // Ranges
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.storage.regular1d unittest: Ranges");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Ranges"));
 
     int[] src = [1, 2, 3, 4, 5, 6];
     {
@@ -416,89 +335,4 @@ unittest // Ranges
             assert(result == [1, 3, 5]);
         }
     }
-}
-
-version(all) // Old unittests
-{
-unittest // Static
-{
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.storage.regular1d unittest: Static");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
-
-    auto b = StorageRegular1D!(int, 4)([0, 1, 2, 3]);
-    assert(b.length == 4);
-    assert(cast(int[]) b == [0, 1, 2, 3]);
-    assert(b.container == [0, 1, 2, 3]);
-
-    // .dup
-    auto d = b.dup;
-    assert(cast(int[]) d == [0, 1, 2, 3]);
-    assert(d.container !is b.container);
-
-    // Range
-    int[] tmp = [];
-    foreach(t; b.byElement)
-        tmp ~= t;
-    assert(tmp == [0, 1, 2, 3]);
-    foreach(ref t; d.byElement)
-        t = 4;
-    assert(cast(int[]) d == [4, 4, 4, 4]);
-
-    // Indices
-    assert(b[0] == 0);
-    assert(b[2] == 2);
-    assert(b[3] == 3);
-}
-
-unittest // Dynamic
-{
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.storage.regular1d unittest: Dynamic");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
-
-    // Constructors
-    auto a = StorageRegular1D!(int, dynsize)(4);
-    assert(a.length == 4);
-    assert(cast(int[]) a == [int.init, int.init, int.init, int.init]);
-    assert(a.container == [int.init, int.init, int.init, int.init]);
-
-    auto b = StorageRegular1D!(int, dynsize)([0, 1, 2, 3]);
-    assert(b.length == 4);
-    assert(cast(int[]) b == [0, 1, 2, 3]);
-    assert(b.container == [0, 1, 2, 3]);
-
-    auto c = StorageRegular1D!(int, dynsize)([0, 1, 2, 3], 2, 3);
-    assert(c.length == 2);
-    assert(cast(int[]) c == [0, 3]);
-    assert(c.container == [0, 1, 2, 3]);
-
-    // .dup
-    auto d = b.dup;
-    assert(cast(int[]) d == [0, 1, 2, 3]);
-    assert(d.container !is b.container);
-
-    // Range
-    int[] tmp = [];
-    foreach(t; b.byElement)
-        tmp ~= t;
-    assert(tmp == [0, 1, 2, 3]);
-    foreach(ref t; d.byElement)
-        t = 4;
-    assert(cast(int[]) d == [4, 4, 4, 4]);
-
-    // Indices
-    assert(b[0] == 0);
-    assert(b[2] == 2);
-    assert(b[3] == 3);
-
-    assert(c[0] == 0);
-    assert(c[1] == 3);
-}
 }

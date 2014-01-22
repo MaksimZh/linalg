@@ -1016,12 +1016,7 @@ unittest // Type properties
 
 unittest // Constructors, cast
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Constructors & cast");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Constructors & cast"));
 
     int[] a = [1, 2, 3, 4, 5, 6];
 
@@ -1075,12 +1070,7 @@ unittest // Constructors, cast
 
 unittest // Storage direct access
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Storage direct access");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Storage direct access"));
 
     int[] src = [1, 2, 3, 4, 5, 6];
 
@@ -1093,12 +1083,7 @@ unittest // Storage direct access
 
 unittest // Dimension control
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Dimension control");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Dimension control"));
 
     Matrix!(int, dynsize, dynsize) a;
     assert(a.empty);
@@ -1122,12 +1107,7 @@ unittest // Dimension control
 
 unittest // Comparison
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Comparison");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Comparison"));
 
     int[] src1 = [1, 2, 3, 4, 5, 6];
     int[] src2 = [6, 5, 4, 3, 2, 1];
@@ -1157,12 +1137,7 @@ unittest // Comparison
 
 unittest // Copying
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Copying");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Copying"));
 
     int[] src = [1, 2, 3, 4, 5, 6];
     int[] msrc = src.dup;
@@ -1227,12 +1202,7 @@ unittest // Copying
 
 unittest // Regular indices
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Regular indices");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Regular indices"));
 
     auto a = Matrix!(int, 4, 6)(array(iota(24)));
     assert(a[1, 2] == 8);
@@ -1246,12 +1216,7 @@ unittest // Regular indices
 
 unittest // Slices
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Slices");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Slices"));
 
     auto a = Matrix!(int, 4, 6)(array(iota(24)));
     assert(cast(int[][]) a[1, Slice(1, 5, 3)]
@@ -1274,12 +1239,7 @@ unittest // Slices
 
 unittest // Unary + and -
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Unary + and -");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Unary + and -"));
 
     int[] src = [1, 2, 3, 4, 5, 6];
     {
@@ -1300,12 +1260,7 @@ unittest // Unary + and -
 
 unittest // Matrix += and -=
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Matrix += and -=");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Matrix += and -="));
 
     int[] src1 = [1, 2, 3, 4, 5, 6];
     int[] src2 = [7, 8, 9, 10, 11, 12];
@@ -1353,12 +1308,7 @@ unittest // Matrix += and -=
 
 unittest // Matrix + and -
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Matrix + and -");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Matrix + and -"));
 
     int[] src1 = [1, 2, 3, 4, 5, 6];
     int[] src2 = [11, 22, 33, 44, 55, 66];
@@ -1406,12 +1356,7 @@ unittest // Matrix + and -
 
 unittest // Matrix *= scalar
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Matrix *= scalar");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Matrix *= scalar"));
 
     int[] src = [1, 2, 3, 4, 5, 6];
     {
@@ -1436,12 +1381,7 @@ unittest // Matrix *= scalar
 
 unittest // Matrix * scalar
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Matrix * scalar");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Matrix * scalar"));
 
     int[] src = [1, 2, 3, 4, 5, 6];
     {
@@ -1476,12 +1416,7 @@ unittest // Matrix * scalar
 
 unittest // Matrix *=
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Matrix *=");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Matrix *="));
 
     {
         int[] src1 = [1, 2, 3, 4];
@@ -1523,12 +1458,7 @@ unittest // Matrix *=
 
 unittest // Matrix *
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Matrix *");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Matrix *"));
 
     int[] src1 = [1, 2, 3, 4, 5, 6];
     int[] src2 = [7, 8, 9, 10, 11, 12];
@@ -1587,12 +1517,7 @@ unittest // Matrix *
 
 unittest // Ranges
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Ranges");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Ranges"));
 
     int[] src = [1, 2, 3, 4, 5, 6];
     {
@@ -1683,12 +1608,7 @@ unittest // Ranges
 
 unittest // Diagonalization
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Diagonalization");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Diagonalization"));
 
     version(linalg_backend_lapack)
     {
@@ -1707,12 +1627,7 @@ unittest // Diagonalization
 
 unittest // Map function
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Map function");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Map function"));
 
     int b = 2;
     assert(cast(int[][]) map!((a, b) => a*b)(
@@ -1724,12 +1639,7 @@ unittest // Map function
 
 unittest // Hermitian conjugation
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Hermitian conjugation");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Hermitian conjugation"));
 
     assert(cast(int[][]) (Matrix!(int, 3, 4)(array(iota(12))).conj())
            == [[0, 4, 8],
@@ -1762,12 +1672,7 @@ unittest // Hermitian conjugation
 
 unittest // Inversion
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.matrix unittest: Inversion");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Inversion"));
 
     version(linalg_backend_lapack)
     {
