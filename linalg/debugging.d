@@ -100,6 +100,12 @@ void dfMemAbandon(T)(T[] a)
                            a.ptr, a.length, T.sizeof);
 }
 
+void dfMemReferred(T)(T[] a)
+{
+    if(a) debugOP.writefln("memory referred: %x:%dx%d",
+                           a.ptr, a.length, T.sizeof);
+}
+
 void dfMemAllocated(T)(T[] a)
 {
     if(a) debugOP.writefln("memory allocated: %x:%dx%d",

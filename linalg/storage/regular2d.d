@@ -4,7 +4,7 @@
  * Regular two-dimensional storage.
  *
  * Authors:    Maksim Sergeevich Zholudev
- * Copyright:  Copyright (c) 2013, Maksim Zholudev
+ * Copyright:  Copyright (c) 2013-2014 Maksim Zholudev
  * License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
  */
 module linalg.storage.regular2d;
@@ -113,37 +113,14 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             }
         body
         {
-            debug(storage)
-            {
-                debugOP.writefln("StorageRegular2D<%X>.this()", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("array = <%X>, %d", array.ptr, array.length);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "_container = <%X>, %d",
-                    _container.ptr,
-                    _container.length);
-                mixin(debugIndentScope);
-            }
             _container = array;
+            debug(memory) dfMemCopied(array, _container);
         }
     }
     else
     {
         this()(in size_t[2] dim)
         {
-            debug(storage)
-            {
-                debugOP.writefln("StorageRegular2D<%X>.this()", &this);
-                mixin(debugIndentScope);
-                debugOP.writeln("dim = ", dim);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "_container = <%X>, %d",
-                    _container.ptr,
-                    _container.length);
-                mixin(debugIndentScope);
-            }
             _dim = dim;
             _stride = calcStrides!storageOrder(dim);
             _reallocate();
@@ -151,65 +128,22 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
         this()(ElementType[] array, in size_t[2] dim) pure
         {
-            debug(storage)
-            {
-                debugOP.writefln("StorageRegular2D<%X>.this()", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("array = <%X>, %d", array.ptr, array.length);
-                debugOP.writeln("dim = ", dim);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "_container<%X> = <%X>, %d",
-                    &(_container),
-                    _container.ptr,
-                    _container.length);
-                mixin(debugIndentScope);
-            }
             this(array, dim, calcStrides!storageOrder(dim));
         }
 
         this()(ElementType[] array,
                in size_t[2] dim, in size_t[2] stride) pure
         {
-            debug(storage)
-            {
-                debugOP.writefln("StorageRegular2D<%X>.this()", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("array = <%X>, %d",
-                                 array.ptr, array.length);
-                debugOP.writeln("dim = ", dim);
-                debugOP.writeln("stride = ", stride);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "_container<%X> = <%X>, %d",
-                    &(_container),
-                    _container.ptr,
-                    _container.length);
-                mixin(debugIndentScope);
-            }
+            debug(memory) dfMemAbandon(_container);
             _container = array;
             _dim = dim;
             _stride = stride;
+            debug(memory) dfMemReferred(_container);
         }
 
         this(Tsource)(auto ref Tsource source) pure
             if(isStorageRegular1D!Tsource)
         {
-            debug(storage)
-            {
-                debugOP.writefln("StorageRegular2D<%X>.this()", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("source.container = <%X>, %d",
-                                 source.container.ptr,
-                                 source.container.length);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "_container<%X> = <%X>, %d",
-                    &(_container),
-                    _container.ptr,
-                    _container.length);
-                mixin(debugIndentScope);
-            }
             static if(storageOrder == StorageOrder.row)
                 this(source.container, [1, source.dim], [1, source.stride]);
             else
@@ -219,21 +153,6 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         this(Tsource)(auto ref Tsource source) pure
             if(isStorageRegular2D!Tsource)
         {
-            debug(storage)
-            {
-                debugOP.writefln("StorageRegular2D<%X>.this()", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("source.container = <%X>, %d",
-                                 source.container.ptr,
-                                 source.container.length);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "_container<%X> = <%X>, %d",
-                    &(_container),
-                    _container.ptr,
-                    _container.length);
-                mixin(debugIndentScope);
-            }
             this(source.container, source.dim, source.stride);
         }
     }
@@ -273,20 +192,10 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
              */
             private void _reallocate() pure
             {
-                debug(storage)
-                {
-                    debugOP.writefln("StorageRegular2D<%X>._reallocate()", &this);
-                    mixin(debugIndentScope);
-                    debugOP.writeln("...");
-                    mixin(debugIndentScope);
-                    scope(exit) debug debugOP.writefln(
-                        "_container<%X> = <%X>, %d",
-                        &(_container),
-                        _container.ptr,
-                        _container.length);
-                }
+                debug(memory) dfMemAbandon(_container);
                 _stride = calcStrides!storageOrder(_dim);
                 _container = new ElementType[calcContainerSize(_dim)];
+                debug(memory) dfMemAllocated(_container);
             }
 
             void setDim(in size_t[2] dim) pure
@@ -369,13 +278,6 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
     @property auto dup() pure
     {
-        debug(storage)
-        {
-            debugOP.writefln("StorageRegular2D<%X>.dup()", &this);
-            mixin(debugIndentScope);
-            debugOP.writeln("...");
-            mixin(debugIndentScope);
-        }
         auto result = StorageRegular2D!(ElementType, storageOrder,
                                         dynsize, dynsize)(_dim);
         copy(this, result);

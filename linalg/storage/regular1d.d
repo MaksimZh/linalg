@@ -4,7 +4,7 @@
  * Regular one-dimensional storage.
  *
  * Authors:    Maksim Sergeevich Zholudev
- * Copyright:  Copyright (c) 2013, Maksim Zholudev
+ * Copyright:  Copyright (c) 2013-2014 Maksim Zholudev
  * License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
  */
 module linalg.storage.regular1d;
@@ -109,7 +109,7 @@ struct StorageRegular1D(T, size_t dim_)
             _container = array;
             _dim = dim;
             _stride = stride;
-            debug(memory) dfMemAllocated(_container);
+            debug(memory) dfMemReferred(_container);
         }
 
         this(Tsource)(auto ref Tsource source) pure
