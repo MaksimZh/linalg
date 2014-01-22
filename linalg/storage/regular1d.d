@@ -265,12 +265,7 @@ unittest // Type properties
 
 unittest // Constructors, cast
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.storage.regular1d unittest: Constructors, cast");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Constructors, cast"));
 
     int[] a = [1, 2, 3, 4, 5, 6];
 
@@ -284,12 +279,7 @@ unittest // Constructors, cast
 
 unittest // Dimensions and memory
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.storage.regular1d unittest: Dimensions and memory");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Dimensions and memory"));
 
     int[] src = [1, 2, 3, 4, 5, 6];
 
@@ -318,24 +308,13 @@ unittest // Dimensions and memory
 
 unittest // Indices and slices
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.storage.regular1d unittest: Indices and slices");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
-
+    debug mixin(debugUnittestBlock("Indices and slices"));
     debug debugOP.writeln("Waiting for pull request 443");
 }
 
 unittest // Ranges
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.storage.regular1d unittest: Ranges");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
+    debug mixin(debugUnittestBlock("Ranges"));
 
     int[] src = [1, 2, 3, 4, 5, 6];
     {

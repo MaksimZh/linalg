@@ -383,13 +383,8 @@ unittest // Type properties
 
 unittest // Constructors, cast
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.storage.regular2d unittest: Constructors, cast");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
-
+    debug mixin(debugUnittestBlock("Constructors, cast"));
+        
     int[] a = [1, 2, 3, 4, 5, 6];
 
     assert(cast(int[][]) StorageRegular2D!(int, StorageOrder.row, 2, 3)(a)
@@ -433,13 +428,8 @@ unittest // Constructors, cast
 
 unittest // Dimensions and memory
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.storage.regular2d unittest: Dimensions and memory");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
-
+    debug mixin(debugUnittestBlock("Dimensions and memory"));
+        
     int[] src = [1, 2, 3, 4, 5, 6];
 
     auto a = StorageRegular2D!(int, StorageOrder.row, dynsize, dynsize)(
@@ -478,25 +468,14 @@ unittest // Dimensions and memory
 
 unittest // Indices and slices
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.storage.regular2d unittest: Indices and slices");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
-
+    debug mixin(debugUnittestBlock("Indices and slices"));
     debug debugOP.writeln("Waiting for pull request 443");
 }
 
 unittest // Ranges
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.storage.regular2d unittest: Ranges");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
-
+    debug mixin(debugUnittestBlock("Ranges"));
+        
     int[] src = [1, 2, 3, 4, 5, 6];
     {
         auto a = StorageRegular2D!(int, StorageOrder.row, 2, 3)(src);

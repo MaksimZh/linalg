@@ -92,6 +92,17 @@ enum string debugSilentScope =
     "++debugOP.silentLevel; scope(exit) debug --debugOP.silentLevel;";
 
 /**
+ * Mixin this string to outline unittest block
+ */
+string debugUnittestBlock(string name)
+{
+    return "debug(unittests) {"
+        "debugOP.writeln(__MODULE__ ~ \" unittest: " ~ name ~ "\");"
+        "mixin(debugIndentScope);"
+        "} else debug mixin(debugSilentScope);";
+}
+
+/**
  * Debug info output
  */
 string dfsArray(T)(T[] a)
