@@ -20,6 +20,7 @@ version(unittest)
 }
 
 public import linalg.types;
+public import linalg.array;
 
 import linalg.storage.regular1d;
 import linalg.storage.regular2d;
@@ -486,6 +487,13 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
                        dimPattern[0] == 1 ? 1 : dynsize,
                        dimPattern[1] == 1 ? 1 : dynsize,
                        storageOrder)(this.storage.dup);
+    }
+
+    /** array interface */
+    @property auto array() pure
+    {
+        alias ArrayView2D!(ElementType, dynsize, dynsize, storageOrder) TArray;
+        return TArray(TArray.StorageType(this.storage));
     }
 
     public // Operations
