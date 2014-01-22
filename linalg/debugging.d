@@ -94,27 +94,30 @@ enum string debugSilentScope =
 /**
  * Debug info output
  */
+string dfsArray(T)(T[] a)
+{
+    auto writer = appender!string();
+    formattedWrite(writer, "%x:%dx%d", a.ptr, a.length, T.sizeof);
+    return writer.data;
+}
+
 void dfMemAbandon(T)(T[] a)
 {
-    if(a) debugOP.writefln("memory abandon: %x:%dx%d",
-                           a.ptr, a.length, T.sizeof);
+    if(a) debugOP.writefln("memory abandon: %s", dfsArray(a));
 }
 
 void dfMemReferred(T)(T[] a)
 {
-    if(a) debugOP.writefln("memory referred: %x:%dx%d",
-                           a.ptr, a.length, T.sizeof);
+    if(a) debugOP.writefln("memory referred: %s", dfsArray(a));
 }
 
 void dfMemAllocated(T)(T[] a)
 {
-    if(a) debugOP.writefln("memory allocated: %x:%dx%d",
-                           a.ptr, a.length, T.sizeof);
+    if(a) debugOP.writefln("memory allocated: %s", dfsArray(a));
 }
 
 void dfMemCopied(T)(T[] a, T[] b)
 {
-    if(a) debugOP.writefln("memory copied: %x:%dx%d -> %x:%dx%d",
-                           a.ptr, a.length, T.sizeof,
-                           b.ptr, b.length, T.sizeof);
+    if(a) debugOP.writefln("memory copied: %s -> %s",
+                           dfsArray(a), dfsArray(b));
 }
