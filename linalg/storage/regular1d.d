@@ -84,37 +84,14 @@ struct StorageRegular1D(T, size_t dim_)
             }
         body
         {
-            debug(storage)
-            {
-                debugOP.writefln("StorageRegular1D<%X>.this()", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("array = <%X>, %d", array.ptr, array.length);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "_container = <%X>, %d",
-                    _container.ptr,
-                    _container.length);
-                mixin(debugIndentScope);
-            }
             _container = array;
+            debug(memory) dfMemCopied(array, _container);
         }
     }
     else
     {
         this(size_t dim)
         {
-            debug(storage)
-            {
-                debugOP.writefln("StorageRegular1D<%X>.this()", &this);
-                mixin(debugIndentScope);
-                debugOP.writeln("dim = ", dim);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "_container = <%X>, %d",
-                    _container.ptr,
-                    _container.length);
-                mixin(debugIndentScope);
-            }
             _dim = dim;
             _stride = 1;
             _reallocate();
@@ -122,44 +99,17 @@ struct StorageRegular1D(T, size_t dim_)
 
         this(ElementType[] array) pure
         {
-            debug(storage)
-            {
-                debugOP.writefln("StorageRegular1D<%X>.this()", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("array = <%X>, %d", array.ptr, array.length);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "_container<%X> = <%X>, %d",
-                    &(_container),
-                    _container.ptr,
-                    _container.length);
-                mixin(debugIndentScope);
-            }
             this(array, array.length, 1);
         }
 
         this(ElementType[] array,
              size_t dim, size_t stride) pure
         {
-            debug(storage)
-            {
-                debugOP.writefln("StorageRegular1D<%X>.this()", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("array = <%X>, %d",
-                                 array.ptr, array.length);
-                debugOP.writeln("dim = ", dim);
-                debugOP.writeln("stride = ", stride);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "_container<%X> = <%X>, %d",
-                    &(_container),
-                    _container.ptr,
-                    _container.length);
-                mixin(debugIndentScope);
-            }
+            debug(memory) dfMemAbandon(_container);
             _container = array;
             _dim = dim;
             _stride = stride;
+            debug(memory) dfMemAllocated(_container);
         }
 
         this(Tsource)(auto ref Tsource source) pure
@@ -196,20 +146,10 @@ struct StorageRegular1D(T, size_t dim_)
              */
             private void _reallocate() pure
             {
-                debug(storage)
-                {
-                    debugOP.writefln("StorageRegular1D<%X>._reallocate()", &this);
-                    mixin(debugIndentScope);
-                    debugOP.writeln("...");
-                    scope(exit) debug debugOP.writefln(
-                        "_container<%X> = <%X>, %d",
-                        &(_container),
-                        _container.ptr,
-                        _container.length);
-                    mixin(debugIndentScope);
-                }
+                debug(memory) dfMemAbandon(_container);
                 _stride = 1;
                 _container = new ElementType[_dim];
+                debug(memory) dfMemAllocated(_container);
             }
 
             void setDim(size_t dim) pure

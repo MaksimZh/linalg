@@ -17,6 +17,7 @@ public import std.stdio;
 
 import std.range;
 import std.algorithm;
+import std.format;
 
 /**
  * Structure that translate calls of output functions adding indentation
@@ -89,3 +90,25 @@ enum string debugIndentScope =
  */
 enum string debugSilentScope =
     "++debugOP.silentLevel; scope(exit) debug --debugOP.silentLevel;";
+
+/**
+ * Debug info output
+ */
+void dfMemAbandon(T)(T[] a)
+{
+    if(a) debugOP.writefln("memory abandon: %x:%dx%d",
+                           a.ptr, a.length, T.sizeof);
+}
+
+void dfMemAllocated(T)(T[] a)
+{
+    if(a) debugOP.writefln("memory allocated: %x:%dx%d",
+                           a.ptr, a.length, T.sizeof);
+}
+
+void dfMemCopied(T)(T[] a, T[] b)
+{
+    if(a) debugOP.writefln("memory copied: %x:%dx%d -> %x:%dx%d",
+                           a.ptr, a.length, T.sizeof,
+                           b.ptr, b.length, T.sizeof);
+}
