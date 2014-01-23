@@ -117,21 +117,25 @@ string dfsArray(T)(T[] a)
 
 void dfMemAbandon(T)(T[] a)
 {
-    if(a) debugOP.writefln("memory abandon: %s", dfsArray(a));
+    static if(!__ctfe)
+        if(a) debugOP.writefln("memory abandon: %s", dfsArray(a));
 }
 
 void dfMemReferred(T)(T[] a)
 {
-    if(a) debugOP.writefln("memory referred: %s", dfsArray(a));
+    static if(!__ctfe)
+        if(a) debugOP.writefln("memory referred: %s", dfsArray(a));
 }
 
 void dfMemAllocated(T)(T[] a)
 {
-    if(a) debugOP.writefln("memory allocated: %s", dfsArray(a));
+    static if(!__ctfe)
+        if(a) debugOP.writefln("memory allocated: %s", dfsArray(a));
 }
 
 void dfMemCopied(T)(T[] a, T[] b)
 {
-    if(a) debugOP.writefln("memory copied: %s -> %s",
+    static if(!__ctfe)
+        if(a) debugOP.writefln("memory copied: %s -> %s",
                            dfsArray(a), dfsArray(b));
 }
