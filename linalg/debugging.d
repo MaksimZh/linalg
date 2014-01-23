@@ -53,23 +53,26 @@ struct OutputProxy
 
     void write(T...)(T args)
     {
-        if(!silentLevel)
-            std.stdio.write(this, args);
+        static if(!__ctfe)
+            if(!silentLevel)
+                std.stdio.write(this, args);
     }
 
     void writeln(T...)(T args)
     {
-        if(!silentLevel)
-            std.stdio.writeln(this, args);
+        static if(!__ctfe)
+            if(!silentLevel)
+                std.stdio.writeln(this, args);
     }
 
     void writefln(T...)(T args)
     {
-        if(!silentLevel)
-        {
-            std.stdio.write(this);
-            std.stdio.writefln(args);
-        }
+        static if(!__ctfe)
+            if(!silentLevel)
+            {
+                std.stdio.write(this);
+                std.stdio.writefln(args);
+            }
     }
 }
 
@@ -108,7 +111,7 @@ string debugUnittestBlock(string name)
 string dfsArray(T)(T[] a)
 {
     auto writer = appender!string();
-    formattedWrite(writer, "%x:%dx%d", a.ptr, a.length, T.sizeof);
+    formattedWrite(writer, "%x:%dx%d", cast(ulong)a.ptr, a.length, T.sizeof);
     return writer.data;
 }
 
