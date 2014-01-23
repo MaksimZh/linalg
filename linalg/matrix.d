@@ -939,13 +939,13 @@ private template TypeOfResultMatrix(Tlhs, string op, Trhs)
     }
     else static if(isMatrix!Tlhs && (op == "*" || op == "/"))
          alias Matrix!(TypeOfOp!(Tlhs.ElementType, op, Trhs),
-                       Tlhs.dimPattern[0] == 1 ? 1 : dynsize,
-                       Tlhs.dimPattern[1] == 1 ? 1 : dynsize,
+                       Tlhs.dimPattern[0],
+                       Tlhs.dimPattern[1],
                        Tlhs.storageOrder) TypeOfResultMatrix;
     else static if(isMatrix!Trhs && (op == "*"))
          alias Matrix!(TypeOfOp!(Tlhs, op, Trhs.ElementType),
-                       Trhs.dimPattern[0] == 1 ? 1 : dynsize,
-                       Trhs.dimPattern[1] == 1 ? 1 : dynsize,
+                       Trhs.dimPattern[0],
+                       Trhs.dimPattern[1],
                        Trhs.storageOrder) TypeOfResultMatrix;
     else
         alias void TypeOfResultMatrix;
