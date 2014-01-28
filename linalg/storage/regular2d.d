@@ -4,7 +4,7 @@
  * Regular two-dimensional storage.
  *
  * Authors:    Maksim Sergeevich Zholudev
- * Copyright:  Copyright (c) 2013, Maksim Zholudev
+ * Copyright:  Copyright (c) 2013-2014 Maksim Zholudev
  * License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
  */
 module linalg.storage.regular2d;
@@ -113,37 +113,14 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
             }
         body
         {
-            debug(storage)
-            {
-                debugOP.writefln("StorageRegular2D<%X>.this()", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("array = <%X>, %d", array.ptr, array.length);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "_container = <%X>, %d",
-                    _container.ptr,
-                    _container.length);
-                mixin(debugIndentScope);
-            }
             _container = array;
+            debug(memory) dfMemCopied(array, _container);
         }
     }
     else
     {
         this()(in size_t[2] dim)
         {
-            debug(storage)
-            {
-                debugOP.writefln("StorageRegular2D<%X>.this()", &this);
-                mixin(debugIndentScope);
-                debugOP.writeln("dim = ", dim);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "_container = <%X>, %d",
-                    _container.ptr,
-                    _container.length);
-                mixin(debugIndentScope);
-            }
             _dim = dim;
             _stride = calcStrides!storageOrder(dim);
             _reallocate();
@@ -151,65 +128,22 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
         this()(ElementType[] array, in size_t[2] dim) pure
         {
-            debug(storage)
-            {
-                debugOP.writefln("StorageRegular2D<%X>.this()", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("array = <%X>, %d", array.ptr, array.length);
-                debugOP.writeln("dim = ", dim);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "_container<%X> = <%X>, %d",
-                    &(_container),
-                    _container.ptr,
-                    _container.length);
-                mixin(debugIndentScope);
-            }
             this(array, dim, calcStrides!storageOrder(dim));
         }
 
         this()(ElementType[] array,
                in size_t[2] dim, in size_t[2] stride) pure
         {
-            debug(storage)
-            {
-                debugOP.writefln("StorageRegular2D<%X>.this()", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("array = <%X>, %d",
-                                 array.ptr, array.length);
-                debugOP.writeln("dim = ", dim);
-                debugOP.writeln("stride = ", stride);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "_container<%X> = <%X>, %d",
-                    &(_container),
-                    _container.ptr,
-                    _container.length);
-                mixin(debugIndentScope);
-            }
+            debug(memory) dfMemAbandon(_container);
             _container = array;
             _dim = dim;
             _stride = stride;
+            debug(memory) dfMemReferred(_container);
         }
 
         this(Tsource)(auto ref Tsource source) pure
             if(isStorageRegular1D!Tsource)
         {
-            debug(storage)
-            {
-                debugOP.writefln("StorageRegular2D<%X>.this()", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("source.container = <%X>, %d",
-                                 source.container.ptr,
-                                 source.container.length);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "_container<%X> = <%X>, %d",
-                    &(_container),
-                    _container.ptr,
-                    _container.length);
-                mixin(debugIndentScope);
-            }
             static if(storageOrder == StorageOrder.row)
                 this(source.container, [1, source.dim], [1, source.stride]);
             else
@@ -219,21 +153,6 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         this(Tsource)(auto ref Tsource source) pure
             if(isStorageRegular2D!Tsource)
         {
-            debug(storage)
-            {
-                debugOP.writefln("StorageRegular2D<%X>.this()", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("source.container = <%X>, %d",
-                                 source.container.ptr,
-                                 source.container.length);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "_container<%X> = <%X>, %d",
-                    &(_container),
-                    _container.ptr,
-                    _container.length);
-                mixin(debugIndentScope);
-            }
             this(source.container, source.dim, source.stride);
         }
     }
@@ -273,20 +192,10 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
              */
             private void _reallocate() pure
             {
-                debug(storage)
-                {
-                    debugOP.writefln("StorageRegular2D<%X>._reallocate()", &this);
-                    mixin(debugIndentScope);
-                    debugOP.writeln("...");
-                    mixin(debugIndentScope);
-                    scope(exit) debug debugOP.writefln(
-                        "_container<%X> = <%X>, %d",
-                        &(_container),
-                        _container.ptr,
-                        _container.length);
-                }
+                debug(memory) dfMemAbandon(_container);
                 _stride = calcStrides!storageOrder(_dim);
                 _container = new ElementType[calcContainerSize(_dim)];
+                debug(memory) dfMemAllocated(_container);
             }
 
             void setDim(in size_t[2] dim) pure
@@ -369,13 +278,6 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
     @property auto dup() pure
     {
-        debug(storage)
-        {
-            debugOP.writefln("StorageRegular2D<%X>.dup()", &this);
-            mixin(debugIndentScope);
-            debugOP.writeln("...");
-            mixin(debugIndentScope);
-        }
         auto result = StorageRegular2D!(ElementType, storageOrder,
                                         dynsize, dynsize)(_dim);
         copy(this, result);
@@ -481,13 +383,8 @@ unittest // Type properties
 
 unittest // Constructors, cast
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.storage.regular2d unittest: Constructors, cast");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
-
+    debug mixin(debugUnittestBlock("Constructors, cast"));
+        
     int[] a = [1, 2, 3, 4, 5, 6];
 
     assert(cast(int[][]) StorageRegular2D!(int, StorageOrder.row, 2, 3)(a)
@@ -531,13 +428,8 @@ unittest // Constructors, cast
 
 unittest // Dimensions and memory
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.storage.regular2d unittest: Dimensions and memory");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
-
+    debug mixin(debugUnittestBlock("Dimensions and memory"));
+        
     int[] src = [1, 2, 3, 4, 5, 6];
 
     auto a = StorageRegular2D!(int, StorageOrder.row, dynsize, dynsize)(
@@ -576,25 +468,14 @@ unittest // Dimensions and memory
 
 unittest // Indices and slices
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.storage.regular2d unittest: Indices and slices");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
-
+    debug mixin(debugUnittestBlock("Indices and slices"));
     debug debugOP.writeln("Waiting for pull request 443");
 }
 
 unittest // Ranges
 {
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.storage.regular2d unittest: Ranges");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
-
+    debug mixin(debugUnittestBlock("Ranges"));
+        
     int[] src = [1, 2, 3, 4, 5, 6];
     {
         auto a = StorageRegular2D!(int, StorageOrder.row, 2, 3)(src);
@@ -682,122 +563,4 @@ unittest // Ranges
                                [22, 23, 24]]]);
         }
     }
-}
-
-version(all) // Old unittests
-{
-unittest // Static
-{
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.storage.regular2d unittest: Static");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
-
-    // Constructors
-    auto b = StorageRegular2D!(int, defaultStorageOrder,
-                               3, 4)(
-                                   array(iota(12)));
-    assert([b.nrows, b.ncols] == [3, 4]);
-    assert(cast(int[][]) b == [[0, 1, 2, 3],
-                               [4, 5, 6, 7],
-                               [8, 9, 10, 11]]);
-    assert(b.container == [0, 1, 2, 3,
-                           4, 5, 6, 7,
-                           8, 9, 10, 11]);
-
-    //.dup
-    auto d = b.dup;
-    assert(cast(int[][]) d == [[0, 1, 2, 3],
-                               [4, 5, 6, 7],
-                               [8, 9, 10, 11]]);
-    assert(d.container !is b.container);
-
-    // Range
-    int[] tmp = [];
-    foreach(t; b.byElement)
-        tmp ~= t;
-    assert(tmp == array(iota(12)));
-    foreach(ref t; d.byElement)
-        t = 14;
-    assert(cast(int[][]) d == [[14, 14, 14, 14],
-                               [14, 14, 14, 14],
-                               [14, 14, 14, 14]]);
-
-    // Indices
-    assert(b[0, 0] == 0);
-    assert(b[1, 2] == 6);
-    assert(b[2, 3] == 11);
-}
-
-unittest // Dynamic
-{
-    debug(unittests)
-    {
-        debugOP.writeln("linalg.storage.regular2d unittest: Dynamic");
-        mixin(debugIndentScope);
-    }
-    else debug mixin(debugSilentScope);
-
-    // Constructors
-    auto a = StorageRegular2D!(int, defaultStorageOrder,
-                               dynsize, dynsize)([3, 4]);
-    assert([a.nrows, a.ncols] == [3, 4]);
-    assert(cast(int[][]) a == [[int.init, int.init, int.init, int.init],
-                               [int.init, int.init, int.init, int.init],
-                               [int.init, int.init, int.init, int.init]]);
-    assert(a.container == [int.init, int.init, int.init, int.init,
-                           int.init, int.init, int.init, int.init,
-                           int.init, int.init, int.init, int.init]);
-
-    auto b = StorageRegular2D!(int, defaultStorageOrder,
-                               dynsize, dynsize)(
-                                   array(iota(12)), [3, 4]);
-    assert([b.nrows, b.ncols] == [3, 4]);
-    assert(cast(int[][]) b == [[0, 1, 2, 3],
-                               [4, 5, 6, 7],
-                               [8, 9, 10, 11]]);
-    assert(b.container == [0, 1, 2, 3,
-                           4, 5, 6, 7,
-                           8, 9, 10, 11]);
-
-    auto c = StorageRegular2D!(int, defaultStorageOrder,
-                               dynsize, dynsize)(
-                                   array(iota(12)), [2, 2], [8, 3]);
-    assert([c.nrows, c.ncols] == [2, 2]);
-    assert(cast(int[][]) c == [[0, 3],
-                               [8, 11]]);
-    assert(c.container == [0, 1, 2, 3,
-                           4, 5, 6, 7,
-                           8, 9, 10, 11]);
-
-    //.dup
-    auto d = b.dup;
-    assert(cast(int[][]) d == [[0, 1, 2, 3],
-                               [4, 5, 6, 7],
-                               [8, 9, 10, 11]]);
-    assert(d.container !is b.container);
-
-
-    // Range
-    int[] tmp = [];
-    foreach(t; b.byElement)
-        tmp ~= t;
-    assert(tmp == array(iota(12)));
-    foreach(ref t; d.byElement)
-        t = 14;
-    assert(cast(int[][]) d == [[14, 14, 14, 14],
-                               [14, 14, 14, 14],
-                               [14, 14, 14, 14]]);
-
-    // Indices
-    assert(b[0, 0] == 0);
-    assert(b[1, 2] == 6);
-    assert(b[2, 3] == 11);
-
-    assert(c[0, 0] == 0);
-    assert(c[0, 1] == 3);
-    assert(c[1, 1] == 11);
-}
 }

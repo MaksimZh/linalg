@@ -1,9 +1,10 @@
 # Use DMD from Git
 DMD=~/programming/dlang/dmd/src/dmd -I../dlang/phobos -I../dlang/druntime/import -L"-L../dlang"
 # Paths to LAPACK and BLAS
-LIBS=../../Applications/lapack-3.4.1/liblapack.a ../../Applications/lapack-3.4.1/librefblas.a -L-lgfortran
+# LIBS=../../Applications/lapack-3.4.1/liblapack.a ../../Applications/lapack-3.4.1/librefblas.a -L-lgfortran
+LIBS=-L-llapack -L-lblas -L-lgfortran
 SOURCE=$(shell find ./linalg/ -name "*.d")
-DEBUGFLAGS=operations slice storage matrix range
+DEBUGFLAGS=memory
 
 # Version without debug output
 test: test.d $(SOURCE)

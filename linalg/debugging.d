@@ -17,6 +17,7 @@ public import std.stdio;
 
 import std.range;
 import std.algorithm;
+import std.format;
 
 /**
  * Structure that translate calls of output functions adding indentation
@@ -52,23 +53,26 @@ struct OutputProxy
 
     void write(T...)(T args)
     {
-        if(!silentLevel)
-            std.stdio.write(this, args);
+        static if(!__ctfe)
+            if(!silentLevel)
+                std.stdio.write(this, args);
     }
 
     void writeln(T...)(T args)
     {
-        if(!silentLevel)
-            std.stdio.writeln(this, args);
+        static if(!__ctfe)
+            if(!silentLevel)
+                std.stdio.writeln(this, args);
     }
 
     void writefln(T...)(T args)
     {
-        if(!silentLevel)
-        {
-            std.stdio.write(this);
-            std.stdio.writefln(args);
-        }
+        static if(!__ctfe)
+            if(!silentLevel)
+            {
+                std.stdio.write(this);
+                std.stdio.writefln(args);
+            }
     }
 }
 
@@ -89,3 +93,49 @@ enum string debugIndentScope =
  */
 enum string debugSilentScope =
     "++debugOP.silentLevel; scope(exit) debug --debugOP.silentLevel;";
+
+/**
+ * Mixin this string to outline unittest block
+ */
+string debugUnittestBlock(string name)
+{
+    return "debug(unittests) {"
+        "debugOP.writeln(__MODULE__ ~ \" unittest: " ~ name ~ "\");"
+        "mixin(debugIndentScope);"
+        "} else debug mixin(debugSilentScope);";
+}
+
+/**
+ * Debug info output
+ */
+string dfsArray(T)(T[] a)
+{
+    auto writer = appender!string();
+    formattedWrite(writer, "%x:%dx%d", cast(ulong)a.ptr, a.length, T.sizeof);
+    return writer.data;
+}
+
+void dfMemAbandon(T)(T[] a)
+{
+    static if(!__ctfe)
+        if(a) debugOP.writefln("memory abandon: %s", dfsArray(a));
+}
+
+void dfMemReferred(T)(T[] a)
+{
+    static if(!__ctfe)
+        if(a) debugOP.writefln("memory referred: %s", dfsArray(a));
+}
+
+void dfMemAllocated(T)(T[] a)
+{
+    static if(!__ctfe)
+        if(a) debugOP.writefln("memory allocated: %s", dfsArray(a));
+}
+
+void dfMemCopied(T)(T[] a, T[] b)
+{
+    static if(!__ctfe)
+        if(a) debugOP.writefln("memory copied: %s -> %s",
+                           dfsArray(a), dfsArray(b));
+}
