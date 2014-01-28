@@ -134,18 +134,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
      */
     this()(auto ref StorageType storage) pure
     {
-        debug(matrix)
-        {
-            debugOP.writefln("Matrix<%X>.this(storage)", &this);
-            mixin(debugIndentScope);
-            debugOP.writefln("storage.container = <%X>, %d",
-                             storage.container.ptr,
-                             storage.container.length);
-            debugOP.writeln("...");
-            scope(exit) debug debugOP.writefln(
-                "storage<%X>", &(this.storage));
-            mixin(debugIndentScope);
-        }
         this.storage = storage;
     }
 
@@ -156,18 +144,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
     this(Tsource)(auto ref Tsource source) pure
         if(isMatrix!Tsource)
     {
-        debug(matrix)
-        {
-            debugOP.writefln("Matrix<%X>.this(matrix)", &this);
-            mixin(debugIndentScope);
-            debugOP.writefln("matrix.storage.container = <%X>, %d",
-                             source.storage.container.ptr,
-                             source.storage.container.length);
-            debugOP.writeln("...");
-            scope(exit) debug debugOP.writefln(
-                "storage<%X>", &(this.storage));
-            mixin(debugIndentScope);
-        }
         this = source;
     }
 
@@ -176,16 +152,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         /** Create static shallow copy of array and wrap it. */
         this()(ElementType[] array) pure
         {
-            debug(matrix)
-            {
-                debugOP.writefln("Matrix<%X>.this()", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("array = <%X>, %d", array.ptr, array.length);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "storage<%X>", &(this.storage));
-                mixin(debugIndentScope);
-            }
             storage = StorageType(array);
         }
     }
@@ -196,33 +162,12 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             /** Create vector wrapping array */
             this()(ElementType[] array) pure
             {
-                debug(matrix)
-                {
-                    debugOP.writefln("Matrix<%X>.this()", &this);
-                    mixin(debugIndentScope);
-                    debugOP.writefln("array = <%X>, %d",
-                                     array.ptr, array.length);
-                    debugOP.writeln("...");
-                    scope(exit) debug debugOP.writefln(
-                        "storage<%X>", &(this.storage));
-                    mixin(debugIndentScope);
-                }
                 this(StorageType(array));
             }
 
             /** Allocate new vector of given length */
             this()(size_t dim) pure
             {
-                debug(matrix)
-                {
-                    debugOP.writefln("Matrix<%X>.this()", &this);
-                    mixin(debugIndentScope);
-                    debugOP.writeln("dim = ", dim);
-                    debugOP.writeln("...");
-                    scope(exit) debug debugOP.writefln(
-                        "storage<%X>", &(this.storage));
-                    mixin(debugIndentScope);
-                }
                 this(StorageType(dim));
             }
 
@@ -232,17 +177,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
              */
             this()(size_t nrows, size_t ncols) pure
             {
-                debug(matrix)
-                {
-                    debugOP.writefln("Matrix<%X>.this()", &this);
-                    mixin(debugIndentScope);
-                    debugOP.writeln("nrwos = ", nrows);
-                    debugOP.writeln("ncols = ", ncols);
-                    debugOP.writeln("...");
-                    scope(exit) debug debugOP.writefln(
-                        "storage<%X>", &(this.storage));
-                    mixin(debugIndentScope);
-                }
                 static if(shape == MatrixShape.row)
                 {
                     assert(nrows == 1);
@@ -260,17 +194,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             /** Allocate new matrix with given dimensions */
             this()(size_t nrows, size_t ncols) pure
             {
-                debug(matrix)
-                {
-                    debugOP.writefln("Matrix<%X>.this()", &this);
-                    mixin(debugIndentScope);
-                    debugOP.writeln("nrwos = ", nrows);
-                    debugOP.writeln("ncols = ", ncols);
-                    debugOP.writeln("...");
-                    scope(exit) debug debugOP.writefln(
-                        "storage<%X>", &(this.storage));
-                    mixin(debugIndentScope);
-                }
                 this(StorageType([nrows, ncols]));
             }
 
@@ -278,19 +201,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             this()(ElementType[] array,
                  size_t nrows, size_t ncols) pure
             {
-                debug(matrix)
-                {
-                    debugOP.writefln("Matrix<%X>.this()", &this);
-                    mixin(debugIndentScope);
-                    debugOP.writefln("array = <%X>, %d",
-                                     array.ptr, array.length);
-                    debugOP.writeln("nrwos = ", nrows);
-                    debugOP.writeln("ncols = ", ncols);
-                    debugOP.writeln("...");
-                    scope(exit) debug debugOP.writefln(
-                        "storage<%X>", &(this.storage));
-                    mixin(debugIndentScope);
-                }
                 this(StorageType(array, [nrows, ncols]));
             }
         }
@@ -476,13 +386,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
     /** Create shallow copy of matrix */
     @property auto dup() pure
     {
-        debug(storage)
-        {
-            debugOP.writefln("Matrix<%X>.dup()", &this);
-            mixin(debugIndentScope);
-            debugOP.writeln("...");
-            mixin(debugIndentScope);
-        }
         return Matrix!(ElementType,
                        dimPattern[0] == 1 ? 1 : dynsize,
                        dimPattern[1] == 1 ? 1 : dynsize,
@@ -501,16 +404,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         ref auto opAssign(Tsource)(auto ref Tsource source) pure
             if(isMatrix!Tsource)
         {
-            debug(matrix)
-            {
-                debugOP.writefln("Matrix<%X>.opAssign()", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("source = <%X>", &source);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "storage<%X>", &(this.storage));
-                mixin(debugIndentScope);
-            }
             static if(memoryManag == MatrixMemory.dynamic)
                 this.storage = typeof(this.storage)(source.storage);
             else
@@ -524,16 +417,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         bool opEquals(Tsource)(auto ref Tsource source) pure
             if(isMatrix!Tsource)
         {
-            debug(matrix)
-            {
-                debugOP.writefln("Matrix<%X>.opCmp()", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("source = <%X>", &source);
-                debugOP.writeln("...");
-                scope(exit) debug debugOP.writefln(
-                    "storage<%X>", &(this.storage));
-                mixin(debugIndentScope);
-            }
             return compare(source.storage, this.storage);
         }
 
@@ -543,13 +426,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         ref auto opUnary(string op)() pure
             if(op == "+")
         {
-            debug(matrix)
-            {
-                debugOP.writefln("Matrix<%X>.opUnary("~op~")", &this);
-                mixin(debugIndentScope);
-                debugOP.writeln("...");
-                mixin(debugIndentScope);
-            }
             return this;
         }
 
@@ -557,13 +433,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             if(op == "-")
         {
             //FIXME: fails if -a has different type
-            debug(matrix)
-            {
-                debugOP.writefln("Matrix<%X>.opUnary("~op~")", &this);
-                mixin(debugIndentScope);
-                debugOP.writeln("...");
-                mixin(debugIndentScope);
-            }
             static if(memoryManag == MatrixMemory.stat)
                 BasicMatrix dest;
             else
@@ -581,15 +450,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             auto ref Tsource source) pure
             if(isMatrix!Tsource && (op == "+" || op == "-"))
         {
-            debug(matrix)
-            {
-                debugOP.writefln("Matrix<%X>.opOpAssign("~op~")", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("source = <%X>", &source);
-                debugOP.writeln("...");
-                mixin(debugIndentScope);
-            }
-
             /*
              * If matrix is empty (not allocated) then just assume it has
              * appropriate size and filled with zeros.
@@ -614,15 +474,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             auto ref Trhs rhs) pure
             if(isMatrix!Trhs && (op == "+" || op == "-"))
         {
-            debug(matrix)
-            {
-                debugOP.writefln("Matrix<%X>.opBinary("~op~")", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("rhs = <%X>", &rhs);
-                debugOP.writeln("...");
-                mixin(debugIndentScope);
-            }
-
             /*
              * If one of the operands is empty (not allocated) then
              * return copy the other one with proper sign if it has proper type.
@@ -668,14 +519,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             if(!(isMatrix!Tsource) && (op == "*" || op == "/")
                && is(TypeOfOp!(ElementType, op, Tsource) == ElementType))
         {
-            debug(matrix)
-            {
-                debugOP.writefln("Matrix<%X>.opOpAssign("~op~")", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("source = ", source);
-                debugOP.writeln("...");
-                mixin(debugIndentScope);
-            }
             static if(memoryManag == MatrixMemory.dynamic)
                 if(empty)
                     return this;
@@ -688,14 +531,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             auto ref Trhs rhs) pure
             if(!(isMatrix!Trhs) && (op == "*" || op == "/"))
         {
-            debug(matrix)
-            {
-                debugOP.writefln("Matrix<%X>.opBinary("~op~")", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("rhs = <%X>", &rhs);
-                debugOP.writeln("...");
-                mixin(debugIndentScope);
-            }
             TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
             static if(typeof(dest).memoryManag == MatrixMemory.dynamic)
                 dest.setDim([this.nrows, this.ncols]);
@@ -711,14 +546,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             auto ref Tlhs lhs) pure
             if(!(isMatrix!Tlhs) && op == "*")
         {
-            debug(matrix)
-            {
-                debugOP.writefln("Matrix<%X>.opBinaryRight("~op~")", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("lhs = <%X>", &lhs);
-                debugOP.writeln("...");
-                mixin(debugIndentScope);
-            }
             TypeOfResultMatrix!(Tlhs, op, typeof(this)) dest;
             static if(typeof(dest).memoryManag == MatrixMemory.dynamic)
                 dest.setDim([this.nrows, this.ncols]);
@@ -734,14 +561,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             auto ref Tsource source) pure
             if(isMatrix!Tsource && op == "*")
         {
-            debug(matrix)
-            {
-                debugOP.writefln("Matrix<%X>.opOpAssign("~op~")", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("source = <%X>", &source);
-                debugOP.writeln("...");
-                mixin(debugIndentScope);
-            }
             return (this = this * source);
         }
 
@@ -749,15 +568,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             auto ref Trhs rhs) pure
             if(isMatrix!Trhs && op == "*")
         {
-            debug(matrix)
-            {
-                debugOP.writefln("Matrix<%X>.opBinary("~op~")", &this);
-                mixin(debugIndentScope);
-                debugOP.writefln("rhs = <%X>", &rhs);
-                debugOP.writeln("...");
-                mixin(debugIndentScope);
-            }
-
             static if(this.shape == MatrixShape.row
                       && rhs.shape == MatrixShape.col)
             {
@@ -785,14 +595,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
          */
         auto symmEigenval()() pure
         {
-            debug(matrix)
-            {
-                debugOP.writefln("Matrix<%X>.symmEigenval()", &this);
-                mixin(debugIndentScope);
-                debugOP.writeln("...");
-                mixin(debugIndentScope);
-            }
-
             return matrixSymmEigenval(this.storage);
         }
 
@@ -805,14 +607,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
          */
         auto symmEigenval()(size_t ilo, size_t iup) pure
         {
-            debug(matrix)
-            {
-                debugOP.writefln("Matrix<%X>.symmEigenval()", &this);
-                mixin(debugIndentScope);
-                debugOP.writeln("...");
-                mixin(debugIndentScope);
-            }
-
             return matrixSymmEigenval(this.storage, ilo, iup);
         }
 
@@ -825,14 +619,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
          */
         auto symmEigenAll()(size_t ilo, size_t iup) pure
         {
-            debug(matrix)
-            {
-                debugOP.writefln("Matrix<%X>.symmEigenAll()", &this);
-                mixin(debugIndentScope);
-                debugOP.writeln("...");
-                mixin(debugIndentScope);
-            }
-
             return matrixSymmEigenAll(this.storage, ilo, iup);
         }
     }
@@ -846,14 +632,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         @property ref auto conj() pure
         {
             //FIXME: Will fail if conjugation changes type
-            debug(matrix)
-            {
-                debugOP.writefln("Matrix<%X>.conj()", &this);
-                mixin(debugIndentScope);
-                debugOP.writeln("...");
-                mixin(debugIndentScope);
-            }
-
             Matrix!(ElementType, dimPattern[1], dimPattern[0], storageOrder) dest;
             static if(typeof(dest).memoryManag == MatrixMemory.dynamic)
                 dest.setDim([this.ncols, this.nrows]);
@@ -863,14 +641,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
 
         ref auto inverse()() pure
         {
-            debug(matrix)
-            {
-                debugOP.writefln("Matrix<%X>.inverse()", &this);
-                mixin(debugIndentScope);
-                debugOP.writeln("...");
-                mixin(debugIndentScope);
-            }
-
             Matrix!(typeof(1 / this[0, 0]), dimPattern[0], dimPattern[1],
                     storageOrder) dest;
             matrixInverse(this.storage, dest.storage);

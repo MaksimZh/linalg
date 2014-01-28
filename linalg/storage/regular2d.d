@@ -114,7 +114,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         body
         {
             _container = array;
-            debug(memory) dfMemCopied(array, _container);
+            debug(linalg_memory) dfMemCopied(array, _container);
         }
     }
     else
@@ -134,11 +134,11 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
         this()(ElementType[] array,
                in size_t[2] dim, in size_t[2] stride) pure
         {
-            debug(memory) dfMemAbandon(_container);
+            debug(linalg_memory) dfMemAbandon(_container);
             _container = array;
             _dim = dim;
             _stride = stride;
-            debug(memory) dfMemReferred(_container);
+            debug(linalg_memory) dfMemReferred(_container);
         }
 
         this(Tsource)(auto ref Tsource source) pure
@@ -192,10 +192,10 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
              */
             private void _reallocate() pure
             {
-                debug(memory) dfMemAbandon(_container);
+                debug(linalg_memory) dfMemAbandon(_container);
                 _stride = calcStrides!storageOrder(_dim);
                 _container = new ElementType[calcContainerSize(_dim)];
-                debug(memory) dfMemAllocated(_container);
+                debug(linalg_memory) dfMemAllocated(_container);
             }
 
             void setDim(in size_t[2] dim) pure
@@ -228,7 +228,6 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
         auto opIndex() pure
         {
-            debug(slice) debugOP.writeln("slice");
             return StorageRegular2D!(ElementType, storageOrder,
                                            dynsize, dynsize)(
                                                _container[], _dim, _stride);
@@ -241,7 +240,6 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
         ref auto opIndex(Slice srow, size_t icol) pure
         {
-            debug(slice) debugOP.writeln("slice ", srow, ", ", icol);
             return StorageRegular1D!(ElementType, dynsize)(
                 _container[_mapIndex(srow.lo, icol)
                            ..
@@ -251,7 +249,6 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
         ref auto opIndex(size_t irow, Slice scol) pure
         {
-            debug(slice) debugOP.writeln("slice ", irow, ", ", scol);
             return StorageRegular1D!(ElementType, dynsize)(
                 _container[_mapIndex(irow, scol.lo)
                            ..
@@ -261,7 +258,6 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
         ref auto opIndex(Slice srow, Slice scol) pure
         {
-            debug(slice) debugOP.writeln("slice ", srow, ", ", scol);
             return StorageRegular2D!(
                              ElementType, storageOrder,
                              dynsize, dynsize)(

@@ -22,16 +22,7 @@ void fill(Tvalue, Tdest)(auto ref Tvalue value,
     if((isStorageRegular2D!Tdest || isStorageRegular1D!Tdest)
        && is(Tvalue == Tdest.ElementType))
 {
-    debug(operations)
-    {
-        debugOP.writefln("operations.fill()");
-        mixin(debugIndentScope);
-        debugOP.writefln("to   <%X>, %d",
-                        dest.container.ptr,
-                        dest.container.length);
-        debugOP.writeln("...");
-        mixin(debugIndentScope);
-    }
+    debug(linalg_operations) dfoOp1("fill", dest.container);
     auto idest = dest.byElement;
     while(!(idest.empty))
     {
@@ -46,19 +37,7 @@ bool compare(TsourceA, TsourceB)(auto ref TsourceA sourceA,
     if((isStorageRegular2D!TsourceA && isStorageRegular2D!TsourceB)
        || (isStorageRegular1D!TsourceA && isStorageRegular1D!TsourceB))
 {
-    debug(operations)
-    {
-        debugOP.writefln("operations.compare()");
-        mixin(debugIndentScope);
-        debugOP.writefln("from <%X>, %d",
-                        sourceA.container.ptr,
-                        sourceA.container.length);
-        debugOP.writefln("from <%X>, %d",
-                        sourceB.container.ptr,
-                        sourceB.container.length);
-        debugOP.writeln("...");
-        mixin(debugIndentScope);
-    }
+    debug(linalg_operations) dfoOp2("compare", sourceA.container, sourceB.container);
     if(sourceA.dim != sourceB.dim)
         return false;
     auto isourceA = sourceA.byElement;
@@ -84,19 +63,7 @@ void copy(Tsource, Tdest)(auto ref Tsource source,
     }
 body
 {
-    debug(operations)
-    {
-        debugOP.writefln("operations.copy()");
-        mixin(debugIndentScope);
-        debugOP.writefln("from <%X>, %d",
-                        source.container.ptr,
-                        source.container.length);
-        debugOP.writefln("to   <%X>, %d",
-                        dest.container.ptr,
-                        dest.container.length);
-        debugOP.writeln("...");
-        mixin(debugIndentScope);
-    }
+    debug(linalg_operations) dfoOp2("copy", source.container, dest.container);
     auto isource = source.byElement;
     auto idest = dest.byElement;
     while(!(isource.empty))
@@ -123,19 +90,7 @@ void map(alias fun, Tsource, Tdest, Targs...)(
     }
 body
 {
-    debug(operations)
-    {
-        debugOP.writefln("operations.map()");
-        mixin(debugIndentScope);
-        debugOP.writefln("from <%X>, %d",
-                        source.container.ptr,
-                        source.container.length);
-        debugOP.writefln("to   <%X>, %d",
-                        dest.container.ptr,
-                        dest.container.length);
-        debugOP.writeln("...");
-        mixin(debugIndentScope);
-    }
+    debug(linalg_operations) dfoOp2("map", source.container, dest.container);
     auto isource = source.byElement;
     auto idest = dest.byElement;
 
@@ -174,22 +129,9 @@ void zip(alias fun, TsourceA, TsourceB, Tdest)(
     }
 body
 {
-    debug(operations)
-    {
-        debugOP.writefln("operations.zip()");
-        mixin(debugIndentScope);
-        debugOP.writefln("from <%X>, %d",
-                        sourceA.container.ptr,
-                        sourceA.container.length);
-        debugOP.writefln("from <%X>, %d",
-                        sourceB.container.ptr,
-                        sourceB.container.length);
-        debugOP.writefln("to   <%X>, %d",
-                        dest.container.ptr,
-                        dest.container.length);
-        debugOP.writeln("...");
-        mixin(debugIndentScope);
-    }
+    debug(linalg_operations) dfoOp3("zip",
+                                    sourceA.container, sourceB.container,
+                                    dest.container);
     alias safeBinaryFun!fun funToApply;
     auto isourceA = sourceA.byElement;
     auto isourceB = sourceB.byElement;
