@@ -85,7 +85,7 @@ struct StorageRegular1D(T, size_t dim_)
         body
         {
             _container = array;
-            debug(memory) dfMemCopied(array, _container);
+            debug(linalg_memory) dfMemCopied(array, _container);
         }
     }
     else
@@ -105,11 +105,11 @@ struct StorageRegular1D(T, size_t dim_)
         this(ElementType[] array,
              size_t dim, size_t stride) pure
         {
-            debug(memory) dfMemAbandon(_container);
+            debug(linalg_memory) dfMemAbandon(_container);
             _container = array;
             _dim = dim;
             _stride = stride;
-            debug(memory) dfMemReferred(_container);
+            debug(linalg_memory) dfMemReferred(_container);
         }
 
         this(Tsource)(auto ref Tsource source) pure
@@ -146,10 +146,10 @@ struct StorageRegular1D(T, size_t dim_)
              */
             private void _reallocate() pure
             {
-                debug(memory) dfMemAbandon(_container);
+                debug(linalg_memory) dfMemAbandon(_container);
                 _stride = 1;
                 _container = new ElementType[_dim];
-                debug(memory) dfMemAllocated(_container);
+                debug(linalg_memory) dfMemAllocated(_container);
             }
 
             void setDim(size_t dim) pure
@@ -183,7 +183,6 @@ struct StorageRegular1D(T, size_t dim_)
 
         auto opIndex() pure
         {
-            debug(slice) debugOP.writeln("slice");
             return StorageRegular1D!(ElementType, dynsize)(
                 cast()_container[], length, _stride);
         }
@@ -195,7 +194,6 @@ struct StorageRegular1D(T, size_t dim_)
 
         auto opIndex(Slice s) pure
         {
-            debug(slice) debugOP.writeln("slice ", s);
             return StorageRegular1D!(ElementType, dynsize)(
                 cast()_container[_mapIndex(s.lo).._mapIndex(s.upReal)],
                 s.length, _stride * s.stride);
@@ -207,13 +205,6 @@ struct StorageRegular1D(T, size_t dim_)
     */
     @property ref auto dup() pure
     {
-        debug(storage)
-        {
-            debugOP.writefln("StorageRegular1D<%X>.dup()", &this);
-            mixin(debugIndentScope);
-            debugOP.writeln("...");
-            mixin(debugIndentScope);
-        }
         auto result = StorageRegular1D!(Unqual!ElementType, dynsize)(_dim);
         copy(this, result);
         return result;

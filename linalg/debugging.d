@@ -8,7 +8,7 @@
  * code known to be correct.
  *
  * Authors:    Maksim Sergeevich Zholudev
- * Copyright:  Copyright (c) 2013, Maksim Zholudev
+ * Copyright:  Copyright (c) 2013-2014, Maksim Zholudev
  * License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
  */
 module linalg.debugging;
@@ -40,10 +40,10 @@ struct OutputProxy
 
     string opCast()
     {
+        string result = "linalg: ";
         if(indentLevel > 0)
-            return cast(string) reduce!("a ~ b")(repeat("    ", indentLevel));
-        else
-            return "";
+            result ~= cast(string) reduce!("a ~ b")(repeat("    ", indentLevel));
+        return result;
     }
 
     string toString()
@@ -53,21 +53,21 @@ struct OutputProxy
 
     void write(T...)(T args)
     {
-        static if(!__ctfe)
+        if(!__ctfe)
             if(!silentLevel)
                 std.stdio.write(this, args);
     }
 
     void writeln(T...)(T args)
     {
-        static if(!__ctfe)
+        if(!__ctfe)
             if(!silentLevel)
                 std.stdio.writeln(this, args);
     }
 
     void writefln(T...)(T args)
     {
-        static if(!__ctfe)
+        if(!__ctfe)
             if(!silentLevel)
             {
                 std.stdio.write(this);
@@ -115,27 +115,50 @@ string dfsArray(T)(T[] a)
     return writer.data;
 }
 
+/*
+ * dfo = Debug Formatted Output
+ */
 void dfMemAbandon(T)(T[] a)
 {
-    static if(!__ctfe)
-        if(a) debugOP.writefln("memory abandon: %s", dfsArray(a));
+    if(!__ctfe)
+        if(a) debugOP.writefln("mem.abandon: %s", dfsArray(a));
 }
 
 void dfMemReferred(T)(T[] a)
 {
-    static if(!__ctfe)
-        if(a) debugOP.writefln("memory referred: %s", dfsArray(a));
+    if(!__ctfe)
+        if(a) debugOP.writefln("mem.referred: %s", dfsArray(a));
 }
 
 void dfMemAllocated(T)(T[] a)
 {
-    static if(!__ctfe)
-        if(a) debugOP.writefln("memory allocated: %s", dfsArray(a));
+    if(!__ctfe)
+        if(a) debugOP.writefln("mem.allocated: %s", dfsArray(a));
 }
 
 void dfMemCopied(T)(T[] a, T[] b)
 {
-    static if(!__ctfe)
-        if(a) debugOP.writefln("memory copied: %s -> %s",
-                           dfsArray(a), dfsArray(b));
+    if(!__ctfe)
+        if(a) debugOP.writefln("mem.copied: %s -> %s",
+                               dfsArray(a), dfsArray(b));
+}
+
+void dfoOp1(T)(string op, T[] a)
+{
+    if(!__ctfe)
+        if(a) debugOP.writefln("op.%s: %s", op, dfsArray(a));
+}
+
+void dfoOp2(Ta, Tb)(string op, Ta[] a, Tb[] b)
+{
+    if(!__ctfe)
+        if(a) debugOP.writefln("op.%s: %s -> %s", op,
+                               dfsArray(a), dfsArray(b));
+}
+
+void dfoOp3(Ta, Tb, Tc)(string op, Ta[] a, Tb[] b, Tc[] c)
+{
+    if(!__ctfe)
+        if(a) debugOP.writefln("op.%s: %s, %s -> %s", op,
+                               dfsArray(a), dfsArray(b), dfsArray(c));
 }
