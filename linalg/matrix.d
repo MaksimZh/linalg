@@ -20,6 +20,7 @@ version(unittest)
 }
 
 public import linalg.types;
+public import linalg.array;
 
 import linalg.storage.regular1d;
 import linalg.storage.regular2d;
@@ -488,6 +489,13 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
                        storageOrder)(this.storage.dup);
     }
 
+    /** array interface */
+    @property auto array() pure
+    {
+        alias ArrayView2D!(ElementType, dynsize, dynsize, storageOrder) TArray;
+        return TArray(TArray.StorageType(this.storage));
+    }
+
     public // Operations
     {
         ref auto opAssign(Tsource)(auto ref Tsource source) pure
@@ -868,6 +876,16 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             matrixInverse(this.storage, dest.storage);
             return dest;
         }
+
+        void fillZero()() pure
+            in
+            {
+                static if(memoryManag == MatrixMemory.dynamic) assert(!empty);
+            }
+        body
+        {
+            fill(zero!(ElementType), this.storage);
+        }
     }
 
     public // Ranges
@@ -931,13 +949,13 @@ private template TypeOfResultMatrix(Tlhs, string op, Trhs)
     }
     else static if(isMatrix!Tlhs && (op == "*" || op == "/"))
          alias Matrix!(TypeOfOp!(Tlhs.ElementType, op, Trhs),
-                       Tlhs.dimPattern[0] == 1 ? 1 : dynsize,
-                       Tlhs.dimPattern[1] == 1 ? 1 : dynsize,
+                       Tlhs.dimPattern[0],
+                       Tlhs.dimPattern[1],
                        Tlhs.storageOrder) TypeOfResultMatrix;
     else static if(isMatrix!Trhs && (op == "*"))
          alias Matrix!(TypeOfOp!(Tlhs, op, Trhs.ElementType),
-                       Trhs.dimPattern[0] == 1 ? 1 : dynsize,
-                       Trhs.dimPattern[1] == 1 ? 1 : dynsize,
+                       Trhs.dimPattern[0],
+                       Trhs.dimPattern[1],
                        Trhs.storageOrder) TypeOfResultMatrix;
     else
         alias void TypeOfResultMatrix;
