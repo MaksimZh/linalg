@@ -1,0 +1,6 @@
+public-lib linalg :
+                  types.d
+                  debugging.d
+                  array.d
+                  matrix.d
+                  ;
