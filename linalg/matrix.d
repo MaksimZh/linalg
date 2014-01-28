@@ -876,6 +876,16 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             matrixInverse(this.storage, dest.storage);
             return dest;
         }
+
+        void fillZero()() pure
+            in
+            {
+                static if(memoryManag == MatrixMemory.dynamic) assert(!empty);
+            }
+        body
+        {
+            fill(zero!(ElementType), this.storage);
+        }
     }
 
     public // Ranges
