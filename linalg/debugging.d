@@ -8,7 +8,7 @@
  * code known to be correct.
  *
  * Authors:    Maksim Sergeevich Zholudev
- * Copyright:  Copyright (c) 2013, Maksim Zholudev
+ * Copyright:  Copyright (c) 2013-2014, Maksim Zholudev
  * License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
  */
 module linalg.debugging;
@@ -53,21 +53,21 @@ struct OutputProxy
 
     void write(T...)(T args)
     {
-        static if(!__ctfe)
+        if(!__ctfe)
             if(!silentLevel)
                 std.stdio.write(this, args);
     }
 
     void writeln(T...)(T args)
     {
-        static if(!__ctfe)
+        if(!__ctfe)
             if(!silentLevel)
                 std.stdio.writeln(this, args);
     }
 
     void writefln(T...)(T args)
     {
-        static if(!__ctfe)
+        if(!__ctfe)
             if(!silentLevel)
             {
                 std.stdio.write(this);
@@ -117,25 +117,25 @@ string dfsArray(T)(T[] a)
 
 void dfMemAbandon(T)(T[] a)
 {
-    static if(!__ctfe)
+    if(!__ctfe)
         if(a) debugOP.writefln("memory abandon: %s", dfsArray(a));
 }
 
 void dfMemReferred(T)(T[] a)
 {
-    static if(!__ctfe)
+    if(!__ctfe)
         if(a) debugOP.writefln("memory referred: %s", dfsArray(a));
 }
 
 void dfMemAllocated(T)(T[] a)
 {
-    static if(!__ctfe)
+    if(!__ctfe)
         if(a) debugOP.writefln("memory allocated: %s", dfsArray(a));
 }
 
 void dfMemCopied(T)(T[] a, T[] b)
 {
-    static if(!__ctfe)
+    if(!__ctfe)
         if(a) debugOP.writefln("memory copied: %s -> %s",
-                           dfsArray(a), dfsArray(b));
+                               dfsArray(a), dfsArray(b));
 }
