@@ -20,6 +20,7 @@ version(unittest)
 }
 
 public import linalg.types;
+public import linalg.matrix;
 
 import linalg.storage.regular1d;
 import linalg.storage.regular2d;
@@ -603,6 +604,13 @@ struct BasicArray2D(T, size_t nrows_, size_t ncols_,
         return Array2D!(ElementType,
 						dynsize, dynsize,
 						storageOrder)(this.storage.dup);
+    }
+
+    /** Matrix interface */
+    @property auto matrix() pure
+    {
+        alias Matrix!(ElementType, dynsize, dynsize, storageOrder) TMatrix;
+        return TMatrix(TMatrix.StorageType(this.storage));
     }
 
     public // Operations
