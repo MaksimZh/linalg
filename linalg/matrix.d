@@ -392,8 +392,8 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
                        storageOrder)(this.storage.dup);
     }
 
-    /** array interface */
-    @property auto array() pure
+    /** Array interface */
+    @property ref auto array() pure
     {
         alias ArrayView2D!(ElementType, dynsize, dynsize, storageOrder) TArray;
         return TArray(TArray.StorageType(this.storage));

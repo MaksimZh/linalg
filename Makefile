@@ -4,7 +4,7 @@ DMD=~/programming/dlang/dmd/src/dmd -I../dlang/phobos -I../dlang/druntime/import
 # LIBS=../../Applications/lapack-3.4.1/liblapack.a ../../Applications/lapack-3.4.1/librefblas.a -L-lgfortran
 LIBS=-L-llapack -L-lblas -L-lgfortran
 SOURCE=$(shell find ./linalg/ -name "*.d")
-DEBUGFLAGS=memory
+DEBUGFLAGS=linalg_memory linalg_operations
 
 # Version without debug output
 test: test.d $(SOURCE)

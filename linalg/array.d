@@ -20,6 +20,7 @@ version(unittest)
 }
 
 public import linalg.types;
+public import linalg.matrix;
 
 import linalg.storage.regular1d;
 import linalg.storage.regular2d;
@@ -605,6 +606,13 @@ struct BasicArray2D(T, size_t nrows_, size_t ncols_,
 						storageOrder)(this.storage.dup);
     }
 
+    /** Matrix interface */
+    @property auto matrix() pure
+    {
+        alias Matrix!(ElementType, dynsize, dynsize, storageOrder) TMatrix;
+        return TMatrix(TMatrix.StorageType(this.storage));
+    }
+
     public // Operations
     {
         ref auto opAssign(Tsource)(auto ref Tsource source) pure
@@ -613,10 +621,7 @@ struct BasicArray2D(T, size_t nrows_, size_t ncols_,
             static if(!isStatic && !isBound)
                 this.storage = typeof(this.storage)(source.storage);
             else
-                if(source.empty)
-                    fill(zero!(Tsource.ElementType), this.storage);
-                else
-                    copy(source.storage, this.storage);
+                copy(source.storage, this.storage);
             return this;
         }
 
@@ -624,6 +629,55 @@ struct BasicArray2D(T, size_t nrows_, size_t ncols_,
             if(isArray2D!Tsource)
         {
             return compare(source.storage, this.storage);
+        }
+
+        /* Unary operations
+         */
+
+        ref auto opUnary(string op)() pure
+            if(op == "+")
+        {
+            return this;
+        }
+
+        ref auto opUnary(string op)() pure
+            if(op == "-")
+        {
+            //FIXME: fails if -a has different type
+            static if(memoryManag == MatrixMemory.stat)
+                BasicArray2D dest;
+            else
+                auto dest = Array2D!(ElementType,
+                                     dimPattern[0], dimPattern[1],
+                                     storageOrder)(nrows, ncols);
+            linalg.operations.basic.map!("-a")(this.storage, dest.storage);
+            return dest;
+        }
+
+        /* Binary operations
+         */
+
+        ref auto opOpAssign(string op, Tsource)(
+            auto ref Tsource source) pure
+            if(isArray2D!Tsource && (op == "+" || op == "-"
+                                     || op == "*" || op == "/"))
+        {
+            linalg.operations.basic.zip!("a"~op~"b")(
+                this.storage, source.storage, this.storage);
+            return this;
+        }
+
+        /* Multiplication by scalar
+         */
+
+        ref auto opOpAssign(string op, Tsource)(
+            auto ref Tsource source) pure
+            if(!(isArray2D!Tsource) && (op == "*" || op == "/")
+               && is(TypeOfOp!(ElementType, op, Tsource) == ElementType))
+        {
+            linalg.operations.basic.map!((a, b) => mixin("a"~op~"b"))(
+                this.storage, this.storage, source);
+            return this;
         }
     }
 }
