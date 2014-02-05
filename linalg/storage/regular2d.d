@@ -21,7 +21,6 @@ version(unittest)
 }
 
 import linalg.types;
-import linalg.operations.basic;
 import linalg.storage.slice;
 import linalg.ranges.regular;
 import linalg.storage.regular1d;
@@ -271,15 +270,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                                   _stride[1] * scol.stride]);
         }
     }
-
-    @property auto dup() pure
-    {
-        auto result = StorageRegular2D!(ElementType, storageOrder,
-                                        dynsize, dynsize)(_dim);
-        copy(this, result);
-        return result;
-    }
-
+    
     /* Convert to built-in array */
     ElementType[][] opCast() pure const
     {
@@ -452,14 +443,7 @@ unittest // Dimensions and memory
     assert(a.isCompatDim([2, 3]) == true);
     assert(a.isCompatDim([3, 4]) == true);
 
-    auto b = a.dup;
-    assert(b.container.ptr != a.container.ptr);
-    assert(b.container == [1, 2, 3, 4, 5, 6]);
-    assert(b.dim == [2, 3]);
-    assert(b.stride == [3, 1]);
-
-    b.setDim([3, 5]);
-    assert(b.dim == [3, 5]);
+    //TODO: test setDim
 }
 
 unittest // Indices and slices

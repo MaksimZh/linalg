@@ -21,7 +21,6 @@ version(unittest)
 }
 
 import linalg.types;
-import linalg.operations.basic;
 import linalg.storage.slice;
 import linalg.ranges.regular;
 
@@ -199,17 +198,7 @@ struct StorageRegular1D(T, size_t dim_)
                 s.length, _stride * s.stride);
         }
     }
-
-    /* Makes copy of the data and returns new storage referring to it.
-       The storage returned is always dynamic.
-    */
-    @property ref auto dup() pure
-    {
-        auto result = StorageRegular1D!(Unqual!ElementType, dynsize)(_dim);
-        copy(this, result);
-        return result;
-    }
-
+    
     /* Convert to built-in array */
     ElementType[] opCast() pure const
     {
@@ -287,14 +276,7 @@ unittest // Dimensions and memory
     assert(a.isCompatDim(3) == true);
     assert(a.isCompatDim(4) == true);
 
-    auto b = a.dup;
-    assert(b.container.ptr != a.container.ptr);
-    assert(b.container == [1, 3, 5]);
-    assert(b.dim == 3);
-    assert(b.stride == 1);
-
-    a.setDim(5);
-    assert(a.dim == 5);
+    //TODO: test setDim
 }
 
 unittest // Indices and slices

@@ -386,10 +386,12 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
     /** Create shallow copy of matrix */
     @property auto dup() pure
     {
-        return Matrix!(ElementType,
-                       dimPattern[0] == 1 ? 1 : dynsize,
-                       dimPattern[1] == 1 ? 1 : dynsize,
-                       storageOrder)(this.storage.dup);
+        auto result = Matrix!(ElementType,
+                              dimPattern[0] == 1 ? 1 : dynsize,
+                              dimPattern[1] == 1 ? 1 : dynsize,
+                              storageOrder)(this.nrows, this.ncols);
+        copy(this.storage, result.storage);
+        return result;
     }
 
     /** Array interface */
