@@ -12,70 +12,43 @@ module linalg.operations.conjugation;
 debug import linalg.debugging;
 
 import linalg.types;
-import linalg.storage.regular1d;
-import linalg.storage.regular2d;
+import linalg.traits;
 import linalg.operations.basic;
 
 /* Hermitian conjugation of vector */
 void conjMatrix(Tsource, Tdest)(
     auto ref Tsource source, auto ref Tdest dest) pure
-    if(isStorageRegular1D!Tsource && isStorageRegular1D!Tdest)
+    if(isStorage!Tsource && isStorage!Tdest)
     in
     {
-        assert(dest.length == source.length);
+        static if(Tsource.rank == 1)
+            assert(dest.dim == source.dim);
+        else static if(Tsource.rank == 2)
+            assert(dest.nrows == source.ncols && dest.ncols == source.nrows);
     }
 body
 {
-    debug(operations)
+    static assert(Tsource.rank == Tdest.rank,
+                  "Cannot copy conjugated elements"
+                  "between storages of different rank");
+    debug(linalg_operations) dfoOp2("conjMatrix",
+                                    source.container, dest.container);
+    static if(Tsource.rank == 1)
     {
-        debugOP.writefln("operations.conjMatrix()");
-        mixin(debugIndentScope);
-        debugOP.writefln("from <%X>, %d",
-                        source.container.ptr,
-                        source.container.length);
-        debugOP.writefln("to   <%X>, %d",
-                        dest.container.ptr,
-                        dest.container.length);
-        debugOP.writeln("...");
-        mixin(debugIndentScope);
+        static if(isComplex!(Tsource.ElementType))
+            map!("a.conj")(source, dest);
+        else
+            copy(source, dest);
     }
-
-    static if(isComplex!(Tsource.ElementType))
-        map!("a.conj")(source, dest);
-    else
-        copy(source, dest);
-}
-
-/* Hermitian conjugation */
-void conjMatrix(Tsource, Tdest)(
-    auto ref Tsource source, auto ref Tdest dest) pure
-    if(isStorageRegular2D!Tsource && isStorageRegular2D!Tdest)
-    in
+    else static if(Tsource.rank == 2)
     {
-        assert(dest.nrows == source.ncols && dest.ncols == source.nrows);
-    }
-body
-{
-    debug(operations)
-    {
-        debugOP.writefln("operations.conjMatrix()");
-        mixin(debugIndentScope);
-        debugOP.writefln("from <%X>, %d",
-                        source.container.ptr,
-                        source.container.length);
-        debugOP.writefln("to   <%X>, %d",
-                        dest.container.ptr,
-                        dest.container.length);
-        debugOP.writeln("...");
-        mixin(debugIndentScope);
-    }
-
-    auto isource = source.byRow();
-    auto idest = dest.byCol();
-    while(!(isource.empty))
-    {
-        conjMatrix(isource.front, idest.front);
-        isource.popFront();
-        idest.popFront();
+        auto isource = source.byRow();
+        auto idest = dest.byCol();
+        while(!(isource.empty))
+        {
+            conjMatrix(isource.front, idest.front);
+            isource.popFront();
+            idest.popFront();
+        }
     }
 }
