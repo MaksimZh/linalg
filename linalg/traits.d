@@ -11,6 +11,21 @@ module linalg.traits;
 
 import std.traits;
 
+import linalg.types;
+
+/** Test whether binary operation exists for given operand types */
+template isExistOp(Tlhs, string op, Trhs)
+{
+    enum isExistOp = is(TypeOfOp!(Tlhs, op, Trhs));
+}
+
+template isExistFun(ResultType, alias fun, Targs...)
+{
+    enum isExistFun =
+        isExistOp!(ResultType, "=",
+                   ReturnType!((Targs args) => fun(args)));
+}
+
 template isStorage(T)
 {
     static if(hasMember!(T, "dimPattern")
@@ -18,7 +33,6 @@ template isStorage(T)
               && hasMember!(T, "rank")
               && hasMember!(T, "isStatic")
               && hasMember!(T, "isCompatDim")
-              && hasMember!(T, "dup")
               && hasMember!(T, "byElement"))
     {
         enum isStorage =
@@ -35,7 +49,7 @@ template isStorage(T)
     }
 }
 
-template isStorageOfRank(T, uint rank)
+template isStorageOfRank(uint rank, T)
 {
     static if(isStorage!T)
         enum isStorageOfRank = (T.rank == rank);

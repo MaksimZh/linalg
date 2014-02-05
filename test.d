@@ -13,14 +13,12 @@ void main()
     static assert(!isStorage!(int));
     static assert(!isStorage!(Slice));
 
-    static assert(isStorageOfRank!(StorageRegular1D!(int, 2), 1));
-    static assert(!isStorageOfRank!(StorageRegular1D!(int, 2), 2));
-    static assert(!isStorageOfRank!(StorageRegular2D!(
-                                        int, defaultStorageOrder, 2, 3),
-                                    1));
-    static assert(isStorageOfRank!(StorageRegular2D!(
-                                       int, defaultStorageOrder, 2, 3),
-                                   2));
-    static assert(!isStorageOfRank!(int, 1));
-    static assert(!isStorageOfRank!(Slice, 2));
+    static assert(isStorageOfRank!(1, StorageRegular1D!(int, 2)));
+    static assert(!isStorageOfRank!(2, StorageRegular1D!(int, 2)));
+    static assert(!isStorageOfRank!(1, StorageRegular2D!(
+                                        int, defaultStorageOrder, 2, 3)));
+    static assert(isStorageOfRank!(2, StorageRegular2D!(
+                                       int, defaultStorageOrder, 2, 3)));
+    static assert(!isStorageOfRank!(1, int));
+    static assert(!isStorageOfRank!(2, Slice));
 }

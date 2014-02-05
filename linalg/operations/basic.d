@@ -13,15 +13,16 @@ module linalg.operations.basic;
 debug import linalg.debugging;
 
 import linalg.types;
-import linalg.storage.regular1d;
-import linalg.storage.regular2d;
+import linalg.traits;
 
 /* Copy data between storages */
 void fill(Tvalue, Tdest)(auto ref Tvalue value,
                          auto ref Tdest dest) pure
-    if((isStorageRegular2D!Tdest || isStorageRegular1D!Tdest)
-       && is(Tvalue == Tdest.ElementType))
+    if(isStorage!Tdest)
 {
+    static assert(isExistOp!(Tdest.ElementType, "=", Tvalue),
+                  "Cannot fill storage of (" ~ Tdest.ElementType.stringof
+                  ~ ") with (" ~ Tvalue.stringof ~ ")");
     debug(linalg_operations) dfoOp1("fill", dest.container);
     auto idest = dest.byElement;
     while(!(idest.empty))
@@ -34,10 +35,16 @@ void fill(Tvalue, Tdest)(auto ref Tvalue value,
 /* Compare two storages */
 bool compare(TsourceA, TsourceB)(auto ref TsourceA sourceA,
                                  auto ref TsourceB sourceB) pure
-    if((isStorageRegular2D!TsourceA && isStorageRegular2D!TsourceB)
-       || (isStorageRegular1D!TsourceA && isStorageRegular1D!TsourceB))
+    if(isStorage!TsourceA && isStorage!TsourceB)
 {
-    debug(linalg_operations) dfoOp2("compare", sourceA.container, sourceB.container);
+    static assert(TsourceA.rank == TsourceB.rank,
+                  "Cannot compare storages of different rank");
+    static assert(isExistOp!(TsourceA.ElementType, "==", TsourceB.ElementType),
+                  "Cannot compare (" ~ TsourceA.ElementType
+                  ~ ") and (" ~ TsourceB.ElementType ~ ")");
+    debug(linalg_operations) dfoOp2("compare",
+                                    sourceA.container,
+                                    sourceB.container);
     if(sourceA.dim != sourceB.dim)
         return false;
     auto isourceA = sourceA.byElement;
@@ -55,14 +62,18 @@ bool compare(TsourceA, TsourceB)(auto ref TsourceA sourceA,
 /* Copy data between storages */
 void copy(Tsource, Tdest)(auto ref Tsource source,
                           auto ref Tdest dest) pure
-    if((isStorageRegular2D!Tsource && isStorageRegular2D!Tdest)
-       || (isStorageRegular1D!Tsource && isStorageRegular1D!Tdest))
+    if(isStorage!Tsource && isStorage!Tdest)
     in
     {
-        assert(dest.isCompatDim(source.dim));
+        assert(dest.isCompatDim(source.dim), "Incompatible ");
     }
 body
 {
+    static assert(Tsource.rank == Tdest.rank,
+                  "Cannot copy elements between storages of different rank");
+    static assert(isExistOp!(Tdest.ElementType, "=", Tsource.ElementType),
+                  "Cannot copy (" ~ Tsource.ElementType.stringof
+                  ~ ") to (" ~ Tdest.ElementType.stringof ~ ")");
     debug(linalg_operations) dfoOp2("copy", source.container, dest.container);
     auto isource = source.byElement;
     auto idest = dest.byElement;
@@ -82,23 +93,29 @@ void map(alias fun, Tsource, Tdest, Targs...)(
     auto ref Tsource source,
     auto ref Tdest dest,
     auto ref Targs args) pure
-    if((isStorageRegular2D!Tsource && isStorageRegular2D!Tdest)
-       || (isStorageRegular1D!Tsource && isStorageRegular1D!Tdest))
+    if(isStorage!Tsource && isStorage!Tdest)
     in
     {
         assert(dest.isCompatDim(source.dim));
     }
 body
 {
-    debug(linalg_operations) dfoOp2("map", source.container, dest.container);
-    auto isource = source.byElement;
-    auto idest = dest.byElement;
-
+    static assert(Tsource.rank == Tdest.rank,
+                  "Cannot map function between storages of different rank");
     static if(Targs.length == 0)
         alias safeUnaryFun!fun funToApply;
     else
         alias fun funToApply;
-
+    static assert(isExistFun!(Tdest.ElementType, funToApply,
+                              Tsource.ElementType, Targs),
+                  "Cannot map (" ~ Tsource.ElementType.stringof
+                  ~ ", " ~ Targs.length ~ " arguments) -> ("
+                  ~ Tdest.ElementType.stringof
+                  ~ "): band function or storage element types");
+    
+    debug(linalg_operations) dfoOp2("map", source.container, dest.container);
+    auto isource = source.byElement;
+    auto idest = dest.byElement;
     foreach(ref d; idest)
     {
         static if(Targs.length == 0)
@@ -118,10 +135,7 @@ void zip(alias fun, TsourceA, TsourceB, Tdest)(
     ref TsourceA sourceA,
     ref TsourceB sourceB,
     ref Tdest dest) pure
-    if((isStorageRegular2D!TsourceA && isStorageRegular2D!TsourceB
-        && isStorageRegular2D!Tdest)
-       || (isStorageRegular1D!TsourceA && isStorageRegular1D!TsourceB
-           && isStorageRegular1D!Tdest))
+    if(isStorage!TsourceA && isStorage!TsourceB && isStorage!Tdest)
     in
     {
         assert(dest.isCompatDim(sourceA.dim));
@@ -129,10 +143,19 @@ void zip(alias fun, TsourceA, TsourceB, Tdest)(
     }
 body
 {
+    static assert(TsourceA.rank == Tdest.rank && TsourceB.rank == Tdest.rank,
+                  "Cannot zip storages of different rank");
+    alias safeBinaryFun!fun funToApply;
+    static assert(isExistFun!(Tdest.ElementType, funToApply,
+                              TsourceA.ElementType, TsourceB.ElementType),
+                  "Cannot zip (" ~ TsourceA.ElementType.stringof
+                  ~ ", " ~ TsourceB.ElementType.stringof ~ ") -> ("
+                  ~ Tdest.ElementType.stringof
+                  ~ "): band function or storage element types");
+
     debug(linalg_operations) dfoOp3("zip",
                                     sourceA.container, sourceB.container,
                                     dest.container);
-    alias safeBinaryFun!fun funToApply;
     auto isourceA = sourceA.byElement;
     auto isourceB = sourceB.byElement;
     auto idest = dest.byElement;
