@@ -191,7 +191,9 @@ struct BasicArray1D(T, size_t dim_, bool isBound_)
     /** Create shallow copy of array */
     @property auto dup() pure
     {
-        return Array1D!(ElementType, dynsize)(this.storage.dup);
+        auto result = Array1D!(ElementType, dynsize)(this.dim);
+        copy(this.storage, result.storage);
+        return result;
     }
 
     public // Operations
@@ -601,9 +603,11 @@ struct BasicArray2D(T, size_t nrows_, size_t ncols_,
     /** Create shallow copy of array */
     @property auto dup() pure
     {
-        return Array2D!(ElementType,
-						dynsize, dynsize,
-						storageOrder)(this.storage.dup);
+        auto result = Array2D!(ElementType,
+                               dynsize, dynsize,
+                               storageOrder)(this.nrows, this.ncols);
+        copy(this.storage, result.storage);
+        return result;
     }
 
     /** Matrix interface */
