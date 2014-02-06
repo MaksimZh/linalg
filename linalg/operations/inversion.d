@@ -36,19 +36,8 @@ void matrixInverse(Tsource, Tdest)(auto ref Tsource source,
     }
 body
 {
-    debug(operations)
-    {
-        debugOP.writefln("operations.matrixInverse()");
-        mixin(debugIndentScope);
-        debugOP.writefln("from <%X>, %d",
-                        source.container.ptr,
-                        source.container.length);
-        debugOP.writefln("to   <%X>, %d",
-                        dest.container.ptr,
-                        dest.container.length);
-        debugOP.writeln("...");
-        mixin(debugIndentScope);
-    }
-
+    debug(linalg_operations) dfoOp2("matrix inversion",
+                                    source.container,
+                                    dest.container);
     inverseMatrix(source.container, source.nrows, dest.container);
 }

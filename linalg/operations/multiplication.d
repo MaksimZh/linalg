@@ -62,9 +62,10 @@ void mulColRow(TsourceA, TsourceB, Tdest)(
     }
 body
 {
-    debug(linalg_operations) dfoOp2("col*row",
+    debug(linalg_operations) dfoOp3("col*row",
                                     sourceA.container,
-                                    sourceB.container);
+                                    sourceB.container,
+                                    dest.container);
     auto idest = dest.byElement;
     foreach(ref a; sourceA.byElement)
         foreach(ref b; sourceB.byElement)
@@ -91,9 +92,10 @@ void mulMatCol(TsourceA, TsourceB, Tdest)(
     }
 body
 {
-    debug(linalg_operations) dfoOp2("mat*col",
+    debug(linalg_operations) dfoOp3("mat*col",
                                     sourceA.container,
-                                    sourceB.container);
+                                    sourceB.container,
+                                    dest.container);
     auto idest = dest.byElement;
     foreach(rowA; sourceA.byRow)
     {
@@ -119,9 +121,10 @@ void mulRowMat(TsourceA, TsourceB, Tdest)(
     }
 body
 {
-    debug(linalg_operations) dfoOp2("row*mat",
+    debug(linalg_operations) dfoOp3("row*mat",
                                     sourceA.container,
-                                    sourceB.container);
+                                    sourceB.container,
+                                    dest.container);
     auto idest = dest.byElement;
     foreach(colB; sourceB.byCol)
     {
@@ -148,9 +151,10 @@ void mulMatMat(TsourceA, TsourceB, Tdest)(
     }
 body
 {
-    debug(linalg_operations) dfoOp2("mat*mat",
+    debug(linalg_operations) dfoOp3("mat*mat",
                                     sourceA.container,
-                                    sourceB.container);
+                                    sourceB.container,
+                                    dest.container);
     auto idest = dest.byElement;
     foreach(rowA; sourceA.byRow)
         foreach(colB; sourceB.byCol)
