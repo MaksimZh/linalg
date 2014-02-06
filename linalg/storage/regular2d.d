@@ -285,48 +285,26 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
                 _container.ptr, _dim, _stride);
         }
 
-        @property auto byRow()() pure
+        @property auto byRow() pure
         {
-            return ByLine!(ElementType, void)(
-                _container,
+            return ByLine!ElementType(
+                _container.ptr,
                 [_dim[0], _dim[1]],
                 [_stride[0], _stride[1]]);
         }
 
-        @property auto byCol()() pure
+        @property auto byCol() pure
         {
-            return ByLine!(ElementType, void)(
-                _container,
+            return ByLine!ElementType(
+                _container.ptr,
                 [_dim[1], _dim[0]],
                 [_stride[1], _stride[0]]);
         }
-
-        @property auto byRow(ResultType)() pure
+        
+        @property auto byBlock(size_t[2] subdim) pure
         {
-            return ByLine!(ElementType, ResultType)(
-                _container,
-                [_dim[0], _dim[1]],
-                [_stride[0], _stride[1]]);
-        }
-
-        @property auto byCol(ResultType)() pure
-        {
-            return ByLine!(ElementType, ResultType)(
-                _container,
-                [_dim[1], _dim[0]],
-                [_stride[1], _stride[0]]);
-        }
-
-        @property auto byBlock()(size_t[2] subdim) pure
-        {
-            return ByBlock!(ElementType, void, storageOrder)(
-                _container, _dim, _stride, subdim);
-        }
-
-        @property auto byBlock(ResultType)(size_t[2] subdim) pure
-        {
-            return ByBlock!(ElementType, ResultType, storageOrder)(
-                _container, _dim, _stride, subdim);
+            return ByBlock!(ElementType, storageOrder)(
+                _container.ptr, _dim, _stride, subdim);
         }
     }
 }
@@ -337,6 +315,10 @@ template isStorageRegular2D(T)
     enum bool isStorageRegular2D = isInstanceOf!(StorageRegular2D, T);
 }
 
+/*
+ * By-element iteration that goes like in folded loops:
+ * foreach(i0; 0..dim0){ foreach(i1; 0..dim1){ ... }}
+ */
 struct ByElement(ElementType)
 {
     private
@@ -361,6 +343,118 @@ struct ByElement(ElementType)
 
     @property bool empty() pure  { return _empty; }
     @property ref ElementType front() pure { return *_ptr; }
+
+    void popFront() pure
+    {
+        if(_j == _dim[1] - 1)
+        {
+            _ptr -= _stride[1] * _j;
+            _j = 0;
+            if(_i == _dim[0] - 1)
+            {
+                _empty = true;
+            }
+            else
+            {
+                _ptr += _stride[0];
+                ++_i;
+            }
+        }
+        else
+        {
+            _ptr += _stride[1];
+            ++_j;
+        }
+    }
+}
+
+/*
+ * Iteration by row or column (depending on strides)
+ */
+struct ByLine(ElementType)
+{
+    private
+    {
+        ElementType* _ptr;
+        const size_t _dimExt;
+        const size_t _strideExt;
+        const size_t _dimInt;
+        const size_t _strideInt;
+
+        const ElementType* _ptrFin;
+    }
+
+    this(ElementType* ptr, in size_t[2] dim, in size_t[2] stride) pure
+    {
+        _ptr = ptr;
+        _dimExt = dim[0];
+        _strideExt = stride[0];
+        _dimInt = dim[1];
+        _strideInt = stride[1];
+        _ptrFin = ptr + dim[0] * stride[0];
+    }
+
+    @property bool empty() pure  { return _ptr >= _ptrFin; }
+
+    @property auto front() pure
+    {
+        return StorageRegular1D!(ElementType, dynsize)(
+            _ptr[0..((_dimInt - 1) * _strideInt + 1)],
+            _dimInt, _strideInt);
+    }
+
+    void popFront() pure { _ptr += _strideExt; }
+}
+
+/*
+ * Iteration by matrix block
+ */
+struct ByBlock(ElementType, StorageOrder storageOrder)
+{
+    private
+    {
+        ElementType* _ptr;
+        const size_t[2] _dim;
+        const size_t[2] _stride;
+        const size_t[2] _substride;
+        const size_t[2] _subdim;
+        const size_t _len;
+
+        size_t _i, _j;
+        bool _empty;
+    }
+
+    this(ElementType* ptr, size_t[2] dim, size_t[2] stride,
+         size_t[2] subdim) pure
+        in
+        {
+            assert(dim[0] % subdim[0] == 0);
+            assert(dim[1] % subdim[1] == 0);
+        }
+    body
+    {
+        _ptr = ptr;
+        _substride = stride;
+        _subdim = subdim;
+        _dim = [dim[0] / subdim[0], dim[1] / subdim[1]];
+        _stride = [stride[0] * subdim[0], stride[1] * subdim[1]];
+        _len = (_subdim[0] - 1) * _substride[0]
+            + (_subdim[1] - 1) * _substride[1]
+            + 1;
+        _i = 0;
+        _j = 0;
+        _empty = false;
+    }
+
+    @property bool empty() pure  { return _empty; }
+
+    @property auto front() pure
+    {
+        return StorageRegular2D!(ElementType, storageOrder,
+                                 dynsize, dynsize)(
+                                     _ptr[0.._len],
+                                     _subdim, _substride);
+    }
 
     void popFront() pure
     {
