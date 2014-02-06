@@ -2,12 +2,14 @@ public-lib linalg :
                   types.d
                   traits.d
                   debugging.d
-                  operations/basic.d
-                  operations/conjugation.d
-                  operations/multiplication.d
                   storage/slice.d
                   storage/regular1d.d
                   storage/regular2d.d
+                  operations/basic.d
+                  operations/conjugation.d
+                  operations/multiplication.d
+                  operations/inversion.d
+                  operations/eigen.d
                   array.d
                   matrix.d
                   ;
