@@ -685,21 +685,26 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         {
             @property auto byRow() pure
             {
-                return storage.byRow!(MatrixView!(ElementType, 1, dynsize,
-                                                  storageOrder))();
+                return InputRangeWrapper!(
+                    typeof(storage.byRow),
+                    MatrixView!(ElementType, 1, dynsize, storageOrder))(
+                        storage.byRow);
             }
 
             @property auto byCol() pure
             {
-                return storage.byCol!(MatrixView!(ElementType, dynsize, 1,
-                                                  storageOrder))();
+                return InputRangeWrapper!(
+                    typeof(storage.byCol),
+                    MatrixView!(ElementType, dynsize, 1, storageOrder))(
+                        storage.byCol);
             }
 
             @property auto byBlock(size_t[2] subdim) pure
             {
-                return storage.byBlock!(MatrixView!(ElementType,
-                                                    dynsize, dynsize,
-                                                    storageOrder))(subdim);
+                return InputRangeWrapper!(
+                    typeof(storage.byBlock(subdim)),
+                    MatrixView!(ElementType, dynsize, dynsize, storageOrder))(
+                        storage.byBlock(subdim));
             }
         }
     }
