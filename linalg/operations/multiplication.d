@@ -12,38 +12,25 @@ module linalg.operations.multiplication;
 debug import linalg.debugging;
 
 import linalg.types;
-import linalg.storage.regular1d;
-import linalg.storage.regular2d;
+import linalg.traits;
 
 /*
  * Matrix multiplication
  * row * column
  */
-auto mulAsMatrices(TsourceA, TsourceB)(
+auto mulRowCol(TsourceA, TsourceB)(
     ref TsourceA sourceA,
     ref TsourceB sourceB) pure
-    if(isStorageRegular1D!TsourceA && isStorageRegular1D!TsourceB)
+    if(isStorageOfRank!(1, TsourceA) && isStorageOfRank!(1, TsourceB))
     in
     {
         assert(sourceA.length == sourceB.length);
     }
 body
 {
-    debug(operations)
-    {
-        debugOP.writefln("operations.mulAsMatrices()");
-        mixin(debugIndentScope);
-        debugOP.writefln("from <%X>, %d",
-                        sourceA.container.ptr,
-                        sourceA.container.length);
-        debugOP.writefln("from <%X>, %d",
-                        sourceB.container.ptr,
-                        sourceB.container.length);
-        debugOP.writefln("to   return");
-        debugOP.writeln("...");
-        mixin(debugIndentScope);
-    }
-
+    debug(linalg_operations) dfoOp2("row*col",
+                                    sourceA.container,
+                                    sourceB.container);
     auto isourceA = sourceA.byElement;
     auto isourceB = sourceB.byElement;
     auto result = isourceA.front * isourceB.front;
@@ -62,31 +49,22 @@ body
  * Matrix multiplication
  * column * row
  */
-void mulAsMatrices(TsourceA, TsourceB, Tdest)(
+void mulColRow(TsourceA, TsourceB, Tdest)(
     ref TsourceA sourceA,
     ref TsourceB sourceB,
     ref Tdest dest) pure
-    if(isStorageRegular1D!TsourceA && isStorageRegular1D!TsourceB
-       && isStorageRegular2D!Tdest)
+    if(isStorageOfRank!(1, TsourceA) && isStorageOfRank!(1, TsourceB)
+       && isStorageOfRank!(2, Tdest))
+    in
+    {
+        assert(dest.nrows == sourceA.length);
+        assert(dest.ncols == sourceB.length);
+    }
 body
 {
-    debug(operations)
-    {
-        debugOP.writefln("operations.mulAsMatrices()");
-        mixin(debugIndentScope);
-        debugOP.writefln("from <%X>, %d",
-                         sourceA.container.ptr,
-                         sourceA.container.length);
-        debugOP.writefln("from <%X>, %d",
-                         sourceB.container.ptr,
-                         sourceB.container.length);
-        debugOP.writefln("to   <%X>, %d",
-                         dest.container.ptr,
-                         dest.container.length);
-        debugOP.writeln("...");
-        mixin(debugIndentScope);
-    }
-
+    debug(linalg_operations) dfoOp2("col*row",
+                                    sourceA.container,
+                                    sourceB.container);
     auto idest = dest.byElement;
     foreach(ref a; sourceA.byElement)
         foreach(ref b; sourceB.byElement)
@@ -100,39 +78,26 @@ body
  * Matrix multiplication
  * matrix * column
  */
-void mulAsMatrices(TsourceA, TsourceB, Tdest)(
+void mulMatCol(TsourceA, TsourceB, Tdest)(
     ref TsourceA sourceA,
     ref TsourceB sourceB,
     ref Tdest dest) pure
-    if(isStorageRegular2D!TsourceA && isStorageRegular1D!TsourceB
-       && isStorageRegular1D!Tdest)
+    if(isStorageOfRank!(2, TsourceA) && isStorageOfRank!(1, TsourceB)
+       && isStorageOfRank!(1, Tdest))
     in
     {
         assert(sourceA.ncols == sourceB.length);
+        assert(dest.length == sourceA.nrows);
     }
 body
 {
-    debug(operations)
-    {
-        debugOP.writefln("operations.mulAsMatrices()");
-        mixin(debugIndentScope);
-        debugOP.writefln("from <%X>, %d",
-                        sourceA.container.ptr,
-                        sourceA.container.length);
-        debugOP.writefln("from <%X>, %d",
-                        sourceB.container.ptr,
-                        sourceB.container.length);
-        debugOP.writefln("to   <%X>, %d",
-                        dest.container.ptr,
-                        dest.container.length);
-        debugOP.writeln("...");
-        mixin(debugIndentScope);
-    }
-
+    debug(linalg_operations) dfoOp2("mat*col",
+                                    sourceA.container,
+                                    sourceB.container);
     auto idest = dest.byElement;
     foreach(rowA; sourceA.byRow)
     {
-        idest.front = mulAsMatrices(rowA, sourceB);
+        idest.front = mulRowCol(rowA, sourceB);
         idest.popFront;
     }
 }
@@ -141,39 +106,26 @@ body
  * Matrix multiplication
  * row * matrix
  */
-void mulAsMatrices(TsourceA, TsourceB, Tdest)(
+void mulRowMat(TsourceA, TsourceB, Tdest)(
     ref TsourceA sourceA,
     ref TsourceB sourceB,
     ref Tdest dest) pure
-    if(isStorageRegular1D!TsourceA && isStorageRegular2D!TsourceB
-       && isStorageRegular1D!Tdest)
+    if(isStorageOfRank!(1, TsourceA) && isStorageOfRank!(2, TsourceB)
+       && isStorageOfRank!(1, Tdest))
     in
     {
         assert(sourceA.length == sourceB.nrows);
+        assert(dest.length == sourceB.ncols);
     }
 body
 {
-    debug(operations)
-    {
-        debugOP.writefln("operations.mulAsMatrices()");
-        mixin(debugIndentScope);
-        debugOP.writefln("from <%X>, %d",
-                        sourceA.container.ptr,
-                        sourceA.container.length);
-        debugOP.writefln("from <%X>, %d",
-                        sourceB.container.ptr,
-                        sourceB.container.length);
-        debugOP.writefln("to   <%X>, %d",
-                        dest.container.ptr,
-                        dest.container.length);
-        debugOP.writeln("...");
-        mixin(debugIndentScope);
-    }
-
+    debug(linalg_operations) dfoOp2("row*mat",
+                                    sourceA.container,
+                                    sourceB.container);
     auto idest = dest.byElement;
     foreach(colB; sourceB.byCol)
     {
-        idest.front = mulAsMatrices(sourceA, colB);
+        idest.front = mulRowCol(sourceA, colB);
         idest.popFront;
     }
 }
@@ -182,40 +134,28 @@ body
  * Matrix multiplication
  * matrix * matrix
  */
-void mulAsMatrices(TsourceA, TsourceB, Tdest)(
+void mulMatMat(TsourceA, TsourceB, Tdest)(
     ref TsourceA sourceA,
     ref TsourceB sourceB,
     ref Tdest dest) pure
-    if(isStorageRegular2D!TsourceA && isStorageRegular2D!TsourceB
-       && isStorageRegular2D!Tdest)
+    if(isStorageOfRank!(2, TsourceA) && isStorageOfRank!(2, TsourceB)
+       && isStorageOfRank!(2, Tdest))
     in
     {
         assert(sourceA.ncols == sourceB.nrows);
+        assert(dest.nrows == sourceA.nrows);
+        assert(dest.ncols == sourceB.ncols);
     }
 body
 {
-    debug(operations)
-    {
-        debugOP.writefln("operations.mulAsMatrices()");
-        mixin(debugIndentScope);
-        debugOP.writefln("from <%X>, %d",
-                        sourceA.container.ptr,
-                        sourceA.container.length);
-        debugOP.writefln("from <%X>, %d",
-                        sourceB.container.ptr,
-                        sourceB.container.length);
-        debugOP.writefln("to   <%X>, %d",
-                        dest.container.ptr,
-                        dest.container.length);
-        debugOP.writeln("...");
-        mixin(debugIndentScope);
-    }
-
+    debug(linalg_operations) dfoOp2("mat*mat",
+                                    sourceA.container,
+                                    sourceB.container);
     auto idest = dest.byElement;
     foreach(rowA; sourceA.byRow)
         foreach(colB; sourceB.byCol)
         {
-            idest.front = mulAsMatrices(rowA, colB);
+            idest.front = mulRowCol(rowA, colB);
             idest.popFront;
         }
 }
