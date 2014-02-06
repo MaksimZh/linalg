@@ -5,6 +5,7 @@ public-lib linalg :
                   storage/slice.d
                   storage/regular1d.d
                   storage/regular2d.d
+				  backends/lapack.d
                   operations/basic.d
                   operations/conjugation.d
                   operations/multiplication.d
