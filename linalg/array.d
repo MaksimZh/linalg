@@ -20,7 +20,6 @@ version(unittest)
 }
 
 public import linalg.types;
-public import linalg.matrix;
 
 import linalg.storage.regular1d;
 import linalg.storage.regular2d;
@@ -191,7 +190,9 @@ struct BasicArray1D(T, size_t dim_, bool isBound_)
     /** Create shallow copy of array */
     @property auto dup() pure
     {
-        return Array1D!(ElementType, dynsize)(this.storage.dup);
+        auto result = Array1D!(ElementType, dynsize)(this.dim);
+        copy(this.storage, result.storage);
+        return result;
     }
 
     public // Operations
@@ -601,16 +602,11 @@ struct BasicArray2D(T, size_t nrows_, size_t ncols_,
     /** Create shallow copy of array */
     @property auto dup() pure
     {
-        return Array2D!(ElementType,
-						dynsize, dynsize,
-						storageOrder)(this.storage.dup);
-    }
-
-    /** Matrix interface */
-    @property auto matrix() pure
-    {
-        alias Matrix!(ElementType, dynsize, dynsize, storageOrder) TMatrix;
-        return TMatrix(TMatrix.StorageType(this.storage));
+        auto result = Array2D!(ElementType,
+                               dynsize, dynsize,
+                               storageOrder)(this.nrows, this.ncols);
+        copy(this.storage, result.storage);
+        return result;
     }
 
     public // Operations
