@@ -20,7 +20,6 @@ version(unittest)
 }
 
 public import linalg.types;
-public import linalg.array;
 
 import linalg.storage.regular1d;
 import linalg.storage.regular2d;
@@ -393,14 +392,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         copy(this.storage, result.storage);
         return result;
     }
-
-    /** Array interface */
-    @property ref auto array() pure
-    {
-        alias ArrayView2D!(ElementType, dynsize, dynsize, storageOrder) TArray;
-        return TArray(TArray.StorageType(this.storage));
-    }
-
+    
     public // Operations
     {
         ref auto opAssign(Tsource)(auto ref Tsource source) pure
@@ -573,14 +565,36 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             static if(this.shape == MatrixShape.row
                       && rhs.shape == MatrixShape.col)
             {
-                return mulAsMatrices(this.storage, rhs.storage);
+                return mulRowCol(this.storage, rhs.storage);
             }
             else
             {
                 TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
                 static if(typeof(dest).memoryManag == MatrixMemory.dynamic)
                     dest.setDim([this.nrows, rhs.ncols]);
-                mulAsMatrices(this.storage, rhs.storage, dest.storage);
+                static if(this.shape == MatrixShape.row)
+                {
+                    static if(rhs.shape == MatrixShape.matrix)
+                        mulRowMat(this.storage, rhs.storage, dest.storage);
+                    else static assert(false);
+                }
+                else static if(this.shape == MatrixShape.col)
+                {
+                    static if(rhs.shape == MatrixShape.row)
+                        mulColRow(this.storage, rhs.storage, dest.storage);
+                    else static if(rhs.shape == MatrixShape.matrix)
+                        mulColMat(this.storage, rhs.storage, dest.storage);
+                    else static assert(false);
+                }
+                else static if(this.shape == MatrixShape.matrix)
+                {
+                    static if(rhs.shape == MatrixShape.col)
+                        mulMatCol(this.storage, rhs.storage, dest.storage);
+                    else static if(rhs.shape == MatrixShape.matrix)
+                        mulMatMat(this.storage, rhs.storage, dest.storage);
+                    else static assert(false);
+                }
+                else static assert(false);
                 return dest;
             }
         }

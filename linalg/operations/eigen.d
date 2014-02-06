@@ -40,17 +40,8 @@ auto matrixSymmEigenval(Tsource)(ref Tsource source) pure
         }
 body
 {
-    debug(operations)
-    {
-        debugOP.writefln("operations.matrixSymmEigenval()");
-        mixin(debugIndentScope);
-        debugOP.writefln("from <%X>, %d",
-                         source.container.ptr,
-                         source.container.length);
-        debugOP.writeln("...");
-        mixin(debugIndentScope);
-    }
-
+    debug(linalg_operations) dfoOp1("eigenval",
+                                    source.container);
     return symmEigenval(source.container, source.nrows);
 }
 
@@ -70,17 +61,8 @@ auto matrixSymmEigenval(Tsource)(ref Tsource source,
         }
 body
 {
-    debug(operations)
-    {
-        debugOP.writefln("operations.matrixSymmEigenval()");
-        mixin(debugIndentScope);
-        debugOP.writefln("from <%X>, %d",
-                         source.container.ptr,
-                         source.container.length);
-        debugOP.writeln("...");
-        mixin(debugIndentScope);
-    }
-
+    debug(linalg_operations) dfoOp1("eigenval",
+                                    source.container);
     return symmEigenval(source.container, source.nrows, ilo, iup);
 }
 
@@ -100,16 +82,7 @@ auto matrixSymmEigenAll(Tsource)(ref Tsource source,
         }
 body
 {
-    debug(operations)
-    {
-        debugOP.writefln("operations.matrixSymmEigenval()");
-        mixin(debugIndentScope);
-        debugOP.writefln("from <%X>, %d",
-                         source.container.ptr,
-                         source.container.length);
-        debugOP.writeln("...");
-        mixin(debugIndentScope);
-    }
-
+    debug(linalg_operations) dfoOp1("eigenval",
+                                    source.container);
     return symmEigenAll(source.container, source.nrows, ilo, iup);
 }
