@@ -23,7 +23,6 @@ version(unittest)
 import linalg.types;
 import linalg.storage.slice;
 import linalg.storage.regular1d;
-import linalg.ranges.regular;
 
 private // Auxiliary functions
 {
