@@ -22,7 +22,6 @@ version(unittest)
 
 import linalg.types;
 import linalg.storage.slice;
-import linalg.ranges.regular;
 
 private // Auxiliary functions
 {
@@ -209,8 +208,8 @@ struct StorageRegular1D(T, size_t dim_)
     {
         @property auto byElement() pure
         {
-            return ByElement!(ElementType, 1)(
-                _container, _dim, _stride);
+            return ByElement!ElementType(
+                _container.ptr, _dim, _stride);
         }
     }
 }
@@ -219,6 +218,29 @@ struct StorageRegular1D(T, size_t dim_)
 template isStorageRegular1D(T)
 {
     enum bool isStorageRegular1D = isInstanceOf!(StorageRegular1D, T);
+}
+
+struct ByElement(ElementType)
+{
+    private
+    {
+        ElementType* _ptr;
+        const size_t _dim;
+        const size_t _stride;
+        const ElementType* _ptrFin;
+    }
+
+    this(ElementType* ptr, size_t dim, size_t stride) pure
+    {
+        _ptr = ptr;
+        _dim = dim;
+        _stride = stride;
+        _ptrFin = ptr + dim * stride;
+    }
+
+    @property bool empty() pure  { return _ptr >= _ptrFin; }
+    @property ref ElementType front() pure { return *_ptr; }
+    void popFront() pure { _ptr += _stride; }
 }
 
 unittest // Type properties

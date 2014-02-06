@@ -22,8 +22,8 @@ version(unittest)
 
 import linalg.types;
 import linalg.storage.slice;
-import linalg.ranges.regular;
 import linalg.storage.regular1d;
+import linalg.ranges.regular;
 
 private // Auxiliary functions
 {
@@ -281,8 +281,8 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
     {
         @property auto byElement() pure
         {
-            return ByElement!(ElementType, 2)(
-                _container, _dim, _stride);
+            return ByElement!ElementType(
+                _container.ptr, _dim, _stride);
         }
 
         @property auto byRow()() pure
@@ -335,6 +335,55 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 template isStorageRegular2D(T)
 {
     enum bool isStorageRegular2D = isInstanceOf!(StorageRegular2D, T);
+}
+
+struct ByElement(ElementType)
+{
+    private
+    {
+        ElementType* _ptr;
+        const size_t[2] _dim;
+        const size_t[2] _stride;
+
+        size_t _i, _j;
+        bool _empty;
+    }
+
+    this(ElementType* ptr, size_t[2] dim, size_t[2] stride) pure
+    {
+        _ptr = ptr;
+        _dim = dim;
+        _stride = stride;
+        _i = 0;
+        _j = 0;
+        _empty = false;
+    }
+
+    @property bool empty() pure  { return _empty; }
+    @property ref ElementType front() pure { return *_ptr; }
+
+    void popFront() pure
+    {
+        if(_j == _dim[1] - 1)
+        {
+            _ptr -= _stride[1] * _j;
+            _j = 0;
+            if(_i == _dim[0] - 1)
+            {
+                _empty = true;
+            }
+            else
+            {
+                _ptr += _stride[0];
+                ++_i;
+            }
+        }
+        else
+        {
+            _ptr += _stride[1];
+            ++_j;
+        }
+    }
 }
 
 unittest // Type properties
