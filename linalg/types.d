@@ -107,3 +107,15 @@ template zero(T)
         alias T.zero zero;
     else static assert(false, T.stringof);
 }
+
+struct InputRangeWrapper(RangeType, NewElementType)
+{
+    private RangeType range;
+    
+    this(RangeType range) pure { this.range = range; }
+
+    @property bool empty() pure  { return range.empty; }
+    @property auto ref NewElementType front() pure {
+        return NewElementType(range.front); }
+    void popFront() pure { range.popFront; }
+}
