@@ -12,7 +12,7 @@ module linalg.storage.regular2d;
 import std.algorithm;
 import std.traits;
 
-debug import linalg.debugging;
+debug import linalg.aux.debugging;
 
 version(unittest)
 {
@@ -20,7 +20,7 @@ version(unittest)
     import std.range;
 }
 
-import linalg.types;
+import linalg.aux.types;
 import linalg.storage.slice;
 import linalg.storage.regular1d;
 

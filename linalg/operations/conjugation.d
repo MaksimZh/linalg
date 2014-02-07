@@ -9,10 +9,10 @@
  */
 module linalg.operations.conjugation;
 
-debug import linalg.debugging;
+debug import linalg.aux.debugging;
 
-import linalg.types;
-import linalg.traits;
+import linalg.aux.types;
+import linalg.aux.traits;
 import linalg.operations.basic;
 
 /* Hermitian conjugation of vector */

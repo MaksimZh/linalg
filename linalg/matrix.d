@@ -11,7 +11,7 @@ module linalg.matrix;
 
 import std.traits;
 
-debug import linalg.debugging;
+debug import linalg.aux.debugging;
 
 version(unittest)
 {
@@ -19,7 +19,7 @@ version(unittest)
     import std.range;
 }
 
-public import linalg.types;
+public import linalg.aux.types;
 
 import linalg.storage.regular1d;
 import linalg.storage.regular2d;
