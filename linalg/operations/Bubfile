@@ -1,0 +1,9 @@
+refer linalg/aux linalg/storage;
+
+public-lib operations :
+                      basic.d
+                      conjugation.d
+                      eigen.d
+                      inversion.d
+                      multiplication.d
+                      ;

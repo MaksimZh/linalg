@@ -1,0 +1,7 @@
+refer linalg/aux;
+
+public-lib storage :
+                   slice.d
+                   regular1d.d
+                   regular2d.d
+                   ;

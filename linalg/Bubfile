@@ -1,16 +1,8 @@
+contain aux backends storage operations; 
+
 public-lib linalg :
-                  types.d
-                  traits.d
-                  debugging.d
-                  storage/slice.d
-                  storage/regular1d.d
-                  storage/regular2d.d
-				  backends/lapack.d
-                  operations/basic.d
-                  operations/conjugation.d
-                  operations/multiplication.d
-                  operations/inversion.d
-                  operations/eigen.d
                   array.d
                   matrix.d
                   ;
+
+dynamic-lib linalg : aux backends storage operations linalg;
