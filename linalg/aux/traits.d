@@ -7,11 +7,11 @@
  * Copyright:  Copyright (c) 2014, Maksim Zholudev
  * License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
  */
-module linalg.traits;
+module linalg.aux.traits;
 
 import std.traits;
 
-import linalg.types;
+import linalg.aux.types;
 
 /** Test whether binary operation exists for given operand types */
 template isExistOp(Tlhs, string op, Trhs)

@@ -9,7 +9,7 @@
  *  Copyright:  Copyright (c) 2013, Maksim Zholudev
  *  License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
  */
-module linalg.types;
+module linalg.aux.types;
 
 import std.traits;
 
