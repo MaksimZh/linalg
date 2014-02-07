@@ -1,8 +1,0 @@
-contain aux backends storage operations; 
-
-public-lib linalg :
-                  array.d
-                  matrix.d
-                  ;
-
-dynamic-lib linalg : aux backends storage operations linalg;
