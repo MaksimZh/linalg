@@ -1,0 +1,3 @@
+!dmdc = |> dmd -c %f -of%o |>
+!dmdl = |> dmd -lib %f -of%o |>
+!dmdb = |> dmd %f -of%o |>
