@@ -2,3 +2,5 @@
 test
 *.o
 log.org
+.tup/*
+*.a

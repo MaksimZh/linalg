@@ -1,0 +1,9 @@
+include_rules
+
+: foreach linalg/*.d \
+          linalg/aux/*.d \
+          linalg/backends/*.d \
+          linalg/operations/*.d \
+          linalg/storage/*.d \
+          |> !dmdc |> obj/%B.o
+: obj/*.o |> !dmdl |> liblinalg.a
