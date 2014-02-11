@@ -1,9 +1,10 @@
 include_rules
+DFLAGS += -L-loddsends
 
 : foreach linalg/*.d \
           linalg/aux/*.d \
           linalg/backends/*.d \
           linalg/operations/*.d \
           linalg/storage/*.d \
-          |> !dmdc |> obj/%B.o
-: obj/*.o |> !dmdl |> liblinalg.a
+          |> !dcompile |> obj/%B.o
+: obj/*.o |> !link |> liblinalg.a

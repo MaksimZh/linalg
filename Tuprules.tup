@@ -1,2 +1,0 @@
-!dmdc = |> dmd $(DFLAGS) -c %f -of%o |>
-!dmdl = |> dmd $(DFLAGS) -lib %f -of%o |>

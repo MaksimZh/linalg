@@ -26,13 +26,6 @@ enum StorageOrder
 /** Storage order that is set by default */
 enum StorageOrder defaultStorageOrder = StorageOrder.row;
 
-/** Derive type of the result of binary operation */
-template TypeOfOp(Tlhs, string op, Trhs)
-{
-    alias ReturnType!((Tlhs lhs, Trhs rhs) => mixin("lhs"~op~"rhs"))
-        TypeOfOp;
-}
-
 /* Unary pure function with const argument */
 template safeUnaryFun(alias fun)
 {
@@ -108,6 +101,7 @@ template zero(T)
     else static assert(false, T.stringof);
 }
 
+/** Input range with elements constructed from the elements of the wrapped one */
 struct InputRangeWrapper(RangeType, NewElementType)
 {
     private RangeType range;

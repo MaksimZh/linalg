@@ -9,7 +9,20 @@
  */
 module linalg.matrix;
 
+public import linalg.aux.types;
+
 import std.traits;
+
+import oddsends;
+
+import linalg.storage.regular1d;
+import linalg.storage.regular2d;
+import linalg.storage.slice;
+import linalg.operations.basic;
+import linalg.operations.conjugation;
+import linalg.operations.multiplication;
+import linalg.operations.eigen;
+import linalg.operations.inversion;
 
 debug import linalg.aux.debugging;
 
@@ -18,19 +31,6 @@ version(unittest)
     import std.array;
     import std.range;
 }
-
-public import linalg.aux.types;
-
-import linalg.storage.regular1d;
-import linalg.storage.regular2d;
-import linalg.storage.slice;
-
-import linalg.operations.basic;
-import linalg.operations.conjugation;
-import linalg.operations.multiplication;
-import linalg.operations.eigen;
-import linalg.operations.inversion;
-
 
 alias linalg.storage.slice.Slice Slice; //NOTE: waiting for proper slice support
 
