@@ -9,13 +9,20 @@
  */
 module linalg.matrix;
 
-public import linalg.aux.types;
-
 import std.traits;
 
-import oddsends;
+/** Derive type of the result of binary operation */
+template TypeOfOp(Tlhs, string op, Trhs)
+{
+    alias ReturnType!((Tlhs lhs, Trhs rhs) => mixin("lhs"~op~"rhs"))
+        TypeOfOp;
+}
 
-import linalg.aux.traits;
+/** Test whether binary operation exists for given operand types */
+template isExistOp(Tlhs, string op, Trhs)
+{
+    enum isExistOp = is(TypeOfOp!(Tlhs, op, Trhs));
+}
 
 void copy(Tsource, Tdest)(auto ref Tsource source,
                           auto ref Tdest dest) pure
@@ -34,18 +41,16 @@ struct StorageRegular2D(T)
 
 struct BasicMatrix(T)
 {
-    enum StorageOrder storageOrder = defaultStorageOrder;
     StorageRegular2D!(T) storage;
 
-    ref auto opAssign(Tsource)(auto ref Tsource source) pure
+    ref auto opAssign(Tsource)(auto ref Tsource source)
     {
         copy(source.storage, this.storage);
         return this;
     }
 
-    @property ref auto conj() pure
+    ref auto conj()
     {
-        //FIXME: Will fail if conjugation changes type
         BasicMatrix!(T) dest;
         copy(this.storage, dest.storage);
         return dest;
