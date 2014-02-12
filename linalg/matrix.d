@@ -1495,3 +1495,21 @@ unittest // Inversion
                 [0, 0, 0.125]]);
     }
 }
+
+struct Qform
+{
+    Matrix!(int, 2, 2) coeffs;
+
+    ref auto opIndex(T...)(T t) pure
+    {
+        return coeffs.opIndex(t);
+    }
+
+    auto opAssign(Qform source) pure
+    {
+        this.coeffs = source.coeffs;
+        return this;
+    }
+}
+
+alias Matrix!(Qform, dynsize, dynsize) XXX;
