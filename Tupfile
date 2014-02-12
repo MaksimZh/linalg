@@ -3,8 +3,6 @@ DFLAGS += -L-loddsends
 
 : foreach linalg/*.d \
           linalg/aux/*.d \
-          linalg/backends/*.d \
-          linalg/operations/*.d \
           linalg/storage/*.d \
           |> !dcompile |> obj/%B.o
 : obj/*.o |> !link |> liblinalg.a
