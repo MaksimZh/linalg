@@ -61,8 +61,10 @@ enum MatrixMemory
 /**
  * Matrix or vector or view.
  */
-struct BasicMatrix(T, size_t nrows_, size_t ncols_)
+struct BasicMatrix(T)
 {
+    enum size_t nrows_ = 2;
+    enum size_t ncols_ = 2;
     enum size_t[2] dimPattern = [nrows_, ncols_];
 
     enum StorageOrder storageOrder = defaultStorageOrder;
@@ -107,10 +109,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_)
             static if(memoryManag == MatrixMemory.dynamic)
                 this.storage = typeof(this.storage)(source.storage);
             else
-                if(source.empty)
-                    fill(zero!(Tsource.ElementType), this.storage);
-                else
-                    copy(source.storage, this.storage);
+                copy(source.storage, this.storage);
             return this;
         }
     }
@@ -124,7 +123,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_)
         @property ref auto conj() pure
         {
             //FIXME: Will fail if conjugation changes type
-            BasicMatrix!(ElementType, dimPattern[1], dimPattern[0]) dest;
+            BasicMatrix!(ElementType) dest;
             conjMatrix(this.storage, dest.storage);
             return dest;
         }
@@ -141,13 +140,7 @@ template isMatrix(T)
 
 struct Foo
 {
-    BasicMatrix!(int, 2, 2) coeffs;
-    
-    auto opAssign(Foo source) pure
-    {
-        this.coeffs = source.coeffs;
-        return this;
-    }
+    BasicMatrix!(int) coeffs;
 }
 
-alias BasicMatrix!(Foo, dynsize, dynsize) XXX;
+alias BasicMatrix!(Foo) XXX;
