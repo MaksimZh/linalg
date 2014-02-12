@@ -44,7 +44,7 @@ private // Auxiliary functions
     }
 
     // Convert storage to built-in multidimensional array
-    auto toArray(T)(in T[] container,
+    auto toArray(T)(T[] container,
                     in size_t[2] dim,
                     in size_t[2] stride) pure
     {
@@ -271,7 +271,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
     }
     
     /* Convert to built-in array */
-    ElementType[][] opCast() pure const
+    ElementType[][] opCast() pure
     {
         return toArray(_container, _dim, _stride);
     }

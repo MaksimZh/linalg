@@ -213,22 +213,22 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         static if(shape == MatrixShape.matrix)
         {
             /** Dimensions of matrix */
-            @property size_t nrows() pure { return storage.nrows; }
-            @property size_t ncols() pure { return storage.ncols; } //ditto
+            @property size_t nrows() pure const { return storage.nrows; }
+            @property size_t ncols() pure const { return storage.ncols; } //ditto
         }
         else static if(shape == MatrixShape.row)
         {
             enum size_t nrows = 1;
-            @property size_t ncols() pure { return storage.length; }
+            @property size_t ncols() pure const { return storage.length; }
         }
         else static if(shape == MatrixShape.col)
         {
-            @property size_t nrows() pure { return storage.length; }
+            @property size_t nrows() pure const { return storage.length; }
             enum size_t ncols = 1;
         }
         else static assert(false);
         /** Dimensions of matrix */
-        @property size_t[2] dim() pure { return [nrows, ncols]; }
+        @property size_t[2] dim() pure const { return [nrows, ncols]; }
 
         /** Test dimensions for compatibility */
         static bool isCompatDim(in size_t[2] dim) pure
@@ -271,7 +271,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
          * Whether matrix is empty (not allocated).
          * Always false for static matrix.
          */
-        @property bool empty() pure
+        @property bool empty() pure const
         {
             static if(isStatic)
                 return false;
@@ -1496,20 +1496,15 @@ unittest // Inversion
     }
 }
 
-struct Qform
+struct Foo
 {
     Matrix!(int, 2, 2) coeffs;
-
-    ref auto opIndex(T...)(T t) pure
-    {
-        return coeffs.opIndex(t);
-    }
-
-    auto opAssign(Qform source) pure
+    
+    auto opAssign(Foo source) pure
     {
         this.coeffs = source.coeffs;
         return this;
     }
 }
 
-alias Matrix!(Qform, dynsize, dynsize) XXX;
+alias Matrix!(Foo, dynsize, dynsize) XXX;
