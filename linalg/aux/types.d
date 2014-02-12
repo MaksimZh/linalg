@@ -97,8 +97,11 @@ template zero(T)
     else static if(is(typeof(T.zero) == T))
         enum T zero = T.zero;
     else static if(is(typeof(T.zero()) == T))
-        alias T.zero zero;
-    else static assert(false, T.stringof);
+        enum T zero = T.zero();
+    //XXX
+    //else static assert(false, T.stringof);
+    else
+        enum T zero = T.init;
 }
 
 /** Input range with elements constructed from the elements of the wrapped one */

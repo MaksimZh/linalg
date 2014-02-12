@@ -11,13 +11,8 @@ module linalg.aux.traits;
 
 import std.traits;
 
+public import oddsends;
 import linalg.aux.types;
-
-/** Test whether binary operation exists for given operand types */
-template isExistOp(Tlhs, string op, Trhs)
-{
-    enum isExistOp = is(TypeOfOp!(Tlhs, op, Trhs));
-}
 
 template isExistFun(ResultType, alias fun, Targs...)
 {
