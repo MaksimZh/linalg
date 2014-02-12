@@ -64,7 +64,7 @@ struct BasicMatrix(T)
     enum size_t ncols_ = 2;
 
     enum StorageOrder storageOrder = defaultStorageOrder;
-    StorageRegular2D!(T, storageOrder, nrows_, ncols_) storage;
+    StorageRegular2D!(T) storage;
 
     ref auto opAssign(Tsource)(auto ref Tsource source) pure
     {
