@@ -15,7 +15,6 @@ import std.traits;
 
 import oddsends;
 
-import linalg.storage.regular2d;
 import linalg.aux.traits;
 
 void copy(Tsource, Tdest)(auto ref Tsource source,
@@ -25,44 +24,16 @@ void copy(Tsource, Tdest)(auto ref Tsource source,
     static assert(isExistOp!(Tdest.ElementType, "=", Tsource.ElementType),
                   "Cannot copy (" ~ Tsource.ElementType.stringof
                   ~ ") to (" ~ Tdest.ElementType.stringof ~ ")");
-    auto isource = source.byElement;
-    auto idest = dest.byElement;
-    while(!(isource.empty))
-    {
-        idest.front = isource.front;
-        isource.popFront();
-        idest.popFront();
-    }
 }
 
-void conjMatrix(Tsource, Tdest)(
-    auto ref Tsource source, auto ref Tdest dest) pure
+struct StorageRegular2D(T)
 {
-    static if(Tsource.rank == 1)
-    {
-        static if(isComplex!(Tsource.ElementType))
-            map!("a.conj")(source, dest);
-        else
-            copy(source, dest);
-    }
-    else static if(Tsource.rank == 2)
-    {
-        auto isource = source.byRow();
-        auto idest = dest.byCol();
-        while(!(isource.empty))
-        {
-            conjMatrix(isource.front, idest.front);
-            isource.popFront();
-            idest.popFront();
-        }
-    }
+    alias T ElementType;
+    public enum uint rank = 2;
 }
 
 struct BasicMatrix(T)
 {
-    enum size_t nrows_ = 2;
-    enum size_t ncols_ = 2;
-
     enum StorageOrder storageOrder = defaultStorageOrder;
     StorageRegular2D!(T) storage;
 
@@ -76,7 +47,7 @@ struct BasicMatrix(T)
     {
         //FIXME: Will fail if conjugation changes type
         BasicMatrix!(T) dest;
-        conjMatrix(this.storage, dest.storage);
+        copy(this.storage, dest.storage);
         return dest;
     }
 }
