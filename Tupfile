@@ -1,4 +1,5 @@
 include_rules
+DFLAGS += -L-loddsends
 
 : foreach linalg/*.d \
           linalg/aux/*.d \
@@ -6,4 +7,4 @@ include_rules
           linalg/operations/*.d \
           linalg/storage/*.d \
           |> !dcompile |> obj/%B.o
-: obj/*.o |> !link |> liblinalg.a
+: obj/*.o | $(LIBODDSENDS) |> !link |> liblinalg.a

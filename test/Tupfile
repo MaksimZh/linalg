@@ -9,4 +9,4 @@ DFLAGS += -unittest -version=linalg_backend_lapack
           ../linalg/operations/*.d \
           ../linalg/storage/*.d \
           |> !dcompile |> obj/%B.o
-: obj/*.o |> !build |> test
+: obj/*.o | $(LIBODDSENDS) |> !build |> test
