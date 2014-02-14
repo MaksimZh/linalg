@@ -256,18 +256,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
                     setDim(dim[0]);
             }
         }
-
-        /**
-         * Whether matrix is empty (not allocated).
-         * Always false for static matrix.
-         */
-        @property bool empty() pure
-        {
-            static if(isStatic)
-                return false;
-            else
-                return nrows*ncols == 0;
-        }
     }
 
     public // Slices and indices support
@@ -603,11 +591,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         }
 
         void fillZero()() pure
-            in
-            {
-                static if(memoryManag == MemoryManag.dynamic) assert(!empty);
-            }
-        body
         {
             fill(zero!(ElementType), this.storage);
         }
@@ -830,19 +813,19 @@ unittest // Dimension control
     debug mixin(debugUnittestBlock("Dimension control"));
 
     Matrix!(int, dynsize, dynsize) a;
-    assert(a.empty);
+    //assert(a.empty);
     assert(a.nrows == 0);
     assert(a.ncols == 0);
     assert(a.dim == [0, 0]);
     a.setDim([2, 3]);
-    assert(!(a.empty));
+    //assert(!(a.empty));
     assert(a.nrows == 2);
     assert(a.ncols == 3);
     assert(a.dim == [2, 3]);
     assert(a.isCompatDim([22, 33]));
 
     Matrix!(int, 2, 3) b;
-    assert(!(b.empty));
+    //assert(!(b.empty));
     assert(b.nrows == 2);
     assert(b.ncols == 3);
     assert(b.dim == [2, 3]);
