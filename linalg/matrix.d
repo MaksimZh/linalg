@@ -407,7 +407,17 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         /* Matrix addition and subtraction
          */
 
-        mixin InjectOpAssign!(isMatrix, "+", "-");
+        mixin template InjectOpAssign()
+        {
+            ref auto opOpAssign(string op, Tsource)(
+                auto ref Tsource source) pure
+                if(isMatrix!Tsource && (op == "+" || op == "-"))
+            {
+                return this;
+            }
+        }
+
+        mixin InjectOpAssign;
 
         auto opBinary(string op, Trhs)(
             auto ref Trhs rhs) pure
