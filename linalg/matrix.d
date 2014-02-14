@@ -364,152 +364,24 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
     
     public // Operations
     {
-//        mixin InjectAssign!(isMatrix);
-        
-        bool opEquals(Tsource)(auto ref Tsource source) pure
-            if(isMatrix!Tsource)
+        version(all)
         {
-            return compare(source.storage, this.storage);
+            mixin template InjectOpAssign()
+            {
+                ref auto opOpAssign(string op, Tsource)(
+                    auto ref Tsource source) pure
+                    if(isMatrix!Tsource && (op == "+" || op == "-"))
+                    { return this; }
+            }
+
+            mixin InjectOpAssign;
         }
-
-        /* Unary operations
-         */
-
-        ref auto opUnary(string op)() pure
-            if(op == "+")
-        {
-            return this;
-        }
-
-        ref auto opUnary(string op)() pure
-            if(op == "-")
-        {
-            static if(memoryManag == MemoryManag.stat)
-                BasicMatrix dest;
-            else
-                auto dest = Matrix!(ElementType,
-                                    dimPattern[0], dimPattern[1],
-                                    storageOrder)(nrows, ncols);
-            linalg.operations.basic.map!("-a")(this.storage, dest.storage);
-            return dest;
-        }
-
-        /* Matrix addition and subtraction
-         */
-
-        mixin template InjectOpAssign()
+        version(none)
         {
             ref auto opOpAssign(string op, Tsource)(
                 auto ref Tsource source) pure
                 if(isMatrix!Tsource && (op == "+" || op == "-"))
-            {
-                return this;
-            }
-        }
-
-        mixin InjectOpAssign;
-
-        auto opBinary(string op, Trhs)(
-            auto ref Trhs rhs) pure
-            if(isMatrix!Trhs && (op == "+" || op == "-"))
-        {
-            TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
-            static if(dest.memoryManag == MemoryManag.dynamic)
-                dest.setDim([this.nrows, this.ncols]);
-            linalg.operations.basic.zip!("a"~op~"b")(
-                this.storage, rhs.storage, dest.storage);
-            return dest;
-        }
-
-        /* Multiplication by scalar
-         */
-
-        ref auto opOpAssign(string op, Tsource)(
-            auto ref Tsource source) pure
-            if(!(isMatrix!Tsource) && (op == "*" || op == "/")
-               && is(TypeOfOp!(ElementType, op, Tsource) == ElementType))
-        {
-            linalg.operations.basic.map!((a, b) => mixin("a"~op~"b"))(
-                this.storage, this.storage, source);
-            return this;
-        }
-
-        auto opBinary(string op, Trhs)(
-            auto ref Trhs rhs) pure
-            if(!(isMatrix!Trhs) && (op == "*" || op == "/"))
-        {
-            TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
-            static if(typeof(dest).memoryManag == MemoryManag.dynamic)
-                dest.setDim([this.nrows, this.ncols]);
-            linalg.operations.basic.map!((a, rhs) => mixin("a"~op~"rhs"))(
-                this.storage, dest.storage, rhs);
-            return dest;
-        }
-
-        /* Multiplication between matrix elements and scalar
-         * can be non-commutative
-         */
-        auto opBinaryRight(string op, Tlhs)(
-            auto ref Tlhs lhs) pure
-            if(!(isMatrix!Tlhs) && op == "*")
-        {
-            TypeOfResultMatrix!(Tlhs, op, typeof(this)) dest;
-            static if(typeof(dest).memoryManag == MemoryManag.dynamic)
-                dest.setDim([this.nrows, this.ncols]);
-            linalg.operations.basic.map!((a, lhs) => mixin("lhs"~op~"a"))(
-                this.storage, dest.storage, lhs);
-            return dest;
-        }
-
-        /* Matrix multiplication
-         */
-
-        ref auto opOpAssign(string op, Tsource)(
-            auto ref Tsource source) pure
-            if(isMatrix!Tsource && op == "*")
-        {
-            return (this = this * source);
-        }
-
-        auto opBinary(string op, Trhs)(
-            auto ref Trhs rhs) pure
-            if(isMatrix!Trhs && op == "*")
-        {
-            static if(this.shape == MatrixShape.row
-                      && rhs.shape == MatrixShape.col)
-            {
-                return mulRowCol(this.storage, rhs.storage);
-            }
-            else
-            {
-                TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
-                static if(typeof(dest).memoryManag == MemoryManag.dynamic)
-                    dest.setDim([this.nrows, rhs.ncols]);
-                static if(this.shape == MatrixShape.row)
-                {
-                    static if(rhs.shape == MatrixShape.matrix)
-                        mulRowMat(this.storage, rhs.storage, dest.storage);
-                    else static assert(false);
-                }
-                else static if(this.shape == MatrixShape.col)
-                {
-                    static if(rhs.shape == MatrixShape.row)
-                        mulColRow(this.storage, rhs.storage, dest.storage);
-                    else static if(rhs.shape == MatrixShape.matrix)
-                        mulColMat(this.storage, rhs.storage, dest.storage);
-                    else static assert(false);
-                }
-                else static if(this.shape == MatrixShape.matrix)
-                {
-                    static if(rhs.shape == MatrixShape.col)
-                        mulMatCol(this.storage, rhs.storage, dest.storage);
-                    else static if(rhs.shape == MatrixShape.matrix)
-                        mulMatMat(this.storage, rhs.storage, dest.storage);
-                    else static assert(false);
-                }
-                else static assert(false);
-                return dest;
-            }
+                { return this; }
         }
     }
 
@@ -658,26 +530,6 @@ private template TypeOfResultMatrix(Tlhs, string op, Trhs)
                        Trhs.storageOrder) TypeOfResultMatrix;
     else
         alias void TypeOfResultMatrix;
-}
-
-public // Map function
-{
-    /**
-     * Map pure function over matrix.
-     */
-    auto map(alias fun, Tsource, Targs...)(
-         auto ref Tsource source,
-         auto ref Targs args) pure
-        if(isMatrix!Tsource)
-    {
-        Matrix!(typeof(fun(source[0, 0], args)),
-                Tsource.dimPattern[0], Tsource.dimPattern[1],
-                Tsource.storageOrder) dest;
-        static if(dest.memoryManag == MemoryManag.dynamic)
-            dest.setDim([source.nrows, source.ncols]);
-        linalg.operations.basic.map!(fun)(source.storage, dest.storage, args);
-        return dest;
-    }
 }
 
 unittest // Matrix += and -=
