@@ -391,10 +391,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             static if(memoryManag == MemoryManag.dynamic)
                 this.storage = typeof(this.storage)(source.storage);
             else
-                if(source.empty)
-                    fill(zero!(Tsource.ElementType), this.storage);
-                else
-                    copy(source.storage, this.storage);
+                copy(source.storage, this.storage);
             return this;
         }
 
@@ -416,7 +413,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         ref auto opUnary(string op)() pure
             if(op == "-")
         {
-            //FIXME: fails if -a has different type
             static if(memoryManag == MemoryManag.stat)
                 BasicMatrix dest;
             else
@@ -434,21 +430,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             auto ref Tsource source) pure
             if(isMatrix!Tsource && (op == "+" || op == "-"))
         {
-            /*
-             * If matrix is empty (not allocated) then just assume it has
-             * appropriate size and filled with zeros.
-             */
-            static if(Tsource.memoryManag == MemoryManag.dynamic)
-                if(source.empty)
-                    return this;
-            static if(memoryManag == MemoryManag.dynamic)
-                if(empty)
-                {
-                    this.setDim([source.nrows, source.ncols]);
-                    linalg.operations.basic.map!(op ~ "a")(
-                        source.storage, this.storage);
-                    return this;
-                }
             linalg.operations.basic.zip!("a"~op~"b")(
                 this.storage, source.storage, this.storage);
             return this;
@@ -458,40 +439,11 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             auto ref Trhs rhs) pure
             if(isMatrix!Trhs && (op == "+" || op == "-"))
         {
-            /*
-             * If one of the operands is empty (not allocated) then
-             * return copy the other one with proper sign if it has proper type.
-             *
-             * Copy is needed since the result of binary operation
-             * is not expected to share memory with one of the operands.
-             */
-            alias TypeOfResultMatrix!(typeof(this), op, Trhs) Tresult;
-            // Left operand can be empty and right operand is of result type
-            static if(memoryManag == MemoryManag.dynamic
-                      && is(Tresult == Trhs))
-                if(empty)
-                    return mixin(op~"rhs").dup;
-            // Right operand can be empty and left operand is of result type
-            static if(Trhs.memoryManag == MemoryManag.dynamic
-                      && is(Tresult == typeof(this)))
-                if(rhs.empty)
-                    return this.dup;
-
-            // Result can not be a copy of any of the operands
-            Tresult dest;
-            // Allocate memory for dynamic matrix
-            static if(Tresult.memoryManag == MemoryManag.dynamic)
+            TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
+            static if(dest.memoryManag == MemoryManag.dynamic)
                 dest.setDim([this.nrows, this.ncols]);
-            // Calculate the result
-            if(this.empty)
-                linalg.operations.basic.map!((a, lhs) => mixin("lhs"~op~"a"))(
-                    rhs.storage, dest.storage, zero!ElementType);
-            else if(rhs.empty)
-                linalg.operations.basic.map!((a, rhs) => mixin("a"~op~"rhs"))(
-                    this.storage, dest.storage, zero!(Trhs.ElementType));
-            else
-                linalg.operations.basic.zip!("a"~op~"b")(
-                    this.storage, rhs.storage, dest.storage);
+            linalg.operations.basic.zip!("a"~op~"b")(
+                this.storage, rhs.storage, dest.storage);
             return dest;
         }
 
@@ -503,9 +455,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             if(!(isMatrix!Tsource) && (op == "*" || op == "/")
                && is(TypeOfOp!(ElementType, op, Tsource) == ElementType))
         {
-            static if(memoryManag == MemoryManag.dynamic)
-                if(empty)
-                    return this;
             linalg.operations.basic.map!((a, b) => mixin("a"~op~"b"))(
                 this.storage, this.storage, source);
             return this;
@@ -755,11 +704,7 @@ public // Map function
         Matrix!(typeof(fun(source[0, 0], args)),
                 Tsource.dimPattern[0], Tsource.dimPattern[1],
                 Tsource.storageOrder) dest;
-        /* If source is empty then return empty matrix */
-        static if(!(Tsource.isStatic))
-            if(source.empty)
-                return dest;
-        static if(!(typeof(dest).isStatic))
+        static if(dest.memoryManag == MemoryManag.dynamic)
             dest.setDim([source.nrows, source.ncols]);
         linalg.operations.basic.map!(fun)(source.storage, dest.storage, args);
         return dest;
