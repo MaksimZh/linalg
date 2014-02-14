@@ -138,18 +138,6 @@ struct BasicArray1D(T, size_t dim_, bool isBound_)
                 storage.setDim(dim);
             }
         }
-
-        /**
-         * Whether array is empty (not allocated).
-         * Always false for static array.
-         */
-        @property bool empty() pure
-        {
-            static if(isStatic)
-                return false;
-            else
-                return dim == 0;
-        }
     }
 
     public // Slices and indices support
@@ -202,10 +190,7 @@ struct BasicArray1D(T, size_t dim_, bool isBound_)
             static if(!isStatic && !isBound)
                 this.storage = typeof(this.storage)(source.storage);
             else
-                if(source.empty)
-                    fill(zero!(Tsource.ElementType), this.storage);
-                else
-                    copy(source.storage, this.storage);
+                copy(source.storage, this.storage);
             return this;
         }
 
@@ -285,15 +270,15 @@ unittest // Dimension control
     debug mixin(debugUnittestBlock("Dimension control"));
 
     Array1D!(int, dynsize) a;
-    assert(a.empty);
+    //assert(a.empty);
     assert(a.dim == 0);
     a.setDim(3);
-    assert(!(a.empty));
+    //assert(!(a.empty));
     assert(a.dim == 3);
     assert(a.isCompatDim(33));
 
     Array1D!(int, 3) b;
-    assert(!(b.empty));
+    //assert(!(b.empty));
     assert(b.dim == 3);
     assert(!(b.isCompatDim(33)));
 }
@@ -533,18 +518,6 @@ struct BasicArray2D(T, size_t nrows_, size_t ncols_,
             {
                 storage.setDim(dim);
             }
-        }
-
-        /**
-         * Whether array is empty (not allocated).
-         * Always false for static array.
-         */
-        @property bool empty() pure
-        {
-            static if(isStatic)
-                return false;
-            else
-                return nrows*ncols == 0;
         }
     }
 
@@ -786,19 +759,19 @@ unittest // Dimension control
     debug mixin(debugUnittestBlock("Dimension control"));
     
     Array2D!(int, dynsize, dynsize) a;
-    assert(a.empty);
+    //assert(a.empty);
     assert(a.nrows == 0);
     assert(a.ncols == 0);
     assert(a.dim == [0, 0]);
     a.setDim([2, 3]);
-    assert(!(a.empty));
+    //assert(!(a.empty));
     assert(a.nrows == 2);
     assert(a.ncols == 3);
     assert(a.dim == [2, 3]);
     assert(a.isCompatDim([22, 33]));
 
     Array2D!(int, 2, 3) b;
-    assert(!(b.empty));
+    //assert(!(b.empty));
     assert(b.nrows == 2);
     assert(b.ncols == 3);
     assert(b.dim == [2, 3]);
