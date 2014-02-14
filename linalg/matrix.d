@@ -58,16 +58,6 @@ enum MatrixShape
     matrix
 }
 
-/**
- * Memory management of matrix or vector
- */
-enum MatrixMemory
-{
-    stat,
-    bound,
-    dynamic
-}
-
 /* Returns shape of matrix with given dimensions */
 private auto shapeForDim(size_t[2] dim)
 {
@@ -113,10 +103,10 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
     enum bool isVector = shape != MatrixShape.matrix;
     /** Storage order */
     enum StorageOrder storageOrder = storageOrder_;
-    enum MatrixMemory memoryManag =
-        StorageType.isStatic ? MatrixMemory.stat : (
-            isBound ? MatrixMemory.bound : MatrixMemory.dynamic);
-    enum bool isStatic = (memoryManag == MatrixMemory.stat);
+    enum MemoryManag memoryManag =
+        StorageType.isStatic ? MemoryManag.stat : (
+            isBound ? MemoryManag.bound : MemoryManag.dynamic);
+    enum bool isStatic = (memoryManag == MemoryManag.stat);
 
     /**
      * Storage of matrix data.
@@ -398,7 +388,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         ref auto opAssign(Tsource)(auto ref Tsource source) pure
             if(isMatrix!Tsource)
         {
-            static if(memoryManag == MatrixMemory.dynamic)
+            static if(memoryManag == MemoryManag.dynamic)
                 this.storage = typeof(this.storage)(source.storage);
             else
                 if(source.empty)
@@ -427,7 +417,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             if(op == "-")
         {
             //FIXME: fails if -a has different type
-            static if(memoryManag == MatrixMemory.stat)
+            static if(memoryManag == MemoryManag.stat)
                 BasicMatrix dest;
             else
                 auto dest = Matrix!(ElementType,
@@ -448,10 +438,10 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
              * If matrix is empty (not allocated) then just assume it has
              * appropriate size and filled with zeros.
              */
-            static if(Tsource.memoryManag == MatrixMemory.dynamic)
+            static if(Tsource.memoryManag == MemoryManag.dynamic)
                 if(source.empty)
                     return this;
-            static if(memoryManag == MatrixMemory.dynamic)
+            static if(memoryManag == MemoryManag.dynamic)
                 if(empty)
                 {
                     this.setDim([source.nrows, source.ncols]);
@@ -477,12 +467,12 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
              */
             alias TypeOfResultMatrix!(typeof(this), op, Trhs) Tresult;
             // Left operand can be empty and right operand is of result type
-            static if(memoryManag == MatrixMemory.dynamic
+            static if(memoryManag == MemoryManag.dynamic
                       && is(Tresult == Trhs))
                 if(empty)
                     return mixin(op~"rhs").dup;
             // Right operand can be empty and left operand is of result type
-            static if(Trhs.memoryManag == MatrixMemory.dynamic
+            static if(Trhs.memoryManag == MemoryManag.dynamic
                       && is(Tresult == typeof(this)))
                 if(rhs.empty)
                     return this.dup;
@@ -490,7 +480,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             // Result can not be a copy of any of the operands
             Tresult dest;
             // Allocate memory for dynamic matrix
-            static if(Tresult.memoryManag == MatrixMemory.dynamic)
+            static if(Tresult.memoryManag == MemoryManag.dynamic)
                 dest.setDim([this.nrows, this.ncols]);
             // Calculate the result
             if(this.empty)
@@ -513,7 +503,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             if(!(isMatrix!Tsource) && (op == "*" || op == "/")
                && is(TypeOfOp!(ElementType, op, Tsource) == ElementType))
         {
-            static if(memoryManag == MatrixMemory.dynamic)
+            static if(memoryManag == MemoryManag.dynamic)
                 if(empty)
                     return this;
             linalg.operations.basic.map!((a, b) => mixin("a"~op~"b"))(
@@ -526,7 +516,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             if(!(isMatrix!Trhs) && (op == "*" || op == "/"))
         {
             TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
-            static if(typeof(dest).memoryManag == MatrixMemory.dynamic)
+            static if(typeof(dest).memoryManag == MemoryManag.dynamic)
                 dest.setDim([this.nrows, this.ncols]);
             linalg.operations.basic.map!((a, rhs) => mixin("a"~op~"rhs"))(
                 this.storage, dest.storage, rhs);
@@ -541,7 +531,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             if(!(isMatrix!Tlhs) && op == "*")
         {
             TypeOfResultMatrix!(Tlhs, op, typeof(this)) dest;
-            static if(typeof(dest).memoryManag == MatrixMemory.dynamic)
+            static if(typeof(dest).memoryManag == MemoryManag.dynamic)
                 dest.setDim([this.nrows, this.ncols]);
             linalg.operations.basic.map!((a, lhs) => mixin("lhs"~op~"a"))(
                 this.storage, dest.storage, lhs);
@@ -570,7 +560,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             else
             {
                 TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
-                static if(typeof(dest).memoryManag == MatrixMemory.dynamic)
+                static if(typeof(dest).memoryManag == MemoryManag.dynamic)
                     dest.setDim([this.nrows, rhs.ncols]);
                 static if(this.shape == MatrixShape.row)
                 {
@@ -649,7 +639,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         {
             //FIXME: Will fail if conjugation changes type
             Matrix!(ElementType, dimPattern[1], dimPattern[0], storageOrder) dest;
-            static if(typeof(dest).memoryManag == MatrixMemory.dynamic)
+            static if(typeof(dest).memoryManag == MemoryManag.dynamic)
                 dest.setDim([this.ncols, this.nrows]);
             conjMatrix(this.storage, dest.storage);
             return dest;
@@ -666,7 +656,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         void fillZero()() pure
             in
             {
-                static if(memoryManag == MatrixMemory.dynamic) assert(!empty);
+                static if(memoryManag == MemoryManag.dynamic) assert(!empty);
             }
         body
         {

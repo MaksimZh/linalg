@@ -116,3 +116,13 @@ struct InputRangeWrapper(RangeType, NewElementType)
         return NewElementType(range.front); }
     void popFront() pure { range.popFront; }
 }
+
+/**
+ * Memory management of matrix, vector or array
+ */
+enum MemoryManag
+{
+    stat,
+    bound,
+    dynamic
+}

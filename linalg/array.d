@@ -27,7 +27,6 @@ import linalg.storage.slice;
 
 import linalg.operations.basic;
 
-
 alias linalg.storage.slice.Slice Slice; //NOTE: waiting for proper slice support
 
 /*
@@ -640,7 +639,7 @@ struct BasicArray2D(T, size_t nrows_, size_t ncols_,
             if(op == "-")
         {
             //FIXME: fails if -a has different type
-            static if(memoryManag == MatrixMemory.stat)
+            static if(memoryManag == MemoryManag.stat)
                 BasicArray2D dest;
             else
                 auto dest = Array2D!(ElementType,
