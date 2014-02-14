@@ -374,7 +374,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
     
     public // Operations
     {
-        mixin InjectAssign!(isMatrix);
+        mixin InjectAssign!("isMatrix!Tsource");
         
         bool opEquals(Tsource)(auto ref Tsource source) pure
             if(isMatrix!Tsource)
@@ -407,7 +407,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         /* Matrix addition and subtraction
          */
 
-        mixin InjectOpAssign!(isMatrix, "+", "-");
+        mixin InjectOpAssign!("isMatrix!Tsource", "+", "-");
 
         auto opBinary(string op, Trhs)(
             auto ref Trhs rhs) pure
@@ -424,16 +424,8 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         /* Multiplication by scalar
          */
 
-        ref auto opOpAssign(string op, Tsource)(
-            auto ref Tsource source) pure
-            if(!(isMatrix!Tsource) && (op == "*" || op == "/")
-               && is(TypeOfOp!(ElementType, op, Tsource) == ElementType))
-        {
-            linalg.operations.basic.map!((a, b) => mixin("a"~op~"b"))(
-                this.storage, this.storage, source);
-            return this;
-        }
-
+        mixin InjectOpAssignScalar!("!(isMatrix!Tsource)", "*", "/");
+        
         auto opBinary(string op, Trhs)(
             auto ref Trhs rhs) pure
             if(!(isMatrix!Trhs) && (op == "*" || op == "/"))
@@ -464,12 +456,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         /* Matrix multiplication
          */
 
-        ref auto opOpAssign(string op, Tsource)(
-            auto ref Tsource source) pure
-            if(isMatrix!Tsource && op == "*")
-        {
-            return (this = this * source);
-        }
+        mixin InjectOpAssignFwdBinary!("isMatrix!Tsource", "*");
 
         auto opBinary(string op, Trhs)(
             auto ref Trhs rhs) pure

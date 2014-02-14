@@ -9,10 +9,10 @@
  */
 module linalg.aux.opmixins;
 
-mixin template InjectAssign(alias checkSourceType)
+mixin template InjectAssign(string checkTsource)
 {
     ref auto opAssign(Tsource)(auto ref Tsource source) pure
-        if(checkSourceType!Tsource)
+        if(mixin(checkTsource))
     {
         static if(memoryManag == MemoryManag.dynamic)
             this.storage = typeof(this.storage)(source.storage);
@@ -37,14 +37,36 @@ unittest
     static assert(!isOpOf!("*", "+", "-"));
 }
 
-mixin template InjectOpAssign(alias checkSourceType, Ops...)
+mixin template InjectOpAssign(string checkTsource, Ops...)
 {
     ref auto opOpAssign(string op, Tsource)(
         auto ref Tsource source) pure
-        if(checkSourceType!Tsource && isOpOf!(op, Ops))
+        if(mixin(checkTsource) && isOpOf!(op, Ops))
     {
         linalg.operations.basic.zip!("a"~op~"b")(
             this.storage, source.storage, this.storage);
         return this;
+    }
+}
+
+mixin template InjectOpAssignScalar(string checkTsource, Ops...)
+{
+    ref auto opOpAssign(string op, Tsource)(
+        auto ref Tsource source) pure
+        if(mixin(checkTsource) && isOpOf!(op, Ops))
+    {
+        linalg.operations.basic.map!((a, b) => mixin("a"~op~"b"))(
+                this.storage, this.storage, source);
+        return this;
+    }
+}
+
+mixin template InjectOpAssignFwdBinary(string checkTsource, Ops...)
+{
+    ref auto opOpAssign(string op, Tsource)(
+        auto ref Tsource source) pure
+        if(mixin(checkTsource) && isOpOf!(op, Ops))
+    {
+        return (this = mixin("this"~op~"source"));
     }
 }
