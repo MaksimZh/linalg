@@ -4,7 +4,7 @@
  * Matrices.
  *
  * Authors:    Maksim Sergeevich Zholudev
- * Copyright:  Copyright (c) 2013, Maksim Zholudev
+ * Copyright:  Copyright (c) 2013-2014, Maksim Zholudev
  * License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
  */
 module linalg.array;
@@ -20,6 +20,8 @@ version(unittest)
 }
 
 public import linalg.aux.types;
+
+import oddsends;
 
 import linalg.storage.regular1d;
 import linalg.storage.regular2d;
@@ -64,7 +66,7 @@ struct BasicArray1D(T, size_t dim_, bool isBound_)
     enum bool isBound = isBound_;
 
     /**
-     * Storage of matrix data.
+     * Storage of array data.
      * This field is public to allow direct access to matrix data storage
      * if optimization is needed.
      */
@@ -424,7 +426,7 @@ template ArrayView2D(T, size_t nrows = dynsize, size_t ncols = dynsize,
  * Array or view.
  */
 struct BasicArray2D(T, size_t nrows_, size_t ncols_,
-                    StorageOrder storageOrder_, bool isBound_)
+                    StorageOrder storageOrder_, bool isBound)
 {
     /** Dimensions pattern */
     enum size_t[2] dimPattern = [nrows_, ncols_];
@@ -438,8 +440,10 @@ struct BasicArray2D(T, size_t nrows_, size_t ncols_,
     alias StorageType.ElementType ElementType;
     /** Storage order */
     enum StorageOrder storageOrder = storageOrder_;
-    enum bool isStatic = StorageType.isStatic;
-    enum bool isBound = isBound_;
+    enum MemoryManag memoryManag =
+        StorageType.isStatic ? MemoryManag.stat : (
+            isBound ? MemoryManag.bound : MemoryManag.dynamic);
+    enum bool isStatic = (memoryManag == MemoryManag.stat);
 
     /**
      * Storage of matrix data.
@@ -647,6 +651,21 @@ struct BasicArray2D(T, size_t nrows_, size_t ncols_,
                 this.storage, this.storage, source);
             return this;
         }
+
+        auto opBinary(string op, Trhs)(
+            auto ref Trhs rhs) pure
+            if(!(isArray2D!Trhs) && (op == "*" || op == "/"))
+        {
+            Array2D!(TypeOfOp!(ElementType, op, Trhs),
+                     dimPattern[0], dimPattern[1],
+                     storageOrder) dest;
+            static if(typeof(dest).memoryManag == MemoryManag.dynamic)
+                dest.setDim([nrows, ncols]);
+            linalg.operations.basic.map!((a, rhs) => mixin("a"~op~"rhs"))(
+                this.storage, dest.storage, rhs);
+            return dest;
+        }
+
     }
 }
 
