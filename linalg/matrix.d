@@ -23,6 +23,7 @@ import linalg.operations.conjugation;
 import linalg.operations.multiplication;
 import linalg.operations.eigen;
 import linalg.operations.inversion;
+import linalg.aux.opmixins;
 
 debug import linalg.aux.debugging;
 
@@ -373,16 +374,8 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
     
     public // Operations
     {
-        ref auto opAssign(Tsource)(auto ref Tsource source) pure
-            if(isMatrix!Tsource)
-        {
-            static if(memoryManag == MemoryManag.dynamic)
-                this.storage = typeof(this.storage)(source.storage);
-            else
-                copy(source.storage, this.storage);
-            return this;
-        }
-
+        mixin InjectAssign!(isMatrix);
+        
         bool opEquals(Tsource)(auto ref Tsource source) pure
             if(isMatrix!Tsource)
         {
@@ -414,14 +407,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         /* Matrix addition and subtraction
          */
 
-        ref auto opOpAssign(string op, Tsource)(
-            auto ref Tsource source) pure
-            if(isMatrix!Tsource && (op == "+" || op == "-"))
-        {
-            linalg.operations.basic.zip!("a"~op~"b")(
-                this.storage, source.storage, this.storage);
-            return this;
-        }
+        mixin InjectOpAssign!(isMatrix, "+", "-");
 
         auto opBinary(string op, Trhs)(
             auto ref Trhs rhs) pure
