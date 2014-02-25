@@ -1,9 +1,8 @@
 include_rules
-DFLAGS += -L-loddsends
 
 : linalg/*.d \
   linalg/aux/*.d \
   linalg/backends/*.d \
   linalg/operations/*.d \
   linalg/storage/*.d \
-  | $(LIBODDSENDS) |> !link |> liblinalg.a
+  |> !link |> liblinalg.a
