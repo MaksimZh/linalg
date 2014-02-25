@@ -1,4 +1,5 @@
 include_rules
+DFLAGS += -version=linalg_backend_lapack
 
 : linalg/*.d \
   linalg/aux/*.d \
