@@ -44,7 +44,7 @@ private // Auxiliary functions
     }
 
     // Convert storage to built-in multidimensional array
-    auto toArray(T)(in T[] container,
+    auto toArray(T)(T[] container,
                     in size_t[2] dim,
                     in size_t[2] stride) pure
     {
@@ -211,7 +211,6 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
     public // Slices and indices support
     {
-        //NOTE: depends on DMD pull-request 443
         private size_t _mapIndex(size_t irow, size_t icol) pure const
         {
             return irow * _stride[0] + icol * _stride[1];
@@ -271,7 +270,7 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
     }
     
     /* Convert to built-in array */
-    ElementType[][] opCast() pure const
+    ElementType[][] opCast() pure
     {
         return toArray(_container, _dim, _stride);
     }

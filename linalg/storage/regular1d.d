@@ -26,7 +26,7 @@ import linalg.storage.slice;
 private // Auxiliary functions
 {
     // Convert storage to built-in multidimensional array
-    auto toArray(T)(in T[] container,
+    auto toArray(T)(T[] container,
                     size_t dim,
                     size_t stride) pure
     {
@@ -165,7 +165,6 @@ struct StorageRegular1D(T, size_t dim_)
 
     public // Slices and indices support
     {
-        //NOTE: depends on DMD pull-request 443
         private size_t _mapIndex(size_t i) pure const
         {
             return i * _stride;
@@ -199,7 +198,7 @@ struct StorageRegular1D(T, size_t dim_)
     }
     
     /* Convert to built-in array */
-    ElementType[] opCast() pure const
+    ElementType[] opCast() pure
     {
         return toArray(_container, _dim, _stride);
     }

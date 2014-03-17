@@ -1,10 +1,9 @@
 include_rules
-DFLAGS += -L-loddsends
+DFLAGS += -version=linalg_backend_lapack
 
-: foreach linalg/*.d \
-          linalg/aux/*.d \
-          linalg/backends/*.d \
-          linalg/operations/*.d \
-          linalg/storage/*.d \
-          |> !dcompile |> obj/%B.o
-: obj/*.o | $(LIBODDSENDS) |> !link |> liblinalg.a
+: linalg/*.d \
+  linalg/aux/*.d \
+  linalg/backends/*.d \
+  linalg/operations/*.d \
+  linalg/storage/*.d \
+  |> !link |> liblinalg.a

@@ -4,7 +4,7 @@
  * Matrices.
  *
  * Authors:    Maksim Sergeevich Zholudev
- * Copyright:  Copyright (c) 2013, Maksim Zholudev
+ * Copyright:  Copyright (c) 2013-2014, Maksim Zholudev
  * License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
  */
 module linalg.matrix;
@@ -58,16 +58,6 @@ enum MatrixShape
     matrix
 }
 
-/**
- * Memory management of matrix or vector
- */
-enum MatrixMemory
-{
-    stat,
-    bound,
-    dynamic
-}
-
 /* Returns shape of matrix with given dimensions */
 private auto shapeForDim(size_t[2] dim)
 {
@@ -113,10 +103,10 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
     enum bool isVector = shape != MatrixShape.matrix;
     /** Storage order */
     enum StorageOrder storageOrder = storageOrder_;
-    enum MatrixMemory memoryManag =
-        StorageType.isStatic ? MatrixMemory.stat : (
-            isBound ? MatrixMemory.bound : MatrixMemory.dynamic);
-    enum bool isStatic = (memoryManag == MatrixMemory.stat);
+    enum MemoryManag memoryManag =
+        StorageType.isStatic ? MemoryManag.stat : (
+            isBound ? MemoryManag.bound : MemoryManag.dynamic);
+    enum bool isStatic = (memoryManag == MemoryManag.stat);
 
     /**
      * Storage of matrix data.
@@ -266,23 +256,10 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
                     setDim(dim[0]);
             }
         }
-
-        /**
-         * Whether matrix is empty (not allocated).
-         * Always false for static matrix.
-         */
-        @property bool empty() pure
-        {
-            static if(isStatic)
-                return false;
-            else
-                return nrows*ncols == 0;
-        }
     }
 
     public // Slices and indices support
     {
-        //NOTE: depends on DMD pull-request 443
         mixin sliceOverload;
 
         size_t opDollar(size_t dimIndex)() pure
@@ -398,13 +375,10 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         ref auto opAssign(Tsource)(auto ref Tsource source) pure
             if(isMatrix!Tsource)
         {
-            static if(memoryManag == MatrixMemory.dynamic)
+            static if(memoryManag == MemoryManag.dynamic)
                 this.storage = typeof(this.storage)(source.storage);
             else
-                if(source.empty)
-                    fill(zero!(Tsource.ElementType), this.storage);
-                else
-                    copy(source.storage, this.storage);
+                copy(source.storage, this.storage);
             return this;
         }
 
@@ -426,8 +400,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         ref auto opUnary(string op)() pure
             if(op == "-")
         {
-            //FIXME: fails if -a has different type
-            static if(memoryManag == MatrixMemory.stat)
+            static if(memoryManag == MemoryManag.stat)
                 BasicMatrix dest;
             else
                 auto dest = Matrix!(ElementType,
@@ -444,21 +417,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             auto ref Tsource source) pure
             if(isMatrix!Tsource && (op == "+" || op == "-"))
         {
-            /*
-             * If matrix is empty (not allocated) then just assume it has
-             * appropriate size and filled with zeros.
-             */
-            static if(Tsource.memoryManag == MatrixMemory.dynamic)
-                if(source.empty)
-                    return this;
-            static if(memoryManag == MatrixMemory.dynamic)
-                if(empty)
-                {
-                    this.setDim([source.nrows, source.ncols]);
-                    linalg.operations.basic.map!(op ~ "a")(
-                        source.storage, this.storage);
-                    return this;
-                }
             linalg.operations.basic.zip!("a"~op~"b")(
                 this.storage, source.storage, this.storage);
             return this;
@@ -468,40 +426,11 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             auto ref Trhs rhs) pure
             if(isMatrix!Trhs && (op == "+" || op == "-"))
         {
-            /*
-             * If one of the operands is empty (not allocated) then
-             * return copy the other one with proper sign if it has proper type.
-             *
-             * Copy is needed since the result of binary operation
-             * is not expected to share memory with one of the operands.
-             */
-            alias TypeOfResultMatrix!(typeof(this), op, Trhs) Tresult;
-            // Left operand can be empty and right operand is of result type
-            static if(memoryManag == MatrixMemory.dynamic
-                      && is(Tresult == Trhs))
-                if(empty)
-                    return mixin(op~"rhs").dup;
-            // Right operand can be empty and left operand is of result type
-            static if(Trhs.memoryManag == MatrixMemory.dynamic
-                      && is(Tresult == typeof(this)))
-                if(rhs.empty)
-                    return this.dup;
-
-            // Result can not be a copy of any of the operands
-            Tresult dest;
-            // Allocate memory for dynamic matrix
-            static if(Tresult.memoryManag == MatrixMemory.dynamic)
+            TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
+            static if(dest.memoryManag == MemoryManag.dynamic)
                 dest.setDim([this.nrows, this.ncols]);
-            // Calculate the result
-            if(this.empty)
-                linalg.operations.basic.map!((a, lhs) => mixin("lhs"~op~"a"))(
-                    rhs.storage, dest.storage, zero!ElementType);
-            else if(rhs.empty)
-                linalg.operations.basic.map!((a, rhs) => mixin("a"~op~"rhs"))(
-                    this.storage, dest.storage, zero!(Trhs.ElementType));
-            else
-                linalg.operations.basic.zip!("a"~op~"b")(
-                    this.storage, rhs.storage, dest.storage);
+            linalg.operations.basic.zip!("a"~op~"b")(
+                this.storage, rhs.storage, dest.storage);
             return dest;
         }
 
@@ -513,9 +442,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             if(!(isMatrix!Tsource) && (op == "*" || op == "/")
                && is(TypeOfOp!(ElementType, op, Tsource) == ElementType))
         {
-            static if(memoryManag == MatrixMemory.dynamic)
-                if(empty)
-                    return this;
             linalg.operations.basic.map!((a, b) => mixin("a"~op~"b"))(
                 this.storage, this.storage, source);
             return this;
@@ -526,7 +452,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             if(!(isMatrix!Trhs) && (op == "*" || op == "/"))
         {
             TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
-            static if(typeof(dest).memoryManag == MatrixMemory.dynamic)
+            static if(typeof(dest).memoryManag == MemoryManag.dynamic)
                 dest.setDim([this.nrows, this.ncols]);
             linalg.operations.basic.map!((a, rhs) => mixin("a"~op~"rhs"))(
                 this.storage, dest.storage, rhs);
@@ -541,7 +467,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             if(!(isMatrix!Tlhs) && op == "*")
         {
             TypeOfResultMatrix!(Tlhs, op, typeof(this)) dest;
-            static if(typeof(dest).memoryManag == MatrixMemory.dynamic)
+            static if(typeof(dest).memoryManag == MemoryManag.dynamic)
                 dest.setDim([this.nrows, this.ncols]);
             linalg.operations.basic.map!((a, lhs) => mixin("lhs"~op~"a"))(
                 this.storage, dest.storage, lhs);
@@ -570,7 +496,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
             else
             {
                 TypeOfResultMatrix!(typeof(this), op, Trhs) dest;
-                static if(typeof(dest).memoryManag == MatrixMemory.dynamic)
+                static if(typeof(dest).memoryManag == MemoryManag.dynamic)
                     dest.setDim([this.nrows, rhs.ncols]);
                 static if(this.shape == MatrixShape.row)
                 {
@@ -649,7 +575,7 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         {
             //FIXME: Will fail if conjugation changes type
             Matrix!(ElementType, dimPattern[1], dimPattern[0], storageOrder) dest;
-            static if(typeof(dest).memoryManag == MatrixMemory.dynamic)
+            static if(typeof(dest).memoryManag == MemoryManag.dynamic)
                 dest.setDim([this.ncols, this.nrows]);
             conjMatrix(this.storage, dest.storage);
             return dest;
@@ -664,11 +590,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
         }
 
         void fillZero()() pure
-            in
-            {
-                static if(memoryManag == MatrixMemory.dynamic) assert(!empty);
-            }
-        body
         {
             fill(zero!(ElementType), this.storage);
         }
@@ -765,11 +686,7 @@ public // Map function
         Matrix!(typeof(fun(source[0, 0], args)),
                 Tsource.dimPattern[0], Tsource.dimPattern[1],
                 Tsource.storageOrder) dest;
-        /* If source is empty then return empty matrix */
-        static if(!(Tsource.isStatic))
-            if(source.empty)
-                return dest;
-        static if(!(typeof(dest).isStatic))
+        static if(dest.memoryManag == MemoryManag.dynamic)
             dest.setDim([source.nrows, source.ncols]);
         linalg.operations.basic.map!(fun)(source.storage, dest.storage, args);
         return dest;
@@ -895,19 +812,19 @@ unittest // Dimension control
     debug mixin(debugUnittestBlock("Dimension control"));
 
     Matrix!(int, dynsize, dynsize) a;
-    assert(a.empty);
+    //assert(a.empty);
     assert(a.nrows == 0);
     assert(a.ncols == 0);
     assert(a.dim == [0, 0]);
     a.setDim([2, 3]);
-    assert(!(a.empty));
+    //assert(!(a.empty));
     assert(a.nrows == 2);
     assert(a.ncols == 3);
     assert(a.dim == [2, 3]);
     assert(a.isCompatDim([22, 33]));
 
     Matrix!(int, 2, 3) b;
-    assert(!(b.empty));
+    //assert(!(b.empty));
     assert(b.nrows == 2);
     assert(b.ncols == 3);
     assert(b.dim == [2, 3]);
@@ -1028,6 +945,16 @@ unittest // Slices
     debug mixin(debugUnittestBlock("Slices"));
 
     auto a = Matrix!(int, 4, 6)(array(iota(24)));
+    assert(cast(int[][]) a[1, 1..5]
+           == [[7, 8, 9, 10]]);
+    assert(cast(int[][]) a[1..4, 1]
+           == [[7],
+               [13],
+               [19]]);
+    assert(cast(int[][]) a[1..4, 1..5]
+           == [[7, 8, 9, 10],
+               [13, 14, 15, 16],
+               [19, 20, 21, 22]]);
     assert(cast(int[][]) a[1, Slice(1, 5, 3)]
            == [[7, 10]]);
     assert(cast(int[][]) a[Slice(1, 4, 2), 1]

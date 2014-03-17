@@ -2,11 +2,11 @@ include_rules
 DFLAGS += -L-loddsends -L-lblas -L-llapack
 DFLAGS += -unittest -version=linalg_backend_lapack
 
-: foreach *.d \
-          ../linalg/*.d \
-          ../linalg/aux/*.d \
-          ../linalg/backends/*.d \
-          ../linalg/operations/*.d \
-          ../linalg/storage/*.d \
-          |> !dcompile |> obj/%B.o
-: obj/*.o | $(LIBODDSENDS) |> !build |> test
+: *.d \
+  ../linalg/*.d \
+  ../linalg/aux/*.d \
+  ../linalg/backends/*.d \
+  ../linalg/operations/*.d \
+  ../linalg/storage/*.d \
+  | $(LIBODDSENDS) |> !dcompile |> test.o
+: test.o | $(LIBODDSENDS) |> !build |> test

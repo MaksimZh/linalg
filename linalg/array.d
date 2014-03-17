@@ -4,7 +4,7 @@
  * Matrices.
  *
  * Authors:    Maksim Sergeevich Zholudev
- * Copyright:  Copyright (c) 2013, Maksim Zholudev
+ * Copyright:  Copyright (c) 2013-2014, Maksim Zholudev
  * License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
  */
 module linalg.array;
@@ -21,12 +21,13 @@ version(unittest)
 
 public import linalg.aux.types;
 
+import oddsends;
+
 import linalg.storage.regular1d;
 import linalg.storage.regular2d;
 import linalg.storage.slice;
 
 import linalg.operations.basic;
-
 
 alias linalg.storage.slice.Slice Slice; //NOTE: waiting for proper slice support
 
@@ -65,7 +66,7 @@ struct BasicArray1D(T, size_t dim_, bool isBound_)
     enum bool isBound = isBound_;
 
     /**
-     * Storage of matrix data.
+     * Storage of array data.
      * This field is public to allow direct access to matrix data storage
      * if optimization is needed.
      */
@@ -139,18 +140,6 @@ struct BasicArray1D(T, size_t dim_, bool isBound_)
                 storage.setDim(dim);
             }
         }
-
-        /**
-         * Whether array is empty (not allocated).
-         * Always false for static array.
-         */
-        @property bool empty() pure
-        {
-            static if(isStatic)
-                return false;
-            else
-                return dim == 0;
-        }
     }
 
     public // Slices and indices support
@@ -203,10 +192,7 @@ struct BasicArray1D(T, size_t dim_, bool isBound_)
             static if(!isStatic && !isBound)
                 this.storage = typeof(this.storage)(source.storage);
             else
-                if(source.empty)
-                    fill(zero!(Tsource.ElementType), this.storage);
-                else
-                    copy(source.storage, this.storage);
+                copy(source.storage, this.storage);
             return this;
         }
 
@@ -286,15 +272,15 @@ unittest // Dimension control
     debug mixin(debugUnittestBlock("Dimension control"));
 
     Array1D!(int, dynsize) a;
-    assert(a.empty);
+    //assert(a.empty);
     assert(a.dim == 0);
     a.setDim(3);
-    assert(!(a.empty));
+    //assert(!(a.empty));
     assert(a.dim == 3);
     assert(a.isCompatDim(33));
 
     Array1D!(int, 3) b;
-    assert(!(b.empty));
+    //assert(!(b.empty));
     assert(b.dim == 3);
     assert(!(b.isCompatDim(33)));
 }
@@ -440,7 +426,7 @@ template ArrayView2D(T, size_t nrows = dynsize, size_t ncols = dynsize,
  * Array or view.
  */
 struct BasicArray2D(T, size_t nrows_, size_t ncols_,
-                    StorageOrder storageOrder_, bool isBound_)
+                    StorageOrder storageOrder_, bool isBound)
 {
     /** Dimensions pattern */
     enum size_t[2] dimPattern = [nrows_, ncols_];
@@ -454,8 +440,10 @@ struct BasicArray2D(T, size_t nrows_, size_t ncols_,
     alias StorageType.ElementType ElementType;
     /** Storage order */
     enum StorageOrder storageOrder = storageOrder_;
-    enum bool isStatic = StorageType.isStatic;
-    enum bool isBound = isBound_;
+    enum MemoryManag memoryManag =
+        StorageType.isStatic ? MemoryManag.stat : (
+            isBound ? MemoryManag.bound : MemoryManag.dynamic);
+    enum bool isStatic = (memoryManag == MemoryManag.stat);
 
     /**
      * Storage of matrix data.
@@ -534,18 +522,6 @@ struct BasicArray2D(T, size_t nrows_, size_t ncols_,
             {
                 storage.setDim(dim);
             }
-        }
-
-        /**
-         * Whether array is empty (not allocated).
-         * Always false for static array.
-         */
-        @property bool empty() pure
-        {
-            static if(isStatic)
-                return false;
-            else
-                return nrows*ncols == 0;
         }
     }
 
@@ -640,7 +616,7 @@ struct BasicArray2D(T, size_t nrows_, size_t ncols_,
             if(op == "-")
         {
             //FIXME: fails if -a has different type
-            static if(memoryManag == MatrixMemory.stat)
+            static if(memoryManag == MemoryManag.stat)
                 BasicArray2D dest;
             else
                 auto dest = Array2D!(ElementType,
@@ -675,6 +651,21 @@ struct BasicArray2D(T, size_t nrows_, size_t ncols_,
                 this.storage, this.storage, source);
             return this;
         }
+
+        auto opBinary(string op, Trhs)(
+            auto ref Trhs rhs) pure
+            if(!(isArray2D!Trhs) && (op == "*" || op == "/"))
+        {
+            Array2D!(TypeOfOp!(ElementType, op, Trhs),
+                     dimPattern[0], dimPattern[1],
+                     storageOrder) dest;
+            static if(typeof(dest).memoryManag == MemoryManag.dynamic)
+                dest.setDim([nrows, ncols]);
+            linalg.operations.basic.map!((a, rhs) => mixin("a"~op~"rhs"))(
+                this.storage, dest.storage, rhs);
+            return dest;
+        }
+
     }
 }
 
@@ -787,19 +778,19 @@ unittest // Dimension control
     debug mixin(debugUnittestBlock("Dimension control"));
     
     Array2D!(int, dynsize, dynsize) a;
-    assert(a.empty);
+    //assert(a.empty);
     assert(a.nrows == 0);
     assert(a.ncols == 0);
     assert(a.dim == [0, 0]);
     a.setDim([2, 3]);
-    assert(!(a.empty));
+    //assert(!(a.empty));
     assert(a.nrows == 2);
     assert(a.ncols == 3);
     assert(a.dim == [2, 3]);
     assert(a.isCompatDim([22, 33]));
 
     Array2D!(int, 2, 3) b;
-    assert(!(b.empty));
+    //assert(!(b.empty));
     assert(b.nrows == 2);
     assert(b.ncols == 3);
     assert(b.dim == [2, 3]);
