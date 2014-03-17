@@ -260,7 +260,6 @@ struct BasicMatrix(T, size_t nrows_, size_t ncols_,
 
     public // Slices and indices support
     {
-        //NOTE: depends on DMD pull-request 443
         mixin sliceOverload;
 
         size_t opDollar(size_t dimIndex)() pure
@@ -946,6 +945,16 @@ unittest // Slices
     debug mixin(debugUnittestBlock("Slices"));
 
     auto a = Matrix!(int, 4, 6)(array(iota(24)));
+    assert(cast(int[][]) a[1, 1..5]
+           == [[7, 8, 9, 10]]);
+    assert(cast(int[][]) a[1..4, 1]
+           == [[7],
+               [13],
+               [19]]);
+    assert(cast(int[][]) a[1..4, 1..5]
+           == [[7, 8, 9, 10],
+               [13, 14, 15, 16],
+               [19, 20, 21, 22]]);
     assert(cast(int[][]) a[1, Slice(1, 5, 3)]
            == [[7, 10]]);
     assert(cast(int[][]) a[Slice(1, 4, 2), 1]

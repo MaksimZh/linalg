@@ -44,7 +44,6 @@ mixin template sliceOverload()
 {
     Slice opSlice(size_t dimIndex)(size_t lo, size_t up) pure
     {
-        static assert(dimIndex == 0);
         return Slice(lo, up);
     }
 }

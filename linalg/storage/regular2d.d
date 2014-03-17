@@ -211,7 +211,6 @@ struct StorageRegular2D(T, StorageOrder storageOrder_,
 
     public // Slices and indices support
     {
-        //NOTE: depends on DMD pull-request 443
         private size_t _mapIndex(size_t irow, size_t icol) pure const
         {
             return irow * _stride[0] + icol * _stride[1];

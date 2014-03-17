@@ -165,7 +165,6 @@ struct StorageRegular1D(T, size_t dim_)
 
     public // Slices and indices support
     {
-        //NOTE: depends on DMD pull-request 443
         private size_t _mapIndex(size_t i) pure const
         {
             return i * _stride;
