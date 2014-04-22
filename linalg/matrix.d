@@ -1358,6 +1358,10 @@ unittest // Diagonalization
         //FIXME: may fail for low precision
         assert(a.symmEigenval() == [1, 2, 3]);
         assert(b.symmEigenval(1, 2) == [2, 3]);
+        auto result = a.symmEigenAll(1, 2);
+        assert(result[0] == [2, 3]);
+        assert(result[1] == [[C(0), C(1), C(0)],
+                             [C(0), C(0), C(1)]]);
     }
 }
 

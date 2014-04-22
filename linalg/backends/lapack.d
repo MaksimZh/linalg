@@ -125,7 +125,7 @@ auto symmEigenAll(ElementType)(ElementType[] mx, size_t dim,
 
     //NOTE: GC allocation
     auto tmpval = new double[dim];
-    auto vec = new Complex!double[N * valNum];
+    auto vecSource = new Complex!double[N * valNum];
     auto WORK = new Complex!double[LWORK];
     auto RWORK = new double[7*N];
     auto IWORK = new int[5*N];
@@ -138,9 +138,12 @@ auto symmEigenAll(ElementType)(ElementType[] mx, size_t dim,
             &IL, &IU,
             &abstol,
             &M,
-            tmpval.ptr, vec.ptr, &LDZ,
+            tmpval.ptr, vecSource.ptr, &LDZ,
             WORK.ptr, &LWORK, RWORK.ptr, IWORK.ptr,
             IFAIL.ptr, &info);
+    auto vec = new Complex!double[][valNum];
+    foreach(i; 0..valNum)
+        vec[i] = vecSource[(i * N)..((i + 1) * N)];
     return tuple(tmpval[0..valNum], vec);
 }
 
