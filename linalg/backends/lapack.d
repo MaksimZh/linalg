@@ -143,7 +143,11 @@ auto symmEigenAll(ElementType)(ElementType[] mx, size_t dim,
             IFAIL.ptr, &info);
     auto vec = new Complex!double[][valNum];
     foreach(i; 0..valNum)
+    {
         vec[i] = vecSource[(i * N)..((i + 1) * N)];
+        foreach(ref v; vec[i])
+            v = conj(v);
+    }
     return tuple(tmpval[0..valNum], vec);
 }
 
