@@ -92,7 +92,7 @@ body
 void map(alias fun, Tsource, Tdest, Targs...)(
     auto ref Tsource source,
     auto ref Tdest dest,
-    auto ref Targs args) pure
+    auto ref Targs args)
     if(isStorage!Tsource && isStorage!Tdest)
     in
     {
@@ -112,7 +112,7 @@ body
                   ~ ", " ~ Targs.length ~ " arguments) -> ("
                   ~ Tdest.ElementType.stringof
                   ~ "): band function or storage element types");
-    
+
     debug(linalg_operations) dfoOp2("map", source.container, dest.container);
     auto isource = source.byElement;
     auto idest = dest.byElement;

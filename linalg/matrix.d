@@ -680,7 +680,7 @@ public // Map function
      */
     auto map(alias fun, Tsource, Targs...)(
          auto ref Tsource source,
-         auto ref Targs args) pure
+         auto ref Targs args)
         if(isMatrix!Tsource)
     {
         Matrix!(typeof(fun(source[0, 0], args)),
