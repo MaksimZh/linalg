@@ -46,4 +46,9 @@ mixin template sliceOverload()
     {
         return Slice(lo, up);
     }
+
+    auto opSlice()() pure //HACK: probably not needed since 2.066
+    {
+        return opIndex();
+    }
 }

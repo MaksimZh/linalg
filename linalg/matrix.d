@@ -966,7 +966,7 @@ unittest // Slices
 
     a[Slice(1, 4, 2), Slice(1, 5, 3)] =
         Matrix!(int, 2, 2)(array(iota(101, 105)));
-    assert(cast(int[][]) a
+    assert(cast(int[][]) a[]
            == [[0, 1, 2, 3, 4, 5],
                [6, 101, 8, 9, 102, 11],
                [12, 13, 14, 15, 16, 17],
