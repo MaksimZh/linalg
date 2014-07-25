@@ -6,4 +6,4 @@ DFLAGS += -version=linalg_backend_lapack
   linalg/backends/*.d \
   linalg/operations/*.d \
   linalg/storage/*.d \
-  |> !link |> liblinalg.a
+  |> !link |> liblinalg.a ../<linalg>

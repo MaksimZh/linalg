@@ -8,5 +8,5 @@ DFLAGS += -unittest -version=linalg_backend_lapack
   ../linalg/backends/*.d \
   ../linalg/operations/*.d \
   ../linalg/storage/*.d \
-  | $(LIBODDSENDS) |> !dcompile |> test.o
-: test.o | $(LIBODDSENDS) |> !build |> test
+  | ../../<oddsends> |> !dcompile |> test.o
+: test.o | ../../<oddsends> |> !build |> test
