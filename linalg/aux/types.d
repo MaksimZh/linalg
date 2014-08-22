@@ -98,10 +98,7 @@ template zero(T)
         enum T zero = T.zero;
     else static if(is(typeof(T.zero()) == T))
         enum T zero = T.zero();
-    //XXX
-    //else static assert(false, T.stringof);
-    else
-        enum T zero = T.init;
+    else static assert(false, "Can't find zero for " ~ T.stringof);
 }
 
 /** Input range with elements constructed from the elements of the wrapped one */
