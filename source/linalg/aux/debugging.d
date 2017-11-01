@@ -100,9 +100,9 @@ enum string debugSilentScope =
 string debugUnittestBlock(string name)
 {
     return "debug(unittests) {"
-        "debugOP.writeln(__MODULE__ ~ \" unittest: " ~ name ~ "\");"
-        "mixin(debugIndentScope);"
-        "} else debug mixin(debugSilentScope);";
+        ~ "debugOP.writeln(__MODULE__ ~ \" unittest: " ~ name ~ "\");"
+        ~ "mixin(debugIndentScope);"
+        ~ "} else debug mixin(debugSilentScope);";
 }
 
 /**

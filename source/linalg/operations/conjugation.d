@@ -30,7 +30,7 @@ body
 {
     static assert(Tsource.rank == Tdest.rank,
                   "Cannot copy conjugated elements"
-                  "between storages of different rank");
+                  ~ "between storages of different rank");
     debug(linalg_operations) dfoOp2("conjMatrix",
                                     source.container, dest.container);
     static if(Tsource.rank == 1)
