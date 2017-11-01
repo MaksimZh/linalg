@@ -1,9 +1,0 @@
-include_rules
-DFLAGS += -version=linalg_backend_lapack
-
-: linalg/*.d \
-  linalg/aux/*.d \
-  linalg/backends/*.d \
-  linalg/operations/*.d \
-  linalg/storage/*.d \
-  |> !link |> liblinalg.a ../<linalg>

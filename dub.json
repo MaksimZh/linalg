@@ -1,0 +1,8 @@
+{
+    "name": "linalg",
+    "authors": ["Maksim S. Zholudev"],
+    "targetType": "library",
+    "dependencies": {
+        "oddsends": "*"
+    },
+}
