@@ -2,7 +2,9 @@
     "name": "linalg",
     "authors": ["Maksim S. Zholudev"],
     "targetType": "library",
+    "versions": ["linalg_backend_lapack"],
     "dependencies": {
         "oddsends": "*"
     },
+    "libs": ["blas", "lapack"]
 }
