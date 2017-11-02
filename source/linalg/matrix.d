@@ -9,7 +9,7 @@
  */
 module linalg.matrix;
 
-public import linalg.aux.types;
+public import linalg.misc.types;
 
 import std.traits;
 
@@ -24,7 +24,7 @@ import linalg.operations.multiplication;
 import linalg.operations.eigen;
 import linalg.operations.inversion;
 
-debug import linalg.aux.debugging;
+debug import linalg.misc.debugging;
 
 version(unittest)
 {

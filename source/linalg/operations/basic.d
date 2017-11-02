@@ -10,10 +10,10 @@
  */
 module linalg.operations.basic;
 
-debug import linalg.aux.debugging;
+debug import linalg.misc.debugging;
 
-import linalg.aux.types;
-import linalg.aux.traits;
+import linalg.misc.types;
+import linalg.misc.traits;
 
 /* Copy data between storages */
 void fill(Tvalue, Tdest)(auto ref Tvalue value,

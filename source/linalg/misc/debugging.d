@@ -11,7 +11,7 @@
  * Copyright:  Copyright (c) 2013-2014, Maksim Zholudev
  * License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
  */
-module linalg.aux.debugging;
+module linalg.misc.debugging;
 
 public import std.stdio;
 

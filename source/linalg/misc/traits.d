@@ -7,12 +7,12 @@
  * Copyright:  Copyright (c) 2014, Maksim Zholudev
  * License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
  */
-module linalg.aux.traits;
+module linalg.misc.traits;
 
 import std.traits;
 
 public import oddsends;
-import linalg.aux.types;
+import linalg.misc.types;
 
 template isExistFun(ResultType, alias fun, Targs...)
 {

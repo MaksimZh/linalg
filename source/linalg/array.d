@@ -11,7 +11,7 @@ module linalg.array;
 
 import std.traits;
 
-debug import linalg.aux.debugging;
+debug import linalg.misc.debugging;
 
 version(unittest)
 {
@@ -19,7 +19,7 @@ version(unittest)
     import std.range;
 }
 
-public import linalg.aux.types;
+public import linalg.misc.types;
 
 import oddsends;
 

@@ -9,9 +9,9 @@
  */
 module linalg.operations.inversion;
 
-debug import linalg.aux.debugging;
+debug import linalg.misc.debugging;
 
-import linalg.aux.types;
+import linalg.misc.types;
 import linalg.storage.regular2d;
 import linalg.operations.basic;
 
