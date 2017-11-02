@@ -1,6 +1,8 @@
 *.a
 *.o
 *.obj
+*.lib
+*.exe
 
 .dub
 dub.selections.json
