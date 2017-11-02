@@ -21,5 +21,12 @@
             "versions": ["linalg_backend_lapack"],
             "libs": ["blas", "lapack"]
         },
+        {
+            "name": "windows-mkl",
+            "platforms": ["windows-x86_64"],
+            "versions": ["linalg_backend_mkl"],
+            "libs": ["mkl_intel_ilp64", "mkl_sequential", "mkl_core"],
+            "lflags": ["/LIBPATH:\\\"$MKLROOT/lib/intel64\\\""],
+        },
     ],
 }
