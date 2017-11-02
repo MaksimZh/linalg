@@ -44,6 +44,7 @@ private version(linalg_backend_lapack)
 private version(linalg_backend_mkl)
 {
     version = linalg_backend_eigenval;
+    version = linalg_backend_eigenvec;
 }
 
 

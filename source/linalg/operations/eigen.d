@@ -30,6 +30,7 @@ private version(linalg_backend_mkl)
     import linalg.backends.mkl;
 
     alias linalg.backends.mkl.symmEigenval symmEigenval;
+    alias linalg.backends.mkl.symmEigenAll symmEigenAll;
 }
 
 /*

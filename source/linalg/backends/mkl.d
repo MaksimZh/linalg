@@ -32,6 +32,7 @@ auto symmEigenval(ElementType)(ElementType[] mx, size_t dim) pure
     return values;
 }
 
+
 auto symmEigenval(ElementType)(ElementType[] mx, size_t dim,
                                size_t ilo, size_t iup) pure
     if(is(ElementType == Complex!double))
@@ -52,6 +53,39 @@ auto symmEigenval(ElementType)(ElementType[] mx, size_t dim,
         null, 1, ifail.ptr);
     return values[0..valNum];
 }
+
+
+auto symmEigenAll(ElementType)(ElementType[] mx, size_t dim,
+                               size_t ilo, size_t iup) pure
+    if(is(ElementType == Complex!double))
+{
+    auto values = new double[dim];
+    size_t valNum = iup - ilo + 1;
+    lapack_int n = cast(lapack_int) dim;
+    lapack_int il = cast(lapack_int) ilo + 1;
+    lapack_int iu = cast(lapack_int) iup + 1;
+    lapack_int ldz = cast(lapack_int) valNum;
+    lapack_int m;
+    auto ifail = new lapack_int[dim];
+    auto vecSource = new Complex!double[dim * valNum];
+    lapack_int info = LAPACKE_zheevx(
+        LAPACK_ROW_MAJOR, 'V', 'I', 'U',
+        n, mx.ptr, n,
+        0, 0, il, iu,
+        abstol,
+        &m, values.ptr,
+        vecSource.ptr, ldz, ifail.ptr);
+
+    auto vec = new Complex!double[][valNum];
+    foreach(i; 0..valNum)
+    {
+        vec[i] = new Complex!double[dim];
+        foreach(j; 0..dim)
+            vec[i][j] = conj(vecSource[j * valNum + i]);
+    }
+    return tuple(values[0..valNum], vec);
+}
+
 
 
 private:
