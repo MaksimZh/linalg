@@ -8,18 +8,18 @@
 
     "configurations": [
         {
-            "name": "linux-lapack",
-            "platforms": ["linux"],
-            "versions": ["linalg_backend_lapack"],
-            "libs": ["blas", "lapack"]
-        },
-        {
             "name": "linux-mkl",
             "platforms": ["linux"],
             "versions": ["linalg_backend_mkl"],
             "libs": ["mkl_intel_ilp64",
                      "mkl_sequential", "mkl_core", "pthread", "m", "dl"],
             "lflags": ["-L$MKLROOT/lib/intel64"],
+        },
+        {
+            "name": "linux-lapack",
+            "platforms": ["linux"],
+            "versions": ["linalg_backend_lapack"],
+            "libs": ["blas", "lapack"]
         },
     ],
 }
