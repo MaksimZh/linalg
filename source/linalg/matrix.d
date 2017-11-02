@@ -30,9 +30,21 @@ version(unittest)
 {
     import std.array;
     import std.range;
+    import std.math;
 }
 
 alias linalg.storage.slice.Slice Slice; //NOTE: waiting for proper slice support
+
+
+private version(linalg_backend_lapack)
+{
+    version = linalg_backend_eigenval;
+    version = linalg_backend_eigenvec;
+}
+private version(linalg_backend_mkl)
+{
+    version = linalg_backend_eigenval;
+}
 
 
 /* Derive storage type for given matrix parameters */
@@ -1346,18 +1358,20 @@ unittest // Diagonalization
 {
     debug mixin(debugUnittestBlock("Diagonalization"));
 
-    version(linalg_backend_lapack)
+    alias Complex!double C;
+    auto a = Matrix!(C, 3, 3)(
+        [C(1, 0), C(0, 0), C(0, 0),
+         C(0, 0), C(2, 0), C(0, 0),
+         C(0, 0), C(0, 0), C(3, 0)]);
+    double[] val;
+    auto b = a.dup;
+    version(linalg_backend_eigenval)
     {
-        alias Complex!double C;
-        auto a = Matrix!(C, 3, 3)(
-            [C(1, 0), C(0, 0), C(0, 0),
-             C(0, 0), C(2, 0), C(0, 0),
-             C(0, 0), C(0, 0), C(3, 0)]);
-        double[] val;
-        auto b = a.dup;
-        //FIXME: may fail for low precision
-        assert(a.symmEigenval() == [1, 2, 3]);
-        assert(b.symmEigenval(1, 2) == [2, 3]);
+        assert(a.symmEigenval().approxEqual([1, 2, 3]));
+        assert(b.symmEigenval(1, 2).approxEqual([2, 3]));
+    }
+    version(linalg_backend_eigenvec)
+    {
         auto result = a.symmEigenAll(1, 2);
         assert(result[0] == [2, 3]);
         assert(result[1] == [[C(0), C(1), C(0)],

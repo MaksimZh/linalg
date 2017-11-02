@@ -25,6 +25,12 @@ private version(linalg_backend_lapack)
     alias linalg.backends.lapack.symmEigenval symmEigenval;
     alias linalg.backends.lapack.symmEigenAll symmEigenAll;
 }
+private version(linalg_backend_mkl)
+{
+    import linalg.backends.mkl;
+
+    alias linalg.backends.mkl.symmEigenval symmEigenval;
+}
 
 /*
  * Return all eigenvalues.

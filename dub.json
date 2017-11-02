@@ -2,9 +2,24 @@
     "name": "linalg",
     "authors": ["Maksim S. Zholudev"],
     "targetType": "library",
-    "versions": ["linalg_backend_lapack"],
     "dependencies": {
         "oddsends": "*"
     },
-    "libs": ["blas", "lapack"]
+
+    "configurations": [
+        {
+            "name": "linux-lapack",
+            "platforms": ["linux"],
+            "versions": ["linalg_backend_lapack"],
+            "libs": ["blas", "lapack"]
+        },
+        {
+            "name": "linux-mkl",
+            "platforms": ["linux"],
+            "versions": ["linalg_backend_mkl"],
+            "libs": ["mkl_intel_ilp64",
+                     "mkl_sequential", "mkl_core", "pthread", "m", "dl"],
+            "lflags": ["-L$MKLROOT/lib/intel64"],
+        },
+    ],
 }

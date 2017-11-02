@@ -4,4 +4,4 @@
 
 .dub
 dub.selections.json
-linalg-test-library
+linalg-test-*
